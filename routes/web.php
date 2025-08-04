@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileSettingsController;
@@ -118,4 +119,9 @@ Route::get('/files/lists-with-counts', [FileController::class, 'getListsWithCoun
     // 🎯 API endpoint to fetch a message thread between auth user and another user
 Route::middleware(['auth'])->group(function () {
     Route::get('/api/messages/thread/{receiverId}', [MessageController::class, 'thread']);
+});
+
+Route::get('/migrate', function () {
+    Artisan::call('migrate', ['--force' => true]);
+    return '✅ Migrations complete 🎉';
 });
