@@ -122,9 +122,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::get('/migrate-series', function () {
-    require_once database_path('migrations/2025_07_05_172459_create_series_table.php');
+    require_once database_path('migrations/0001_01_01_000000_create_users_table.php');
     (new CreateSeriesTable)->up();
-    return '✅ Series table migrated.';
+    return '✅ users table migrated.';
 });
 
 Route::get('/migrate-posts', function () {
