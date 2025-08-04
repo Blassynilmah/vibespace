@@ -121,10 +121,16 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/messages/thread/{receiverId}', [MessageController::class, 'thread']);
 });
 
-Route::get('/migrate-series', function () {
+Route::get('/migrate-users', function () {
     require_once database_path('migrations/0001_01_01_000000_create_users_table.php');
-    (new CreateSeriesTable)->up();
+    (new CreateUsersTable)->up();
     return '✅ users table migrated.';
+});
+
+Route::get('/migrate-series', function () {
+    require_once database_path('migrations/2025_07_05_172459_create_series_table.php');
+    (new CreateSeriesTable)->up();
+    return '✅ series table migrated.';
 });
 
 Route::get('/migrate-posts', function () {
