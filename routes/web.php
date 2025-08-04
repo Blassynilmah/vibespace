@@ -116,12 +116,18 @@ Route::get('/moodboards/{mood_board}', [BoardController::class, 'show'])
 Route::get('/files/lists-with-counts', [FileController::class, 'getListsWithCounts'])
     ->middleware('auth');
 
-    // 🎯 API endpoint to fetch a message thread between auth user and another user
-Route::middleware(['auth'])->group(function () {
-    Route::get('/api/messages/thread/{receiverId}', [MessageController::class, 'thread']);
+Route::get('/migrate-user-files', function () {
+    Artisan::call('migrate', [
+        '--path' => 'database/migrations/2025_07_13_123333_create_user_files_table.php'
+    ]);
+
+    return 'User files table migrated 🗃️';
 });
 
-Route::get('/migrate', function () {
-    Artisan::call('migrate', ['--force' => true]);
-    return '✅ Migrations complete 🎉';
+Route::get('/migrate-messages', function () {
+    Artisan::call('migrate', [
+        '--path' => 'database/migrations/2025_07_13_133355_create_messages_table.php'
+    ]);
+
+    return 'Messages table migrated 💬';
 });
