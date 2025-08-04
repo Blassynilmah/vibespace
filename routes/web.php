@@ -121,7 +121,110 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/api/messages/thread/{receiverId}', [MessageController::class, 'thread']);
 });
 
-Route::get('/migrate', function () {
-    Artisan::call('migrate', ['--force' => true]);
-    return '✅ Migrations complete 🎉';
+Route::get('/migrate-series', function () {
+    require_once database_path('migrations/2025_07_05_172459_create_series_table.php');
+    (new CreateSeriesTable)->up();
+    return '✅ Series table migrated.';
+});
+
+Route::get('/migrate-posts', function () {
+    require_once database_path('migrations/2025_07_05_172514_create_posts_table.php');
+    (new CreatePostsTable)->up();
+    return '✅ Posts table migrated.';
+});
+
+Route::get('/migrate-reactions', function () {
+    require_once database_path('migrations/2025_07_05_172533_create_reactions_table.php');
+    (new CreateReactionsTable)->up();
+    return '✅ Reactions table migrated.';
+});
+
+Route::get('/migrate-fan-mixes', function () {
+    require_once database_path('migrations/2025_07_05_172628_create_fan_mixes_table.php');
+    (new CreateFanMixesTable)->up();
+    return '✅ FanMixes table migrated.';
+});
+
+Route::get('/migrate-moodboard-image', function () {
+    require_once database_path('migrations/2025_07_07_140236_add_image_to_mood_boards_table.php');
+    (new AddImageToMoodBoardsTable)->up();
+    return '✅ Moodboard image column migrated.';
+});
+
+Route::get('/migrate-comments', function () {
+    require_once database_path('migrations/2025_07_07_150211_create_comments_table.php');
+    (new CreateCommentsTable)->up();
+    return '✅ Comments table migrated.';
+});
+
+Route::get('/migrate-replies', function () {
+    require_once database_path('migrations/2025_07_11_170655_create_replies_table.php');
+    (new CreateRepliesTable)->up();
+    return '✅ Replies table migrated.';
+});
+
+Route::get('/migrate-comment-reactions', function () {
+    require_once database_path('migrations/2025_07_11_191021_create_comment_reactions_table.php');
+    (new CreateCommentReactionsTable)->up();
+    return '✅ Comment reactions table migrated.';
+});
+
+Route::get('/migrate-moodboard-title-null', function () {
+    require_once database_path('migrations/2025_07_12_173013_make_title_nullable_in_mood_boards_table.php');
+    (new MakeTitleNullableInMoodBoardsTable)->up();
+    return '✅ Moodboard title nullable migrated.';
+});
+
+Route::get('/migrate-moodboard-video', function () {
+    require_once database_path('migrations/2025_07_13_075613_add_video_to_mood_boards_table.php');
+    (new AddVideoToMoodBoardsTable)->up();
+    return '✅ Moodboard video column migrated.';
+});
+
+Route::get('/migrate-profile-pictures', function () {
+    require_once database_path('migrations/2025_07_13_175818_create_profile_pictures_table.php');
+    (new CreateProfilePicturesTable)->up();
+    return '✅ Profile pictures table migrated.';
+});
+
+Route::get('/migrate-follows', function () {
+    require_once database_path('migrations/2025_07_14_090732_create_follows_table.php');
+    (new CreateFollowsTable)->up();
+    return '✅ Follows table migrated.';
+});
+
+Route::get('/migrate-message-columns', function () {
+    require_once database_path('migrations/2025_07_14_122335_add_is_read_and_attachments_to_messages_table.php');
+    (new AddIsReadAndAttachmentsToMessagesTable)->up();
+    return '✅ Extra message columns migrated.';
+});
+
+Route::get('/migrate-user-files-type', function () {
+    require_once database_path('migrations/2025_07_18_195824_add_content_type_to_user_files_table.php');
+    (new AddContentTypeToUserFilesTable)->up();
+    return '✅ User files content type column migrated.';
+});
+
+Route::get('/migrate-personal-tokens', function () {
+    require_once database_path('migrations/2025_07_18_210335_create_personal_access_tokens_table.php');
+    (new CreatePersonalAccessTokensTable)->up();
+    return '✅ Personal access tokens table migrated.';
+});
+
+Route::get('/migrate-file-lists', function () {
+    require_once database_path('migrations/2025_07_21_175814_create_file_lists_table.php');
+    (new CreateFileListsTable)->up();
+    return '✅ File lists table migrated.';
+});
+
+Route::get('/migrate-file-list-items', function () {
+    require_once database_path('migrations/2025_07_21_175851_create_file_list_items_table.php');
+    (new CreateFileListItemsTable)->up();
+    return '✅ File list items table migrated.';
+});
+
+Route::get('/migrate-attachments', function () {
+    require_once database_path('migrations/2025_08_01_161838_create_attachments_table.php');
+    (new CreateAttachmentsTable)->up();
+    return '✅ Attachments table migrated.';
 });
