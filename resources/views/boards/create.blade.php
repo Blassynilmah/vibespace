@@ -32,13 +32,17 @@
             <!-- Mood Select -->
             <div class="w-full sm:w-1/2">
                 <label class="block text-sm sm:text-base font-semibold mb-1 text-gray-700">Mood</label>
-                <select x-model="form.mood"
-                        class="w-full rounded-lg sm:rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none px-4 py-2 text-sm sm:text-base">
+                <select x-model="form.latest_mood"
+                    class="w-full rounded-lg sm:rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none px-4 py-2 text-sm sm:text-base">
                     <option value="">Select mood</option>
-                    <option value="relaxed">😌 Relaxed</option>
-                    <option value="craving">🤤 Craving</option>
-                    <option value="hyped">🔥 Hyped</option>
-                    <option value="obsessed">🫠 Obsessed</option>
+                    <option value="excited">🔥 excited</option>
+                    <option value="happy">😊 happy</option>
+                    <option value="chill">😎 chill</option>
+                    <option value="thoughtful">🤔 thoughtful</option>
+                    <option value="sad">😭 sad</option>
+                    <option value="flirty">😏 flirty</option>
+                    <option value="mindblown">🤯 mind-blown</option>
+                    <option value="love">💖 love</option>
                 </select>
             </div>
 
@@ -78,7 +82,7 @@
         </div>
     </form>
 
-    <!-- File Picker Modal (keep your existing amazing modal here) -->
+    <!-- File Picker Modal -->
             <div x-show="showFilePickerModal"
             @click.self="showFilePickerModal = false"
             class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center"
@@ -242,7 +246,7 @@ function createBoardForm() {
     },
     showFilePickerModal: false,
     selectedFileIds: [],
-    filePickerFiles: [], // Properly initialized
+    filePickerFiles: [], 
     filePickerOffset: 0,
     filePickerHasMore: true,
     focusedPreviewFile: null,
@@ -385,46 +389,81 @@ methods: {
         this.isMobileListView = true;
     },
 
-async submitForm() {
-    if (!this.form.mood.trim()) return this.showToast('Please select a mood 🧠', true);
-    if (!this.form.title.trim() && !this.form.images.length) return this.showToast('Add a title or select media 🙏', true);
+    async submitForm() {
+        
+        console.log('submitForm called', { form: this.form });
 
-    this.showToast('Creating...');
+        // Mood validation
+        if (!this.form.latest_mood.trim()) {
+            console.log('⛔ Validation failed: no mood selected');
+            return this.showToast('Please select a mood 🧠', true);
+        }
 
-    const formData = new FormData();
-    formData.append('title', this.form.title);
-    formData.append('description', this.form.description);
-    formData.append('latest_mood', this.form.mood);
-    
-    // Send array of image IDs
-    if (this.form.images.length) {
-        const imageIds = this.form.images.map(img => img.id);
-        formData.append('image_ids', JSON.stringify(imageIds));
-    }
+        // Title or images validation
+        if (!this.form.title.trim() && !this.form.images.length) {
+            console.log('⛔ Validation failed: missing title & no images');
+            return this.showToast('Add a title or select media 🙏', true);
+        }
 
-    try {
-        const res = await fetch('/boards', {
+        console.log('✔️ Validation passed, showing "Creating..." toast');
+        this.showToast('Creating...');
+
+        // Build FormData
+        const formData = new FormData();
+        formData.append('title', this.form.title);
+        formData.append('description', this.form.description);
+        formData.append('latest_mood', this.form.latest_mood);
+
+        // Images: single number or array
+        if (this.form.images.length === 1) {
+            // send one numeric ID
+            const id = this.form.images[0].id;
+            console.log('Appending single image_id:', id);
+            formData.append('image_ids', id);
+        } else if (this.form.images.length > 1) {
+            // send multiple via bracket notation
+            const ids = this.form.images.map(img => img.id);
+            console.log('Appending multiple image_ids[]:', ids);
+            ids.forEach(id => {
+            formData.append('image_ids[]', id);
+            });
+        } else {
+            console.log('No images to append');
+        }
+
+        console.log('Final FormData entries:', Array.from(formData.entries()));
+
+        // Send request
+        try {
+            const res = await fetch('/boards', {
             method: 'POST',
-            headers: { 
+            headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
                 'Accept': 'application/json',
             },
-            body: formData
-        });
+            body: formData,
+            });
 
-        const data = await res.json();
-        
-        if (!res.ok) {
+            console.log('Fetch completed with status:', res.status);
+            const data = await res.json();
+            console.log('Parsed JSON response:', data);
+
+            if (!res.ok) {
+            console.log('⛔ Server responded with error:', data);
             throw new Error(data.error || 'Invalid server response');
-        }
+            }
 
-        this.showToast('Board created 🎉');
-        setTimeout(() => window.location.href = data.redirect, 3000);
-    } catch (err) {
-        console.error(err);
-        this.showToast(err.message || 'Something went wrong 😢', true);
-    }
-},
+            console.log('🎉 Success! Redirecting to:', data.redirect);
+            this.showToast('Board created 🎉');
+            setTimeout(() => {
+            window.location.href = data.redirect;
+            }, 3000);
+
+        } catch (err) {
+            console.error('❌ Error in submitForm:', err);
+            this.showToast(err.message || 'Something went wrong 😢', true);
+        }
+        },
 
         // 📸 File Preview Modal (from raw upload)
         openPreviewModal(event) {
@@ -463,35 +502,73 @@ async submitForm() {
             }
         },
 
-        toggleFileSelection(id) {
-            const alreadySelected = this.selectedFileIds.includes(id);
+        canSelectFile(file) {
+            const isImage = file.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            const isVideo = file.filename.match(/\.(mp4|mov|avi|webm)$/i);
 
-            if (alreadySelected) {
-                this.selectedFileIds = [];
-            } else {
-                this.selectedFileIds = [id]; // allow only one selection
-            }
-        },
-
-        canAddSelection() {
-            const selected = this.filePickerFiles.filter(f =>
+            const selectedFiles = this.filePickerFiles.filter(f =>
                 this.selectedFileIds.includes(f.id)
             );
-
-            const selectedImages = selected.filter(f =>
+            const selectedImages = selectedFiles.filter(f =>
                 f.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)
             );
-            const selectedVideos = selected.filter(f =>
+            const selectedVideos = selectedFiles.filter(f =>
                 f.filename.match(/\.(mp4|mov|avi|webm)$/i)
             );
 
-            const validImageCount = selectedImages.length > 0 && selectedImages.length <= 5;
-            const validVideoCount = selectedVideos.length === 1;
+            // If a video is already selected, no other file can be selected
+            if (selectedVideos.length > 0) {
+                // Only allow the already selected video to be unchecked
+                return this.selectedFileIds.includes(file.id);
+            }
 
-            return (
-                (validImageCount && selectedVideos.length === 0) ||
-                (validVideoCount && selectedImages.length === 0)
-            );
+            // If images are selected, allow up to 20 images, no videos
+            if (selectedImages.length > 0) {
+                if (isImage) {
+                    // Allow selecting up to 20 images
+                    return (
+                        this.selectedFileIds.includes(file.id) ||
+                        selectedImages.length < 20
+                    );
+                } else {
+                    // Don't allow selecting a video if images are selected
+                    return false;
+                }
+            }
+
+            // If nothing is selected, allow any file
+            return true;
+        },
+
+        toggleFileSelection(id) {
+            const file = this.filePickerFiles.find(f => f.id === id);
+            if (!file) return;
+
+            const isImage = file.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+            const isVideo = file.filename.match(/\.(mp4|mov|avi|webm)$/i);
+
+            // If selecting a video, clear all and select only this video
+            if (isVideo) {
+                this.selectedFileIds = [id];
+                return;
+            }
+
+            // If a video is already selected, do nothing
+            if (this.selectedFileIds.length === 1) {
+                const selectedFile = this.filePickerFiles.find(f => f.id === this.selectedFileIds[0]);
+                if (selectedFile && selectedFile.filename.match(/\.(mp4|mov|avi|webm)$/i)) {
+                    return;
+                }
+            }
+
+            // For images, allow up to 20
+            if (isImage) {
+                if (this.selectedFileIds.includes(id)) {
+                    this.selectedFileIds = this.selectedFileIds.filter(fid => fid !== id);
+                } else if (this.selectedFileIds.length < 20) {
+                    this.selectedFileIds.push(id);
+                }
+            }
         },
 
         addSelectedFilesToForm() {
@@ -499,11 +576,28 @@ async submitForm() {
                 this.selectedFileIds.includes(f.id)
             );
 
-            this.form.images = selectedFiles.slice(0, 1);
+            // Only allow one video or up to 20 images
+            const images = selectedFiles.filter(f => f.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i));
+            const videos = selectedFiles.filter(f => f.filename.match(/\.(mp4|mov|avi|webm)$/i));
+
+            if (videos.length > 1) {
+                this.showToast('Only one video allowed 🎬', true);
+                return;
+            }
+            if (images.length > 20) {
+                this.showToast('You can select up to 20 images 🖼️', true);
+                return;
+            }
+            if (videos.length === 1 && images.length > 0) {
+                this.showToast('Cannot mix images and video', true);
+                return;
+            }
+
+            this.form.images = selectedFiles;
             this.focusedPreviewFile = null;
             this.showFilePickerModal = false;
             this.showToast(`${selectedFiles.length} file(s) added 🎉`);
-        }, 
+        },
 
         selectFile() {
             this.form.image = this.modal.rawFile;
@@ -526,26 +620,6 @@ async submitForm() {
             this.toast.error = false;
             this.toast.show = true;
             setTimeout(() => this.toast.show = false, 4000); // Optional auto-hide
-        },
-
-        canSelectFile(file) {
-            const isImage = file.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-            const isVideo = file.filename.match(/\.(mp4|mov|avi|webm)$/i);
-
-            const selected = this.filePickerFiles.find(f =>
-                this.selectedFileIds.includes(f.id)
-            );
-
-            if (!selected) return true;
-
-            const selectedIsImage = selected.filename.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-            const selectedIsVideo = selected.filename.match(/\.(mp4|mov|avi|webm)$/i);
-
-            // ❌ Only allow selection if none is selected OR types match
-            if (isImage && selectedIsImage) return false; // already selected an image
-            if (isVideo && selectedIsVideo) return false; // already selected a video
-
-            return false;
         },
     };
   }

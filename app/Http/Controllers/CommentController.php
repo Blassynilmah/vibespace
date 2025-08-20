@@ -37,16 +37,16 @@ public function react(Request $request, $id)
 
     $comment = Comment::findOrFail($id);
 
-    $reaction = $comment->reactions()->updateOrCreate(
+    $reaction = $comment->commentReactions()->updateOrCreate(
         ['user_id' => auth()->id()],
         ['type' => $request->type]
     );
 
     return response()->json([
-    'message' => 'Reaction saved',
-    'like_count' => $comment->reactions()->where('type', 'like')->count(),
-    'dislike_count' => $comment->reactions()->where('type', 'dislike')->count(),
-]);
+        'message' => 'Reaction saved',
+        'like_count' => $comment->commentReactions()->where('type', 'like')->count(),
+        'dislike_count' => $comment->commentReactions()->where('type', 'dislike')->count(),
+    ]);
 }
 
 }

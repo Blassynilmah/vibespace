@@ -26,11 +26,13 @@ public function toggle(User $user)
 
     // Re-fetch follower count
     $followerCount = $user->followers()->count();
+    $followingCount = $user->following()->count();
 
     return response()->json([
         'message' => $isFollowing ? 'Unfollowed' : 'Followed',
         'isFollowing' => !$isFollowing,
         'followerCount' => $followerCount,
+        'followingCount' => $followingCount,
     ]);
 }
 

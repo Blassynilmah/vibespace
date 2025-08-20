@@ -14,8 +14,8 @@
         <div class="mb-1 text-xs text-pink-700 font-semibold uppercase tracking-wide">Main Comment</div>
         
         <h2 class="text-sm text-pink-600 font-medium mb-1">
-            <span x-text="'@' + main.user.username"></span>'s comment to 
-            <span x-text="'@' + main.board_user.username"></span>'s post
+            <a :href="'/space/' + main.user.username" class="text-blue-600 hover:underline" x-text="'@' + main.user.username"></a>'s comment to 
+            <a :href="'/space/' + main.board_user.username" class="text-blue-600 hover:underline" x-text="'@' + main.board_user.username"></a>'s post
         </h2>
 
         <p class="text-gray-700 text-sm mb-2" x-text="main.body"></p>
@@ -28,10 +28,23 @@
         <template x-for="reply in main.replies" :key="reply.id">
             <div class="bg-gray-50 p-3 rounded-xl shadow">
                 <div class="flex justify-between items-center">
-                    <p class="text-sm font-semibold text-indigo-600" x-text="'@' + reply.user.username"></p>
+                    <a
+                        :href="'/space/' + reply.user.username"
+                        class="text-sm font-semibold text-indigo-600 hover:underline"
+                        x-text="'@' + reply.user.username"
+                    ></a>
                     <span class="text-xs text-gray-400" x-text="timeSince(reply.created_at)"></span>
                 </div>
-                <p class="text-sm text-gray-700 mt-1" x-text="reply.body"></p>
+                <p class="text-sm text-gray-700 mt-1">
+                    <template x-if="/^@\w+/.test(reply.body)">
+                        <a
+                            :href="'/space/' + reply.body.match(/^@(\w+)/)[1]"
+                            class="text-blue-600 hover:underline"
+                            x-text="reply.body.match(/^@(\w+)/)[0]"
+                        ></a>
+                    </template>
+                    <span x-text="reply.body.replace(/^@\w+\s*/, '')"></span>
+                </p>
 
                 <button class="text-xs text-purple-600 mt-2 hover:underline"
                         @click="setReplyTag(reply)">Reply</button>
@@ -47,8 +60,8 @@
     <div class="bg-white p-4 rounded-xl shadow sticky bottom-4">
         <div class="flex items-center gap-2">
             <input type="text" x-model="replyText"
-                   :placeholder="replyingTo ? 'Replying to @' + replyingTo : 'Write a reply...'"
-                   class="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-full">
+                :placeholder="replyingTo ? 'Replying to @' + replyingTo : 'Write a reply...'"
+                class="flex-1 px-4 py-2 text-sm border border-gray-300 rounded-full">
             <button @click="submitReply"
                     class="bg-blue-500 text-white px-4 py-2 rounded-full text-sm">Send</button>
         </div>
@@ -101,6 +114,9 @@
             replyingTo: null,
 
             init() {
+                // Set default to main comment's username
+                this.replyingTo = this.main.user.username;
+                this.replyText = `@${this.main.user.username} `;
                 console.log("💬 Replies page initialized");
             },
 
@@ -111,6 +127,11 @@
 
             submitReply() {
                 if (!this.replyText.trim()) return;
+
+                // Ensure @username is always at the start
+                if (this.replyingTo && !this.replyText.startsWith(`@${this.replyingTo}`)) {
+                    this.replyText = `@${this.replyingTo} ` + this.replyText.replace(/^@\w+\s*/, '');
+                }
 
                 showToast("Replying...");
 
@@ -133,7 +154,12 @@
                     .catch(() => {
                         showToast("Reply failed 😢", true);
                     });
-                }, 3000);
+                }, 1000);
+            },
+
+            setReplyTag(reply) {
+                this.replyingTo = reply.user.username;
+                this.replyText = `@${reply.user.username} `;
             },
 
             timeSince(date) {

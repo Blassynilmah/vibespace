@@ -1,27 +1,39 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\BoardController;
 use Illuminate\Http\Request;
-use App\Models\UserFile;
+use App\Http\Controllers\Api\BoardController;
+use App\Http\Controllers\FileController;
+use App\Http\Controllers\MessageController;
 
-// 📡 All API routes here are stateless (token-based or public)
+// 🔑 Standard Sanctum SPA bootstrap route
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
+});
 
-// 🏠 General Boards Feed (with optional filters)
-Route::middleware('auth:sanctum')->get('/boards', [BoardController::class, 'index']);
+// 👤 Alternative alias (optional, same result)
+Route::middleware('auth:sanctum')->get('/me', fn (Request $r) => $r->user());
 
-// 👤 Public User Boards by Username
+// 🗂️ Board routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/boards/latest', [BoardController::class, 'latest']);
+    Route::get('/boards', [BoardController::class, 'index']);
+    Route::get('/my-boards', [BoardController::class, 'myBoards']);
+    Route::get('/messages/thread/{receiverId}', [MessageController::class, 'thread']);
+});
+
+// 🌍 Public boards (no auth)
 Route::get('/users/{username}/boards', [BoardController::class, 'showUserBoards']);
+Route::get('/favorited-boards', [BoardController::class, 'favoritedBoards']);
 
-// 🧍‍♂️ Authenticated User's MoodBoards
-Route::middleware('auth:sanctum')->get('/my-boards', [BoardController::class, 'myBoards']);
-
-Route::middleware('auth')->group(function () {
-    Route::post('/user/files', [FileController::class, 'fetch']);
+// 📁 Authenticated user file & list routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/user/files', [FileController::class, 'fetch']); // consider renaming if 'fetch' actually retrieves data
     Route::get('/user/lists', [FileController::class, 'getListsWithCounts']);
     Route::get('/user/lists/{list}/items', [FileController::class, 'fetchListItems']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/messages/thread/{receiverId}', [\App\Http\Controllers\MessageController::class, 'thread']);
+// 🛡️ JSON fallback for API (no HTML)
+Route::fallback(function () {
+    return response()->json(['message' => 'Not Found'], 404);
 });

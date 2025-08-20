@@ -7,39 +7,48 @@
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-8 pt-4">     
      
     <!-- 📁 Left Sidebar -->
-        <div class="hidden lg:block w-1/5 pr-2">
+        <div class="hidden lg:block w-1/5">
             <template x-if="activeTab === 'moodboards'">
-                <div class="hidden lg:block w-1/5">
-                    <div class="sticky top-24">
+                <div class="hidden lg:block">
+                    <div class="sticky top-24 mt-24">
 
                         <!-- 😎 Mood Filters -->
-                        <h3 class="text-base font-semibold mb-3 text-gray-700">Mood Filters</h3>
-                        <div class="flex flex-col gap-1.5 mb-6">
-                            <template x-for="(emoji, mood) in moods" :key="mood">
-                                <button
-                                    @click="toggleMood(mood)"
-                                    class="w-full px-3 py-1.5 rounded-lg text-xs font-medium transition-all inline-flex items-center gap-2 text-left"
-                                    :class="selectedMoods.includes(mood) 
-                                        ? 'bg-pink-500 text-white shadow-sm' 
-                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'">
-                                    <span x-text="emoji"></span>
-                                    <span x-text="mood.charAt(0).toUpperCase() + mood.slice(1)"></span>
-                                </button>
-                            </template>
+                        <h3 class="text-xl font-semibold mb-4">Mood Filters</h3>
+                        <div class="mb-4">
+                            <div 
+                                style="
+                                    max-height: 170px;           /* match homepage height */
+                                    overflow-y: auto;            /* vertical scroll */
+                                    -ms-overflow-style: none;    /* hide scrollbar in IE/Edge */
+                                    scrollbar-width: none;       /* hide scrollbar in Firefox */
+                                    display: flex;
+                                    flex-direction: column;
+                                "
+                            >
+                                <template x-for="(emoji, mood) in moods" :key="mood">
+                                    <button
+                                        @click="toggleMood(mood)"
+                                        class="ml-0 mb-2 px-3 py-1.5 rounded-full text-sm font-medium transition text-left"
+                                        :class="selectedMoods.includes(mood) 
+                                            ? 'bg-pink-500 text-white' 
+                                            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'"
+                                        x-text="emoji + ' ' + mood.charAt(0).toUpperCase() + mood.slice(1)">
+                                    </button>
+                                </template>
+                            </div>
                         </div>
 
                         <!-- 📺 Media Type -->
-                        <h3 class="text-base font-semibold mb-3 mt-8 text-gray-700">Media Type</h3>
-                        <div class="flex flex-col gap-1.5">
+                        <h3 class="text-xl font-semibold mb-4 mt-10">Media Type</h3>
+                        <div class="flex flex-col gap-2">
                             <template x-for="(label, type) in mediaTypes" :key="type">
                                 <button
                                     @click="toggleMediaType(type)"
-                                    class="w-full px-3 py-1.5 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-2 text-left"
+                                    class="px-4 py-1 rounded-lg text-sm font-semibold transition-all text-left"
                                     :class="selectedMediaTypes.includes(type) 
-                                        ? 'bg-pink-600 text-white shadow-sm' 
-                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'">
-                                    <span x-text="label.split(' ')[0]"></span>
-                                    <span x-text="label.split(' ').slice(1).join(' ')"></span>
+                                        ? 'bg-pink-600 text-white shadow-md' 
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-800'"
+                                    x-text="label">
                                 </button>
                             </template>
                         </div>
@@ -48,8 +57,14 @@
                 </div>
             </template>
 
+            <style>
+                /* Hide scrollbars for WebKit browsers too */
+                [style*="overflow-y: auto"]::-webkit-scrollbar {
+                    display: none;
+                }
+            </style>
             <template x-if="activeTab === 'files'">
-                <div class="border border-gray-200 rounded-xl overflow-hidden flex flex-col h-full">
+                <div class="display-none border border-gray-200 rounded-xl overflow-hidden flex flex-col h-full">
 
                     <!-- 📌 Sticky New List Button -->
                     <div class="sticky top-1 z-10 bg-white border-b border-gray-200 p-3">
@@ -125,7 +140,7 @@
     {{-- 🎛️ Tabbed Content --}}
     <div class="w-full lg:w-4/5 flex flex-col gap-0">
 
-        <div class="sticky top-0 z-99 bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-3 shadow-sm text-white">
+        <div class="sticky top-0 z-[999] bg-gradient-to-r from-pink-500 to-purple-600 px-4 py-3 shadow-sm text-white">
         <div class="flex items-center gap-3 justify-between">
             <!-- 🔍 Search -->
             <input type="text" x-model.debounce.300ms="searchQuery" @input="searchFilesOrBoards" :placeholder="activeTab === 'moodboards' ? 'Search your moodboards...' : 'Search your content...'" class="flex-1 px-4 py-2 rounded-full border border-white/30 bg-white/20 placeholder-white text-sm text-white focus:outline-none"/>
@@ -169,7 +184,7 @@
         </div>
     </div>
 
-    <div class="lg:hidden sticky top-[60px] z-60 bg-white border-t border-b border-gray-200 shadow-sm">
+    <div class="lg:hidden sticky top-[60px] z-[999] bg-white border-t border-b border-gray-200 shadow-sm">
         <div class="flex justify-around px-2 py-2 text-sm text-gray-700">
             <a href="{{ route('home') }}" class="flex flex-col items-center hover:text-pink-600">🏠<span class="text-xs mt-1">Home</span></a>
             <a href="/messages" class="flex flex-col items-center hover:text-pink-600">💌<span class="text-xs mt-1">Messages</span></a>
@@ -197,106 +212,299 @@
                 </button>
             </div>
         </div>
-
         {{-- 🎨 Moodboards Feed --}}
         <template x-if="activeTab === 'moodboards'">
-            <div class="flex flex-col gap-8">
+            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
                 <template x-for="board in filteredBoards" :key="board.id + '-' + board.created_at">
-                    <div class="bg-white rounded-2xl shadow hover:shadow-lg transition-all p-4 sm:p-5 group">
+                    <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;" x-data="{ expanded: false }">
+                        <button
+                            @click.prevent="toggleFavorite(board.id)"
+                            class="absolute top-3 right-3 z-20 transition bg-white rounded-full p-1 shadow-md"
+                            :class="{
+                                'text-gray-300 hover:text-gray-400': !board.is_favorited,
+                                'text-pink-600 hover:text-pink-700': board.is_favorited
+                            }"
+                            title="Add to your favorites"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                            </svg>
+                        </button>
+                        <div 
+                        class="relative flex flex-col items-start p-3 sm:p-4 lg:p-6"
+                        :class="board.files?.length ? 'md:grid md:grid-cols-5 md:gap-6' : 'md:flex md:flex-col'"
+                        >
+                            <!-- User Info, Title, Description (Top on mobile, right on desktop) -->
+                            <div class="order-1 md:order-2 md:col-span-2 flex flex-col w-full mb-3 md:mb-0">
+                                <!-- User Info -->
+                                <div class="flex items-start gap-3 mb-2 shrink-0">
+                                    <img
+                                        :src="board.user?.profile_picture
+                                            ? '/storage/' + board.user.profile_picture
+                                            : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
+                                        alt="User Avatar"
+                                        class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-pink-300 dark:border-pink-500 object-cover"
+                                        style="box-shadow: 0 2px 6px rgba(0,0,0,0.08);"
+                                    >
+                                    <div class="flex flex-wrap items-center text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                        <template x-if="board.latest_mood">
+                                            <span
+                                                class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
+                                                :class="{
+                                                    'bg-blue-100 text-blue-700': board.latest_mood === 'excited',
+                                                    'bg-orange-100 text-orange-700': board.latest_mood === 'happy',
+                                                    'bg-pink-100 text-pink-700': board.latest_mood === 'chill',
+                                                    'bg-purple-100 text-purple-700': board.latest_mood === 'thoughtful',
+                                                    'bg-teal-100 text-teal-700': board.latest_mood === 'sad',
+                                                    'bg-amber-100 text-amber-700': board.latest_mood === 'flirty',
+                                                    'bg-indigo-100 text-indigo-700': board.latest_mood === 'mindblown',
+                                                    'bg-yellow-100 text-yellow-700': board.latest_mood === 'love',
+                                                }"
+                                                style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 1px 0 rgba(0,0,0,0.05);"
+                                            >
+                                                <span x-text="moods[board.latest_mood]"></span>
+                                                <span x-text="board.latest_mood.charAt(0).toUpperCase() + board.latest_mood.slice(1)"></span>
+                                                <span>Vibes</span>
+                                            </span>
+                                        </template>
 
-                        {{-- Header --}}
-                        <div class="flex items-center justify-between gap-2 p-3 sm:p-4 flex-wrap">
-                            <div class="flex items-center gap-1 sm:gap-2 min-w-0">
-                                <h3 class="text-base sm:text-lg font-semibold" x-text="board.title"></h3>
-                                <template x-if="board.latest_mood">
-                                    <span class="text-[0.65rem] sm:text-xs font-medium px-2 py-0.5 rounded-full capitalize"
-                                          :class="{
-                                            'bg-blue-100 text-blue-700': board.latest_mood === 'relaxed',
-                                            'bg-orange-100 text-orange-700': board.latest_mood === 'craving',
-                                            'bg-pink-100 text-pink-700': board.latest_mood === 'hyped',
-                                            'bg-purple-100 text-purple-700': board.latest_mood === 'obsessed'
-                                          }"
-                                          x-text="moods[board.latest_mood] + ' ' + board.latest_mood.charAt(0).toUpperCase() + board.latest_mood.slice(1)">
-                                    </span>
+                                        <div>
+                                            <a 
+                                                :href="`/space/${board.user.username}-${board.user.id}`" 
+                                                class="hover:underline font-medium text-blue-600 text-xs sm:text-sm"
+                                                x-text="'@' + board.user.username">
+                                            </a>
+
+                                            <span class="mx-1">•</span>
+
+                                            <span x-text="timeSince(board.created_at)"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col">
+                                    <h3 class="text-base sm:text-lg font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-1"
+                                        x-text="board.title">
+                                    </h3>
+                                    <div x-show="board.description" class="text-sm text-black-800 dark:text-black-200 leading-snug">
+                                            <p 
+                                            x-text="expanded 
+                                                ? board.description 
+                                                : (board.files && board.files.length 
+                                                    ? board.description.split(' ').slice(0, 20).join(' ') + (board.description.split(' ').length > 20 ? '...' : '') 
+                                                    : board.description.split(' ').slice(0, 200).join(' ') + (board.description.split(' ').length > 200 ? '...' : '')
+                                                )"
+                                            class="whitespace-pre-line"
+                                        ></p>
+                                        <button 
+                                            x-show="(!expanded && (board.files && board.description.split(' ').length > 20)) || (!expanded && (!board.files || !board.files.length) && board.description.split(' ').length > 200)" 
+                                            @click="expanded = true"
+                                            class="mt-1 text-pink-500 hover:underline text-xs font-medium"
+                                        >
+                                            More
+                                        </button>
+                                    </div>
+                                </div>
+                                                    <!-- Desktop/Tablet reactions/comments -->
+                                <div class="hidden md:block">                     
+                                    <div class="hidden md:grid grid-cols-2 grid-rows-4 gap-3 mt-2 w-full p-2 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-inner">
+                                        <template x-for="(emoji, mood) in reactionMoods" :key="mood">
+                                            <button
+                                                @click.prevent="react(board.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
+                                                x-data="{ showName: false }"
+                                                @mouseenter="showName = true" 
+                                                @mouseleave="showName = false"
+                                                class="w-full relative rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
+                                                    px-3 py-2 text-sm font-medium"
+                                                :class="[
+                                                    board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
+                                                    mood === 'fire' && 'bg-red-200 text-red-800',
+                                                    mood === 'love' && 'bg-rose-300 text-rose-900',
+                                                    mood === 'funny' && 'bg-yellow-200 text-yellow-800',
+                                                    mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
+                                                    mood === 'cool' && 'bg-teal-200 text-teal-800',
+                                                    mood === 'crying' && 'bg-sky-200 text-sky-800',
+                                                    mood === 'clap' && 'bg-emerald-200 text-emerald-800',
+                                                    mood === 'flirty' && 'bg-pink-200 text-pink-800'
+                                                ]"
+                                                style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
+                                            >
+                                                <span class="capitalize text-xs font-semibold leading-tight" x-text="mood"></span>
+                                                <div class="flex items-center gap-1">
+                                                    <span x-text="emoji" class="text-lg"></span>
+                                                    <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-xs" 
+                                                        x-text="getReactionCount(board, mood)">
+                                                    </span>
+                                                </div>
+                                            </button>
+                                        </template>
+                                    </div>
+                                        <!-- Comments -->
+                                    <div class="mt-3 md:mt-4 hidden md:block">
+                                        <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
+                                            <input
+                                                type="text"
+                                                x-model="board.newComment"
+                                                placeholder="Type a comment..."
+                                                class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
+                                                @keydown.enter.prevent="postComment(board)"
+                                            >
+                                            <button
+                                                @click.prevent="postComment(board)"
+                                                class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
+                                            >
+                                                Post
+                                            </button>
+                                        </div>
+                                        <div class="mt-2 space-y-2 max-h-32 overflow-y-auto pr-1">
+                                            <div class="text-xs text-gray-500 flex justify-between">
+                                                <span x-text="(board.comment_count ?? 0) + ' comments'"></span>
+                                                <a :href="'/boards/' + board.id" class="text-pink-600 hover:underline text-sm font-medium">
+                                                    → View Board
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Media (Middle on mobile, left on desktop) -->
+                            <div class="order-2 md:order-1 md:col-span-3 w-full">
+                                <template x-if="board.files?.length">
+                                    <div class="md:col-span-3">
+                                        <div
+                                            class="mt-3 w-full mx-auto aspect-[9/12] min-h-[220px] rounded-xl overflow-hidden flex items-center justify-center relative z-0 bg-gray-50 dark:bg-gray-800 shadow-inner"
+                                            x-data="{ currentIndex: 0 }"
+                                        >
+                                            <!-- 🔢 File count -->
+                                            <template x-if="board.files.length > 1">
+                                                <div class="absolute top-2 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full z-10">
+                                                    <span x-text="`${currentIndex + 1} / ${board.files.length}`"></span>
+                                                </div>
+                                            </template>
+
+                                            <!-- 📸 Media Preview -->
+                                            <div class="flex items-center justify-center w-full h-full">
+                                                <template x-if="board.files[currentIndex].type === 'image'">
+                                                    <img
+                                                        :src="board.files[currentIndex].path"
+                                                        alt="Preview"
+                                                        class="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.03] cursor-pointer"
+                                                        @click="previewBoardFile = board.files[currentIndex]; showBoardPreviewModal = true"
+                                                    />
+                                                </template>
+                                                <template x-if="board.files[currentIndex].type === 'video'">
+                                                    <video
+                                                        :src="board.files[currentIndex].path"
+                                                        playsinline
+                                                        preload="metadata"
+                                                        muted
+                                                        autoplay
+                                                        loop
+                                                        class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
+                                                        @click="previewBoardFile = board.files[currentIndex]; showBoardPreviewModal = true"
+                                                    ></video>
+                                                </template>
+                                            </div>
+
+                                            <!-- ⬅ Prev Arrow -->
+                                            <button
+                                                x-show="board.files.length > 1"
+                                                @click="if (currentIndex > 0) currentIndex--"
+                                                :disabled="currentIndex === 0"
+                                                class="absolute left-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                style="top: 50%; transform: translateY(-50%);"
+                                            >◀</button>
+
+                                            <!-- ➡ Next Arrow -->
+                                            <button
+                                                x-show="board.files.length > 1"
+                                                @click="if (currentIndex < board.files.length - 1) currentIndex++"
+                                                :disabled="currentIndex === board.files.length - 1"
+                                                class="absolute right-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                style="top: 50%; transform: translateY(-50%);"
+                                            >▶</button>
+                                        </div>
+                                    </div>
                                 </template>
                             </div>
 
-                            <div class="flex items-center gap-2">
-                                <img :src="board.user?.profile_picture
-                                        ? '/storage/' + board.user.profile_picture
-                                        : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
-                                     alt="User Avatar"
-                                     class="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover border border-gray-300">
-                                <a :href="'/space/' + board.user.username"
-                                   class="text-blue-500 hover:underline text-xs sm:text-sm"
-                                   x-text="'@' + board.user.username">
-                                </a>
-                            </div>
-                        </div>
-
-                        {{-- Timestamp --}}
-                        <div class="px-3 sm:px-4 text-[0.65rem] sm:text-xs text-gray-400 mb-1"
-                             x-text="timeSince(board.created_at)"></div>
-
-                        {{-- Description --}}
-                        <p class="text-gray-600 text-sm sm:text-base px-3 sm:px-4 mb-3 line-clamp-3"
-                           x-text="board.description"></p>
-
-                        {{-- Media Preview --}}
-                        <div class="mt-3 mx-auto max-w-[400px] max-h-[600px] rounded-lg overflow-hidden"
-                             :id="'media-preview-' + board.id"></div>
-
-                        {{-- Reactions --}}
-                        <div class="flex flex-wrap gap-2 p-3 sm:p-4 border-t mt-auto">
-                            <template x-for="(emoji, mood) in moods" :key="mood">
-                                <button
-                                    @click.prevent="react(board.id, mood)"
-                                    class="px-2 sm:px-3 py-0.5 text-[0.65rem] sm:text-xs rounded-full font-medium flex items-center gap-1 transition-all"
-                                    :class="[
-                                        board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400' : '',
-                                        mood === 'relaxed' && 'bg-green-100 text-green-700',
-                                        mood === 'craving' && 'bg-yellow-100 text-yellow-700',
-                                        mood === 'hyped' && 'bg-red-100 text-red-700',
-                                        mood === 'obsessed' && 'bg-purple-100 text-purple-700'
-                                    ]">
-                                    <span x-text="emoji"></span>
-                                    <span class="capitalize" x-text="mood"></span>
-                                    <span x-text="getReactionCount(board, mood)" class="text-pink-500 text-[0.6rem] sm:text-[0.75rem]"></span>
-                                </button>
-                            </template>
-                        </div>
-
-                        {{-- Comments --}}
-                        <div class="mt-3 px-3 sm:px-4">
-                            <div class="flex items-center gap-2 mb-2">
-                                <input type="text"
-                                       x-model="board.newComment"
-                                       placeholder="Type a comment..."
-                                       class="flex-1 px-3 py-1.5 rounded-full border border-gray-300 text-xs sm:text-sm">
-                                <button
-                                    @click="postComment(board)"
-                                    :disabled="isSendDisabled(board)"
-                                    class="bg-blue-500 text-white px-3 sm:px-4 py-1.5 rounded text-xs sm:text-sm disabled:opacity-40 disabled:cursor-not-allowed">
-                                    Send
-                                </button>
-                            </div>
-                            <div class="text-[0.65rem] sm:text-xs text-gray-500">
-                                <span x-text="(board.comment_count ?? 0) + ' comments'"></span> • 
-                                <a :href="'/boards/' + board.id" class="text-pink-500 hover:underline">View Board</a>
+                            <!-- Reactions & Comments (Bottom on mobile, right on desktop) -->
+                            <div class="order-3 md:order-2 md:col-span-2 flex flex-col mt-3 md:mt-0 w-full block md:hidden">
+                                <!-- Reactions -->
+                                <div class="flex flex-wrap gap-2 sm:grid sm:grid-cols-2 sm:gap-3 mt-2 w-full">
+                                    <template x-for="(emoji, mood) in reactionMoods" :key="mood">
+                                        <button
+                                            @click.prevent="react(board.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
+                                            x-data="{ showName: false }"
+                                            @mouseenter="showName = true" 
+                                            @mouseleave="showName = false"
+                                            class="flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
+                                                px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm font-medium rounded-lg"
+                                            :class="[
+                                                board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
+                                                mood === 'fire' && 'bg-red-200 text-red-800',
+                                                mood === 'love' && 'bg-rose-300 text-rose-900',
+                                                mood === 'funny' && 'bg-yellow-200 text-yellow-800',
+                                                mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
+                                                mood === 'cool' && 'bg-teal-200 text-teal-800',
+                                                mood === 'crying' && 'bg-sky-200 text-sky-800',
+                                                mood === 'clap' && 'bg-emerald-200 text-emerald-800',
+                                                mood === 'flirty' && 'bg-pink-200 text-pink-800'
+                                            ]"
+                                            style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
+                                        >
+                                            <!-- Mood name (desktop only) -->
+                                            <span class="hidden sm:block capitalize text-[0.65rem] sm:text-[0.7rem] font-semibold leading-tight" x-text="mood"></span>
+                                            <!-- Emoji + Counter -->
+                                            <div class="flex items-center gap-1">
+                                                <span x-text="emoji" class="text-lg sm:text-xl"></span>
+                                                <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-[0.6rem]" 
+                                                    x-text="getReactionCount(board, mood)">
+                                                </span>
+                                            </div>
+                                            <!-- Tooltip for mobile -->
+                                            <div 
+                                                x-show="showName && window.innerWidth < 640" 
+                                                class="absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-white text-[0.6rem] rounded px-2 py-0.5 shadow opacity-90">
+                                                <span x-text="mood"></span>
+                                            </div>
+                                        </button>
+                                    </template>
+                                </div>
+                                <!-- Comments -->
+                                <div class="mt-3 md:mt-4">
+                                    <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
+                                        <input
+                                            type="text"
+                                            x-model="board.newComment"
+                                            placeholder="Type a comment..."
+                                            class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
+                                            @keydown.enter.prevent="postComment(board)"
+                                        >
+                                        <button
+                                            @click.prevent="postComment(board)"
+                                            class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
+                                        >
+                                            Post
+                                        </button>
+                                    </div>
+                                    <div class="mt-2 space-y-2 max-h-32 overflow-y-auto pr-1">
+                                        <div class="text-xs text-gray-500 flex justify-between">
+                                            <span x-text="(board.comment_count ?? 0) + ' comments'"></span>
+                                            <a :href="'/boards/' + board.id" class="text-pink-600 hover:underline text-sm font-medium">
+                                                → View Board
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </template>
-
-                <template x-if="!loading && !boards.length">
-                    <div class="text-center text-gray-400 mt-10">No moodboards found 🫠</div>
-                </template>
-
-                <template x-if="loading">
-                    <div class="text-center text-gray-500 mt-10 animate-pulse">Loading your vibes...</div>
-                </template>
             </div>
         </template>
+
 
         {{-- 📁 Files Tab --}}
         <template x-if="activeTab === 'files'">
@@ -400,7 +608,7 @@
                 <div class="overflow-y-auto flex-1 min-h-[28rem] relative">
                     <button 
                         @click="showListPanel = true"
-                        class="absolute top-3 left-[-12px] bg-white border rounded-full p-2 text-pink-600 shadow hover:bg-pink-50 transition z-50"
+                        class="absolute top-3 left-[-12px] bg-white border rounded-full p-2 text-pink-600 shadow hover:bg-pink-50 transition z-50 lg:hidden "
                         title="Open list tools"
                         >
                         ➡️
@@ -748,7 +956,7 @@
     <div 
   x-show="showListPanel"
   @click.outside="showListPanel = false"
-  class="fixed top-[5%] left-0 w-[80vw] h-[90vh] z-[100] bg-white shadow-xl rounded-r-2xl overflow-y-auto border-r border-gray-300 transition-all"
+  class=" hidden lg:block fixed top-[5%] left-0 w-[80vw] h-[90vh] z-[100] bg-white shadow-xl rounded-r-2xl overflow-y-auto border-r border-gray-300 transition-all"
   x-transition:enter="transform ease-out duration-300"
   x-transition:enter-start="-translate-x-full"
   x-transition:enter-end="translate-x-0"
@@ -978,6 +1186,19 @@
                                         </div>
                                     </div>
                                 </template>
+
+                                <!-- Moodboard File Preview Modal -->
+                                <template x-if="showBoardPreviewModal">
+                                    <div class="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center">
+                                        <button @click="showBoardPreviewModal = false" class="absolute top-6 right-6 text-white text-3xl hover:text-pink-300 transition">×</button>
+                                        <template x-if="previewBoardFile && previewBoardFile.type === 'image'">
+                                            <img :src="previewBoardFile.path" class="max-w-[95vw] max-h-[95vh] object-contain rounded shadow-2xl" />
+                                        </template>
+                                        <template x-if="previewBoardFile && previewBoardFile.type === 'video'">
+                                            <video :src="previewBoardFile.path" controls autoplay loop class="max-w-[95vw] max-h-[95vh] rounded shadow-2xl"></video>
+                                        </template>
+                                    </div>
+                                </template>
 </div>
 <style>
     .filter-pill {
@@ -991,6 +1212,7 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('meBoards', () => ({
+        authUser: @json(auth()->user()),
         activeTab: 'moodboards',
             boards: [],
             loading: true,
@@ -998,15 +1220,31 @@ document.addEventListener('alpine:init', () => {
             selectedMediaTypes: [],
 
             moods: {
-                relaxed: "😌",
-                craving: "🤤",
-                hyped: "🔥",
-                obsessed: "🫠"
+                excited: "🔥",
+                happy: "😊",
+                chill: "😎",
+                thoughtful: "🤔",
+                sad: "😭",
+                flirty: "😏",
+                mindblown: "🤯",
+                love: "💖",
+            },
+
+            reactionMoods: {
+                fire: '🔥',
+                love: '❤️',
+                funny: '😂',
+                'mind-blown': '🤯',
+                cool: '😎',
+                crying: '😭',
+                clap: '👏',
+                flirty: '😉'
             },
 
             mediaTypes: {
                 image: '🖼️ Image',
                 video: '🎬 Video',
+                text: '📝 Text',
             },
 
         previewModal: false,
@@ -1016,6 +1254,8 @@ document.addEventListener('alpine:init', () => {
         uploadProgressModal: false,
         uploading: false,
         uploadProgress: 0,
+        showBoardPreviewModal: false,
+        previewBoardFile: null,
 
         userFiles: [],
         fileOffset: 0,
@@ -1056,6 +1296,186 @@ document.addEventListener('alpine:init', () => {
         targetListId: null,
         loadingFiles: false,
         showListPanel: false,
+        favoriteClicks: 0,
+        cooldownActive: false,
+
+        toggleFavorite(boardId) {
+            // Initialize tracking if not present
+            if (!this.favoriteClicksByBoard) this.favoriteClicksByBoard = {};
+            if (!this.cooldownByBoard) this.cooldownByBoard = {};
+
+            const clicks = this.favoriteClicksByBoard[boardId] || 0;
+            const isCooldown = this.cooldownByBoard[boardId] || false;
+
+            if (isCooldown) {
+                this.showToast('Please wait a minute before trying again.', 'error');
+                return;
+            }
+
+            this.favoriteClicksByBoard[boardId] = clicks + 1;
+
+            if (this.favoriteClicksByBoard[boardId] >= 5) {
+                this.cooldownByBoard[boardId] = true;
+
+                setTimeout(() => {
+                    this.favoriteClicksByBoard[boardId] = 0;
+                    this.cooldownByBoard[boardId] = false;
+                }, 60000); // 1 minute
+            }
+
+            const payload = { moodboard_id: boardId };
+
+            fetch('/toggle-favorite', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                },
+                body: JSON.stringify(payload),
+            })
+            .then(res => res.json())
+            .then(data => {
+                const board = this.filteredBoards.find(b => b.id === boardId);
+
+                if (data.success) {
+                    if (board) {
+                        board.is_favorited = data.favorited;
+                    }
+
+                    const message = data.favorited
+                        ? 'Added to favorites 💖'
+                        : 'Removed from favorites 💔';
+
+                    this.showToast(message, 'success');
+                } else {
+                    this.showToast(data.message || 'Could not favorite moodboard.', 'error');
+                }
+            })
+            .catch(() => {
+                this.showToast('Network error. Please try again.', 'error');
+            });
+        },
+
+async loadBoards() {
+  this.loading = true;
+  const t0 = performance.now();
+  const viewerId = window.auth?.user?.id ?? null;
+
+  console.groupCollapsed('%cBoards load', 'color:#6b7280; font-weight:600');
+  console.log('Viewer ID (global):', viewerId ?? '(unknown)');
+
+  try {
+    const res = await fetch('/api/boards/me', {
+      credentials: 'include',
+      headers: { Accept: 'application/json' }
+    });
+    console.log('GET /api/boards/me =>', res.status, res.ok ? 'OK' : 'ERROR');
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error('Response not OK. Body:', text);
+      throw new Error(`Failed to load boards: ${res.status}`);
+    }
+
+    const data = await res.json();
+    console.log('Boards received:', Array.isArray(data) ? data.length : '(not an array)');
+
+    const normalizePath = (p) => {
+      if (!p) return null;
+      if (p.startsWith('http')) return p;
+      const cleaned = p.replace(/^\/?storage\//, '');
+      return `/storage/${cleaned}`;
+    };
+
+    const isFavorite = (b) => Boolean(
+      b.is_favorite ??
+      b.isFavourite ??
+      b.is_favorited ??
+      b.favorite ??
+      b.favorited ??
+      b.pivot?.favorite ??
+      false
+    );
+
+    const boards = (Array.isArray(data) ? data : []).map((board) => {
+      let files = [];
+
+      // Images
+      let imgs = board.images ?? board.image ?? null;
+      if (typeof imgs === 'string') {
+        try { imgs = JSON.parse(imgs); } catch { /* keep as string */ }
+      }
+
+      if (Array.isArray(imgs)) {
+        files.push(...imgs.map(path => ({ path: normalizePath(path), type: 'image' })));
+      } else if (typeof imgs === 'string' && imgs.trim() !== '') {
+        files.push({ path: normalizePath(imgs), type: 'image' });
+      }
+
+      // Video
+      if (board.video) {
+        files.push({ path: normalizePath(board.video), type: 'video' });
+      }
+
+      // Dedupe
+      const seen = new Set();
+      files = files.filter(f => {
+        if (!f?.path) return false;
+        if (seen.has(f.path)) return false;
+        seen.add(f.path);
+        return true;
+      });
+
+      return {
+        ...board,
+        files,
+        favorite: isFavorite(board),
+        newComment: '',
+        comment_count: board.comment_count ?? 0,
+      };
+    });
+
+    this.boards = boards;
+
+    // Table now includes viewerId
+    console.table(boards.map(b => ({
+      id: b.id,
+      favorite: b.favorite,
+      files: b.files.length,
+      viewerId
+    })));
+
+    // Per-board logs
+    boards.forEach(b => {
+      console.groupCollapsed(`Board #${b.id} ${b.title ?? ''}`.trim());
+      console.log('Viewer ID:', viewerId ?? '(unknown)');
+      console.log('Favorite:', b.favorite);
+      console.log('Files:', b.files);
+      console.groupEnd();
+    });
+
+  } catch (error) {
+    console.error('Failed to load boards', error);
+  } finally {
+    const t1 = performance.now();
+    console.log(`Boards load finished in ${(t1 - t0).toFixed(0)} ms`);
+    console.groupEnd();
+    this.loading = false;
+  }
+},
+
+        get filteredBoards() {
+            return this.boards.filter(board => {
+                const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(board.latest_mood);
+                const typeMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(board.media_type);
+                const searchMatch = this.searchQuery.trim() === '' || (
+                    board.title?.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                    board.description?.toLowerCase().includes(this.searchQuery.toLowerCase())
+                );
+                return moodMatch && typeMatch && searchMatch;
+            });
+        },
 
         async refreshUserFilesView() {
             console.log("🔄 Refreshing user file view...");
@@ -1433,18 +1853,6 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        get filteredBoards() {
-            return this.boards.filter(board => {
-                const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(board.latest_mood);
-                const typeMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(board.media_type);
-                const searchMatch = this.searchQuery.trim() === '' || (
-                    board.title?.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
-                    board.description?.toLowerCase().includes(this.searchQuery.toLowerCase())
-                );
-                return moodMatch && typeMatch && searchMatch;
-            });
-        },
-
         searchFilesOrBoards() {
             const query = this.searchQuery.trim().toLowerCase();
 
@@ -1625,7 +2033,8 @@ document.addEventListener('alpine:init', () => {
                 const formData = new FormData();
                 formData.append('file', file);
                 formData.append('filename', filename);
-                formData.append('content_type', contentType);
+                formData.append('content_type', contentType); // safe/adult
+                formData.append('file_type', file.type.startsWith('image/') ? 'image' : 'video');
                 if (listId) formData.append('list_id', listId); // 👈 include in upload if supported
 
                 try {
@@ -1677,27 +2086,6 @@ document.addEventListener('alpine:init', () => {
             this.showToast("Files uploaded ✅");
         },
 
-        async loadBoards() {
-            try {
-                const res = await fetch('/api/boards/me');
-                const data = await res.json();
-
-                this.boards = data.map(board => ({
-                    ...board,
-                    newComment: '',
-                    comment_count: board.comment_count ?? 0
-                }));
-
-                setTimeout(() => {
-                    this.boards.forEach(board => this.renderMediaPreview(board));
-                }, 0);
-            } catch (error) {
-                console.error("Failed to load boards", error);
-            } finally {
-                this.loading = false;
-            }
-        },
-
         timeSince(date) {
             const seconds = Math.floor((new Date() - new Date(date)) / 1000);
             const interval = seconds / 3600;
@@ -1707,13 +2095,18 @@ document.addEventListener('alpine:init', () => {
             return "just now";
         },
 
+        moodKey(m) { 
+            return String(m).replace(/-/g, '_'); 
+        },
+
         getReactionCount(board, mood) {
-            return board[mood + '_count'] ?? 0;
+            return board[this.moodKey(mood) + '_count'] ?? 0;
         },
 
         react(boardId, mood) {
             const board = this.boards.find(b => b.id === boardId);
-            if (!board || board.user_reacted_mood === mood) {
+            if (!board) return this.showToast("Board not found", 'error');
+            if (board.user_reacted_mood === mood) {
                 this.showToast("You already picked this mood 💅", 'error');
                 return;
             }
@@ -1733,15 +2126,16 @@ document.addEventListener('alpine:init', () => {
                 board.reaction_counts = board.reaction_counts || {};
 
                 if (prevMood && prevMood !== newMood) {
-                    board.reaction_counts[prevMood] = Math.max(0, (board.reaction_counts[prevMood] || 0) - 1);
-                    board[prevMood + '_count'] = Math.max(0, (board[prevMood + '_count'] || 0) - 1);
+                const prevKey = this.moodKey(prevMood) + '_count';
+                board.reaction_counts[prevMood] = Math.max(0, (board.reaction_counts[prevMood] || 0) - 1);
+                board[prevKey] = Math.max(0, (board[prevKey] || 0) - 1);
                 }
 
+                const newKey = this.moodKey(newMood) + '_count';
                 board.reaction_counts[newMood] = (board.reaction_counts[newMood] || 0) + 1;
-                board[newMood + '_count'] = (board[newMood + '_count'] || 0) + 1;
+                board[newKey] = (board[newKey] || 0) + 1;
 
                 board.user_reacted_mood = newMood;
-                board.latest_mood = newMood;
 
                 this.showToast("Mood updated! 💖");
             })

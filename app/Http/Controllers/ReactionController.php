@@ -4,38 +4,118 @@ namespace App\Http\Controllers;
 
 use App\Models\Reaction;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Throwable;
 
 class ReactionController extends Controller
 {
-    public function store(Request $request)
-{
-    $request->validate([
-        'mood_board_id' => 'required|exists:mood_boards,id',
-        'mood' => 'required|in:relaxed,craving,hyped,obsessed',
-    ]);
+    public function store(Request $request): JsonResponse
+    {
+        // Basic request context
+        Log::info('Reactions: store called', [
+            'ip'      => $request->ip(),
+            'user_id' => optional($request->user())->id,
+            'payload' => $request->only(['mood_board_id', 'mood']),
+        ]);
 
-    // 🔍 Get the previous mood BEFORE the update
-    $previous = Reaction::where('user_id', auth()->id())
-        ->where('mood_board_id', $request->mood_board_id)
-        ->first()?->mood;
+        // Require authenticated user
+        if (!$request->user()) {
+            Log::warning('Reactions: unauthenticated request');
+            return response()->json([
+                'success' => false,
+                'error'   => 'Unauthenticated.',
+            ], 401);
+        }
 
-    // 💾 Save or update the new mood
-    $reaction = Reaction::updateOrCreate(
-        [
-            'user_id' => auth()->id(),
-            'mood_board_id' => $request->mood_board_id,
-        ],
-        [
-            'mood' => $request->mood,
-        ]
-    );
+        // Validate with explicit logging
+        $validator = Validator::make($request->all(), [
+            'mood_board_id' => 'required|exists:mood_boards,id',
+            'mood'          => 'required|in:fire,love,funny,mind-blown,cool,crying,clap,flirty',
+        ]);
 
-    // 🔁 Return both the new and previous mood
-    return response()->json([
-        'success' => true,
-        'mood' => $reaction->mood,
-        'previous' => $previous,
-    ]);
-}
+        if ($validator->fails()) {
+            Log::warning('Reactions: validation failed', [
+                'errors' => $validator->errors()->toArray(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
 
+        $data   = $validator->validated();
+        $userId = $request->user()->id;
+
+        try {
+            // Fetch previous mood (if any)
+            $previous = Reaction::where('user_id', $userId)
+                ->where('mood_board_id', $data['mood_board_id'])
+                ->value('mood');
+
+            Log::debug('Reactions: previous lookup', [
+                'user_id'       => $userId,
+                'mood_board_id' => $data['mood_board_id'],
+                'previous'      => $previous,
+            ]);
+
+            // Short-circuit if same mood
+            if ($previous === $data['mood']) {
+                Log::info('Reactions: no change (same mood)', [
+                    'user_id'       => $userId,
+                    'mood_board_id' => $data['mood_board_id'],
+                    'mood'          => $data['mood'],
+                ]);
+
+                return response()->json([
+                    'success'  => true,
+                    'mood'     => $previous,
+                    'previous' => $previous,
+                    'changed'  => false,
+                ], 200);
+            }
+
+            // Upsert new mood
+            $reaction = Reaction::updateOrCreate(
+                [
+                    'user_id'       => $userId,
+                    'mood_board_id' => $data['mood_board_id'],
+                ],
+                [
+                    'mood' => $data['mood'],
+                ]
+            );
+
+            Log::info('Reactions: upserted', [
+                'user_id'       => $userId,
+                'mood_board_id' => $data['mood_board_id'],
+                'previous'      => $previous,
+                'new'           => $data['mood'],
+                'created'       => $reaction->wasRecentlyCreated,
+                'reaction_id'   => $reaction->id,
+            ]);
+
+            return response()->json([
+                'success'  => true,
+                'mood'     => $data['mood'],
+                'previous' => $previous,
+                'changed'  => true,
+            ], 200);
+        } catch (Throwable $e) {
+            Log::error('Reactions: exception during store', [
+                'message' => $e->getMessage(),
+                'code'    => $e->getCode(),
+                'file'    => $e->getFile(),
+                'line'    => $e->getLine(),
+                // Optional: comment in for deep debugging, but avoid in prod
+                // 'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error'   => 'Something went wrong while saving your reaction.',
+            ], 500);
+        }
+    }
 }

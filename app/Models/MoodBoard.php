@@ -45,10 +45,19 @@ class MoodBoard extends Model
             ->pluck('count', 'mood');
     }
 
-public function comments()
-{
-    return $this->hasMany(Comment::class);
-}
+    public function comments()
+    {
+        return $this->hasMany(Comment::class);
+    }
 
+    public function favorites()
+    {
+        return $this->hasMany(UserFavoriteMoodboard::class, 'moodboard_id');
+    }
+
+    public function saves()
+{
+    return $this->hasMany(SavedMoodboard::class, 'mood_board_id', 'id');
+}
 
 }

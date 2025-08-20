@@ -22,50 +22,57 @@ class FileController extends Controller
         return view('files.create');
     }
 
-    public function store(Request $request)
-    {
-        Log::info("🚀 File upload initiated", [
-            'user_id' => auth()->id(),
-            'has_file' => $request->hasFile('file'),
-            'filename' => $request->file('file')?->getClientOriginalName(),
-            'list_id' => $request->input('list_id'),
-        ]);
+public function store(Request $request)
+{
+    Log::info("🚀 File upload initiated", [
+        'user_id' => auth()->id(),
+        'has_file' => $request->hasFile('file'),
+        'filename' => $request->file('file')?->getClientOriginalName(),
+        'list_id' => $request->input('list_id'),
+        'content_type' => $request->input('content_type'),
+        'file_type' => $request->input('file_type'),
+    ]);
 
-        $validated = $request->validate([
-            'file' => 'required|file|max:10240',
-            'list_id' => 'nullable|exists:file_lists,id',
-        ]);
+    $validated = $request->validate([
+        'file' => 'required|file|max:10240',
+        'list_id' => 'nullable|exists:file_lists,id',
+        'filename' => 'nullable|string|max:255',
+        'content_type' => 'required|in:safe,adult',
+        'file_type' => 'required|in:image,video',
+    ]);
 
-        $file = $validated['file'];
-        $filename = $file->getClientOriginalName();
-        $extension = $file->getClientOriginalExtension();
+    $file = $validated['file'];
+    $filename = $validated['filename'] ?? $file->getClientOriginalName();
+    $extension = $file->getClientOriginalExtension();
 
-        $path = $file->storeAs(
-            'user_files/' . auth()->id(),
-            Str::random(40) . '.' . $extension,
-            'public'
-        );
+    $path = $file->storeAs(
+        'user_files/' . auth()->id(),
+        Str::random(40) . '.' . $extension,
+        'public'
+    );
 
-        $userFile = UserFile::create([
-            'filename' => $filename,
-            'path' => $path,
-            'content_type' => $file->getMimeType(),
-            'user_id' => auth()->id(),
-        ]);
+    $userFile = UserFile::create([
+        'user_id' => auth()->id(),
+        'filename' => $filename,
+        'path' => $path,
+        'content_type' => $validated['content_type'], // safe/adult
+        'file_type' => $validated['file_type'], // image/video
+        'mime_type' => $file->getMimeType(), // e.g. image/png
+        'size' => $file->getSize(), // in bytes
+    ]);
 
-        if ($request->filled('list_id')) {
-            $list = FileList::find($validated['list_id']);
-            $attachment = $list->items()->create([
-                'file_id' => $userFile->id,
-            ]);
-        }
-
-        return response()->json([
-            'success' => true,
-            'message' => 'File uploaded ✅',
-            'file_id' => $userFile->id,
-        ], 201);
+    if ($request->filled('list_id')) {
+        FileList::find($validated['list_id'])
+            ->items()
+            ->create(['file_id' => $userFile->id]);
     }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'File uploaded ✅',
+        'file_id' => $userFile->id,
+    ], 201);
+}
     
 public function fetch(Request $request)
 {
