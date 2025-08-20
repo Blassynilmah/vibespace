@@ -1,12 +1,24 @@
+# Build frontend
+FROM node:18 as build
+WORKDIR /app
+COPY package*.json vite.config.js ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# PHP + Apache
 FROM php:8.2-apache
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
-    libpq-dev \
-    && docker-php-ext-install pdo pdo_pgsql
-
+    libpng-dev \
+    libonig-dev \
+    libxml2-dev \
+    zip \
+    curl \
+    && docker-php-ext-install pdo pdo_mysql
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
@@ -16,21 +28,17 @@ WORKDIR /var/www/html
 
 # Copy app files
 COPY . /var/www/html
+COPY --from=build /app/public /var/www/html/public
 
-# Change Apache DocumentRoot to Laravel's public folder
-RUN sed -i 's|DocumentRoot /var/www/html|DocumentRoot /var/www/html/public|' /etc/apache2/sites-available/000-default.conf
-
-# Fix permissions
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Expose port 80
+# Expose port
 EXPOSE 80
 
 # Start Apache
