@@ -14,8 +14,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Notifications API
-Route::middleware('auth:sanctum')->get('/notifications', [\App\Http\Controllers\NotificationController::class, 'api']);
 
 // 👤 Alternative alias (optional, same result)
 Route::middleware('auth:sanctum')->get('/me', fn (Request $r) => $r->user());

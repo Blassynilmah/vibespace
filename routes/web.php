@@ -42,6 +42,8 @@ Route::post('/register', [RegisterController::class, 'register']);
 // Sanctum's expected current user route
 Route::middleware('auth:sanctum')->get('/api/user', fn (Request $r) => $r->user());
 
+// Notifications API (SPA/Alpine)
+Route::middleware('auth:sanctum')->get('/api/notifications', [\App\Http\Controllers\NotificationController::class, 'api']);
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)
