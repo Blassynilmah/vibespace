@@ -30,20 +30,32 @@ public function store(Request $request)
         'filename' => $request->file('file')?->getClientOriginalName(),
         'list_id' => $request->input('list_id'),
         'content_type' => $request->input('content_type'),
-        'file_type' => $request->input('file_type'),
+        'file_type_sent' => $request->input('file_type'),
     ]);
+
+    // Log the file_type sent by the frontend
+    Log::info('📦 file_type sent from frontend:', ['file_type_sent' => $request->input('file_type')]);
+
+
 
     $validated = $request->validate([
         'file' => 'required|file|max:10240',
         'list_id' => 'nullable|exists:file_lists,id',
         'filename' => 'nullable|string|max:255',
         'content_type' => 'required|in:safe,adult',
-        'file_type' => 'required|in:image,video',
+        'file_type' => 'required|in:image,video,audio',
     ]);
 
     $file = $validated['file'];
     $filename = $validated['filename'] ?? $file->getClientOriginalName();
-    $extension = $file->getClientOriginalExtension();
+    $extension = strtolower($file->getClientOriginalExtension());
+    $mime = $file->getMimeType();
+    $fileType = $validated['file_type'];
+    // Log the file_type used for storage
+    Log::info('💾 file_type used for storage:', [
+        'filename' => $filename,
+        'file_type_stored' => $fileType,
+    ]);
 
     $path = $file->storeAs(
         'user_files/' . auth()->id(),
@@ -56,8 +68,8 @@ public function store(Request $request)
         'filename' => $filename,
         'path' => $path,
         'content_type' => $validated['content_type'], // safe/adult
-        'file_type' => $validated['file_type'], // image/video
-        'mime_type' => $file->getMimeType(), // e.g. image/png
+        'file_type' => $fileType, // image/video/audio
+        'mime_type' => $mime, // e.g. image/png
         'size' => $file->getSize(), // in bytes
     ]);
 
@@ -129,13 +141,30 @@ public function fetch(Request $request)
         })->count();
 
     return response()->json([
-        'files' => $files->map(fn($file) => [
-            'id' => $file->id,
-            'filename' => $file->filename,
-            'path' => asset('storage/' . $file->path),
-            'content_type' => $file->content_type,
-            'created_at' => $file->created_at->toDateTimeString(),
-        ]),
+        'files' => $files->map(function($file) {
+            $extension = strtolower(pathinfo($file->filename, PATHINFO_EXTENSION));
+            $mime = $file->mime_type;
+            $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+            $videoExts = ['mp4', 'mov', 'avi', 'webm'];
+            $audioExts = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'];
+            if (strpos($mime, 'image/') === 0 || in_array($extension, $imageExts)) {
+                $fileType = 'image';
+            } elseif (strpos($mime, 'video/') === 0 || in_array($extension, $videoExts)) {
+                $fileType = 'video';
+            } elseif (strpos($mime, 'audio/') === 0 || in_array($extension, $audioExts)) {
+                $fileType = 'audio';
+            } else {
+                $fileType = 'other';
+            }
+            return [
+                'id' => $file->id,
+                'filename' => $file->filename,
+                'path' => asset('storage/' . $file->path),
+                'content_type' => $file->content_type,
+                'file_type' => $fileType,
+                'created_at' => $file->created_at->toDateTimeString(),
+            ];
+        }),
         'imageCount' => $imageCount,
         'videoCount' => $videoCount,
         'totalCount' => $imageCount + $videoCount,
@@ -153,13 +182,31 @@ public function fetch(Request $request)
         $items = $list->items
             ->slice($offset)
             ->take($limit)
-            ->map(fn($item) => [
-                'id' => $item->file->id,
-                'filename' => $item->file->filename,
-                'path' => asset('storage/' . $item->file->path),
-                'content_type' => $item->file->content_type,
-                'created_at' => $item->file->created_at->toDateTimeString(),
-            ]);
+            ->map(function($item) {
+                $file = $item->file;
+                $extension = strtolower(pathinfo($file->filename, PATHINFO_EXTENSION));
+                $mime = $file->mime_type;
+                $imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+                $videoExts = ['mp4', 'mov', 'avi', 'webm'];
+                $audioExts = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac'];
+                if (strpos($mime, 'image/') === 0 || in_array($extension, $imageExts)) {
+                    $fileType = 'image';
+                } elseif (strpos($mime, 'video/') === 0 || in_array($extension, $videoExts)) {
+                    $fileType = 'video';
+                } elseif (strpos($mime, 'audio/') === 0 || in_array($extension, $audioExts)) {
+                    $fileType = 'audio';
+                } else {
+                    $fileType = 'other';
+                }
+                return [
+                    'id' => $file->id,
+                    'filename' => $file->filename,
+                    'path' => asset('storage/' . $file->path),
+                    'content_type' => $file->content_type,
+                    'file_type' => $fileType,
+                    'created_at' => $file->created_at->toDateTimeString(),
+                ];
+            });
 
         return response()->json(['files' => $items]);
     }

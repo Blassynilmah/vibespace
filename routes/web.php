@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\UserSearchController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileListController;
 use App\Http\Controllers\SpaceController;
+use App\Http\Controllers\TeaserController;
 
 /*
 |--------------------------------------------------------------------------
@@ -117,9 +118,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Space
     Route::get('/space/{slug}', [SpaceController::class, 'show']);
+    Route::post('/teasers', [TeaserController::class, 'store'])->name('teasers.store');
+    Route::get('/my-teasers', [TeaserController::class, 'myTeasers'])->name('teasers.mine');
+    Route::get('/all-teasers', [TeaserController::class, 'allTeasers'])->name('teasers.all');
 });
 
-Route::middleware('auth:sanctum')->get('/saved-boards', [BoardController::class, 'savedBoards']);
+// Debug route to show current session ID and user ID
+Route::get('/debug-session', function () {
+    return response()->json([
+        'session_id' => session()->getId(),
+        'user_id' => auth()->id(),
+    ]);
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -138,3 +148,8 @@ Route::get('/moodboards/{mood_board}', [BoardController::class, 'show'])->name('
 Route::get('/app/{any?}', function () {
     return view('layouts.app');
 })->where('any', '.*')->middleware('auth:sanctum');
+
+// Notifications
+Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+});

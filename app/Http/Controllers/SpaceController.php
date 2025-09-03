@@ -34,7 +34,7 @@ class SpaceController extends Controller
         // 👀 Viewer context
         $viewerId = auth()->id();
         $isFollowing = $viewerId && $viewerId !== $user->id
-            ? $user->followers()->where('follower_id', $viewerId)->exists()
+            ? (bool) $user->followers()->where('follower_id', $viewerId)->exists()
             : false;
 
         $followerCount = $user->followers()->count();
@@ -105,13 +105,13 @@ class SpaceController extends Controller
 
         Log::info("📦 Final formatted moodboards", $formattedBoards->toArray());
 
-        return view('space.show', compact(
-            'user',
-            'formattedBoards',
-            'viewerId',
-            'isFollowing',
-            'followerCount',
-            'followingCount'
-        ));
+        return view('space.show', [
+            'user' => $user,
+            'formattedBoards' => $formattedBoards,
+            'viewerId' => $viewerId,
+            'isFollowing' => $isFollowing,
+            'followerCount' => $followerCount,
+            'followingCount' => $followingCount,
+        ]);
     }
 }

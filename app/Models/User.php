@@ -125,4 +125,9 @@ public function savedMoodboards()
 {
     return $this->hasMany(SavedMoodboard::class);
 }
+
+public function teasers()
+{
+    return $this->hasMany(Teaser::class);
+}
 }

@@ -53,87 +53,79 @@
             <p class="text-lg sm:text-xl">Drop a mood. Catch a vibe. Connect with your people.</p>
         </div>
 
-        {{-- Sticky Top Bar (Search + Create + Filter) --}}
-        <div class="sticky top-0 z-40 bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-sm px-4 py-3">
-            <div class="max-w-4xl mx-auto flex items-center justify-between gap-4">
-                
-                {{-- Search Input (left) --}}
-                <div class="relative flex-1">
-                    <input 
-                        type="text" 
-                        x-model.debounce.300ms="searchQuery" 
-                        @input="searchUsers"
-                        placeholder="Search users by name..." 
-                        class="w-full px-4 py-2 rounded-full border border-white/30 bg-white/20 placeholder-white text-white text-sm focus:outline-none focus:ring-2 focus:ring-white"
-                    >
-                    <ul 
-                        class="absolute z-50 left-0 w-full bg-white border border-gray-200 mt-2 rounded-xl shadow max-h-60 overflow-y-auto text-black"
-                        x-show="searchResults.length > 0"
-                        @click.outside="searchResults = []"
-                    >
-                        <template x-for="user in searchResults" :key="user.id">
-                            <li 
-                                class="px-4 py-2 hover:bg-pink-100 cursor-pointer text-sm"
-                                @click="goToProfile(user.username)"
-                                x-text="'@' + user.username">
-                            </li>
-                        </template>
-                    </ul>
-                </div>
-
-                {{-- Create Button (middle) --}}
-                <a href="{{ route('boards.create') }}"
-                class="group relative h-10 rounded-full bg-white text-pink-600 overflow-hidden shadow transition-all duration-500 ease-in-out w-10 hover:w-48">
-                    <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lg transition-opacity duration-300 ease-in-out group-hover:opacity-0">
-                        +
-                    </span>
-                    <span class="pl-10 pr-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out text-sm whitespace-nowrap">
-                        Create moodboard
-                    </span>
+        {{-- Mobile Top Nav (Visible on small screens only) --}}
+        <div class="lg:hidden sticky top-0 z-[999] bg-gradient-to-r from-pink-500 to-purple-600 shadow-md border-t border-white/20 border-b">
+            <div class="flex justify-around px-3 py-2 text-white text-sm">
+                <!-- Home -->
+                <a href="{{ route('home') }}"
+                class="flex flex-col items-center text-yellow-300 font-semibold transition duration-300 ease-in-out">
+                    🏠
+                    <span class="text-[11px] mt-1 tracking-wide">Home</span>
                 </a>
 
-                {{-- Filter Button (right) --}}
-                <button
-                    @click="showMobileFilters = true"
-                    class="lg:hidden group relative h-10 rounded-full bg-white text-pink-600 overflow-hidden shadow transition-all duration-500 ease-in-out w-10 hover:w-40">
-                    <span class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-lg transition-opacity duration-300 ease-in-out group-hover:opacity-0">
-                        🧰
-                    </span>
-                    <span class="pl-10 pr-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ease-in-out text-sm whitespace-nowrap">
-                        Filters
-                    </span>
+                <!-- Messages -->
+                <a href="/messages"
+                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                    💌
+                    <span class="text-[11px] mt-1 tracking-wide">Messages</span>
+                </a>
+
+                <!-- Me -->
+                <a href="{{ route('boards.me') }}"
+                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                    💫
+                    <span class="text-[11px] mt-1 tracking-wide">Me</span>
+                </a>
+
+                <!-- Alerts -->
+                <a href="/notifications"
+                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                    🔔
+                    <span class="text-[11px] mt-1 tracking-wide">Alerts</span>
+                </a>
+
+                <!-- Settings -->
+                <a href="/settings"
+                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                    ⚙️
+                    <span class="text-[11px] mt-1 tracking-wide">Settings</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
+            <!-- Title -->
+            <h2
+            class="font-bold tracking-tight text-gray-800"
+            style="
+                font-size: clamp(1.1rem, 2.5vw + 0.5rem, 2rem);
+            "
+            >
+            🔥 Trending MoodBoards
+            </h2>
+
+
+            <!-- Action Buttons -->
+            <div class="ml-auto flex flex-row items-center gap-2 flex-wrap sm:flex-nowrap">
+            
+                <!-- Create Button -->
+                <a href="{{ route('boards.create') }}"
+                class="flex items-center justify-center h-9 w-9 rounded-full bg-white text-pink-600 shadow transition duration-300 ease-in-out">
+                <span class="text-base">+</span>
+                </a>
+
+                <!-- Filter Button -->
+                <button @click="showMobileFilters = true"
+                        class="flex items-center justify-center h-9 w-9 rounded-full bg-white text-pink-600 shadow transition duration-300 ease-in-out lg:hidden">
+                <span class="text-base">🧰</span>
+                </button>
+
+                <!-- Search Button -->
+                <button @click="showSearch = true"
+                        class="flex items-center justify-center h-9 w-9 rounded-full bg-white text-pink-600 shadow transition duration-300 ease-in-out">
+                <span class="text-base">🔍</span>
                 </button>
             </div>
-        </div>
-
-        {{-- Mobile Top Nav (Visible on small screens only) --}}
-        <div class="lg:hidden sticky top-[60px] z-30 bg-white border-t border-b border-gray-200 shadow-sm">
-            <div class="flex justify-around px-2 py-2 text-sm text-gray-700">
-                <a href="{{ route('home') }}" class="flex flex-col items-center hover:text-pink-600 transition">
-                    🏠
-                    <span class="text-xs mt-1">Home</span>
-                </a>
-                <a href="/messages" class="flex flex-col items-center hover:text-pink-600 transition">
-                    💌
-                    <span class="text-xs mt-1">Messages</span>
-                </a>
-                <a href="{{ route('boards.me') }}" class="flex flex-col items-center hover:text-pink-600 transition">
-                    💫
-                    <span class="text-xs mt-1">Me</span>
-                </a>
-                <a href="/notifications" class="flex flex-col items-center hover:text-pink-600 transition">
-                    🔔
-                    <span class="text-xs mt-1">Alerts</span>
-                </a>
-                <a href="/settings" class="flex flex-col items-center hover:text-pink-600 transition">
-                    ⚙️
-                    <span class="text-xs mt-1">Settings</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">🔥 Trending MoodBoards</h2>
         </div>
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
@@ -218,21 +210,21 @@
                                     x-text="board.title">
                                 </h3>
                                 <div x-show="board.description" class="text-sm text-black-800 dark:text-black-200 leading-snug">
-                                        <p 
+                                    <p 
                                         x-text="board.expanded 
-                                            ? board.description 
+                                            ? (board.description || '') 
                                             : (board.files && board.files.length 
-                                                ? board.description.split(' ').slice(0, 20).join(' ') + (board.description.split(' ').length > 20 ? '...' : '') 
-                                                : board.description.split(' ').slice(0, 200).join(' ') + (board.description.split(' ').length > 200 ? '...' : '')
+                                                ? (board.description ? board.description.split(' ').slice(0, 20).join(' ') + (board.description.split(' ').length > 20 ? '...' : '') : '') 
+                                                : (board.description ? board.description.split(' ').slice(0, 200).join(' ') + (board.description.split(' ').length > 200 ? '...' : '') : '')
                                             )"
                                         class="whitespace-pre-line"
                                     ></p>
                                     <button 
-                                        x-show="(!board.expanded && (board.files && board.description.split(' ').length > 20))
-                                            || (!board.expanded && (!board.files || !board.files.length) && board.description.split(' ').length > 200)"
+                                        x-show="(!board.expanded && (board.files && board.description && board.description.split(' ').length > 20))
+                                            || (!board.expanded && (!board.files || !board.files.length) && board.description && board.description.split(' ').length > 200)"
                                         @click="board.expanded = true"
                                         class="mt-1 text-pink-500 hover:underline text-xs font-medium"
-                                    >
+                                        >
                                         More
                                     </button>
                                 </div>

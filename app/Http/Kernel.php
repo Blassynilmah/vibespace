@@ -36,6 +36,9 @@ class Kernel extends HttpKernel
             // Handles CORS for API routes
             \Fruitcake\Cors\HandleCors::class,
 
+            // Enable session for Sanctum session guard
+            \Illuminate\Session\Middleware\StartSession::class,
+
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],

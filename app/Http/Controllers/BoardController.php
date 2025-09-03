@@ -455,5 +455,117 @@ public function toggleSave(Request $request)
         ], 500);
     }
 }
+
+public function savedBoards(Request $request)
+{
+    $viewer = $request->user(); // Authenticated user
+    $username = $request->query('username') ?? $viewer?->username;
+
+    if (!$username) {
+        return response()->json(['error' => 'Username is required'], 400);
+    }
+
+    $user = User::withCount(['followers', 'following'])
+        ->where('username', $username)
+        ->first();
+
+    if (!$user) {
+        return response()->json(['error' => 'User not found'], 404);
+    }
+
+    // Check if viewer is following the profile being viewed
+    $isFollowing = $viewer && $viewer->id !== $user->id
+        ? $user->followers()->where('follower_id', $viewer->id)->exists()
+        : false;
+
+    // Boards saved by the profile being viewed (not necessarily the viewer)
+    $boards = MoodBoard::whereHas('saves', fn($q) =>
+        $user ? $q->where('user_id', $user->id) : $q->whereRaw('1 = 0')
+    )
+    ->with([
+        'user.profilePicture',
+        'favorites' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
+        'reactions' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
+        'saves' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
+    ])
+    ->withCount([
+        'posts',
+        'comments',
+        'saves as is_saved' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
+    ])
+    ->latest()
+    ->paginate(10);
+
+    return response()->json([
+        'user' => [
+            'id' => $user->id,
+            'username' => $user->username,
+            'profile_picture' => $user->profilePicture?->path,
+            'joined_at' => $user->created_at,
+            'is_following' => $isFollowing,
+            'follower_count' => $user->followers_count,
+        ],
+        'boards' => $boards->map(fn($board) => $this->formatBoard($board)),
+        'next_page_url' => $boards->nextPageUrl(),
+        'current_page' => $boards->currentPage(),
+        'last_page' => $boards->lastPage(),
+    ]);
+}
+
+private function formatBoard($board)
+{
+    $counts = $board->reaction_counts;
+
+    return [
+        'id' => $board->id,
+        'title' => $board->title,
+        'description' => $board->description,
+        'latest_mood' => $board->latest_mood,
+        'created_at' => $board->created_at,
+        'user_reacted_mood' => $board->reactions->first()?->mood,
+        'post_count' => $board->posts_count,
+        'comment_count' => $board->comments_count,
+        'reaction_counts' => $counts,
+        'fire_count'      => $counts['fire'] ?? 0,
+        'flirty_count'    => $counts['flirty'] ?? 0,
+        'love_count'      => $counts['love'] ?? 0,
+        'funny_count'     => $counts['funny'] ?? 0,
+        'mindblown_count' => $counts['mindblown'] ?? 0,
+        'cool_count'      => $counts['cool'] ?? 0,
+        'crying_count'    => $counts['crying'] ?? 0,
+        'clap_count'      => $counts['clap'] ?? 0,
+
+        'image' => $board->image ? $this->formatImages($board->image) : [],
+        'video' => $board->video ? asset('storage/' . ltrim($board->video, '/')) : null,
+
+        // Keep existing favorite logic intact
+        'is_favorited' => $board->favorites->isNotEmpty(),
+
+        // New: "saved" simply mirrors favorite state
+        'is_saved' => (bool) ($board->is_saved ?? false),
+
+        'user' => [
+            'id' => $board->user->id,
+            'username' => $board->user->username,
+            'profile_picture' => $board->user->profilePicture?->path ?? null,
+            'is_following' => auth()->check()
+                ? $board->user->followers()->where('follower_id', auth()->id())->exists()
+                : false,
+        ]
+    ];
+}
+
+    private function formatImages($imageJson)
+    {
+        $decoded = json_decode($imageJson, true);
+
+        if (!is_array($decoded)) {
+            $decoded = [$decoded];
+        }
+
+        return collect($decoded)->map(function ($path) {
+            return asset('storage/' . ltrim($path, '/'));
+        })->toArray();
+    }
 }
 

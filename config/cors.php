@@ -7,7 +7,7 @@ return [
     'allowed_methods' => ['*'],
 
     // 👇 Change this to your actual Vite dev server origin
-    'allowed_origins' => ['http://localhost:5173'],
+    'allowed_origins' => ['http://localhost:5173', 'http://localhost:8000'],
 
     'allowed_origins_patterns' => [],
 

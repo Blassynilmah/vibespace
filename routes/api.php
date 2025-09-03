@@ -5,6 +5,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Api\BoardController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\MessageController;
+use App\Http\Controllers\TeaserController;
 
 // 🔑 Standard Sanctum SPA bootstrap route
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
@@ -15,12 +16,18 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->get('/me', fn (Request $r) => $r->user());
 
 // 🗂️ Board routes
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/boards/latest', [BoardController::class, 'latest']);
     Route::get('/boards', [BoardController::class, 'index']);
     Route::get('/my-boards', [BoardController::class, 'myBoards']);
     Route::get('/messages/thread/{receiverId}', [MessageController::class, 'thread']);
+    Route::get('/recent-messages', [MessageController::class, 'recentChats']);
+    Route::get('/messages/unread-conversations-count', [MessageController::class, 'unreadConversationsCount']);
 });
+
+// 🌍 Public boards (no auth)
+Route::get('/saved-boards', [\App\Http\Controllers\BoardController::class, 'savedBoards']);
 
 // 🌍 Public boards (no auth)
 Route::get('/users/{username}/boards', [BoardController::class, 'showUserBoards']);

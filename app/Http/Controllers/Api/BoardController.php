@@ -302,57 +302,62 @@ public function favoritedBoards(Request $request)
     ]);
 }
 
-public function savedBoards(Request $request)
-{
-    $viewer = $request->user();
-    $username = $request->query('username') ?? $viewer?->username;
+    public function savedBoards(Request $request)
+    {
+        // Accept ?username= param, or use logged-in user if available
+        $viewer = $request->user();
+        $username = $request->query('username') ?? $viewer?->username;
 
-    if (!$username) {
-        return response()->json(['error' => 'Username is required'], 400);
+        if (!$username) {
+            return response()->json(['error' => 'Username is required'], 400);
+        }
+
+        $user = User::withCount(['followers', 'following'])
+            ->where('username', $username)
+            ->first();
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found'], 404);
+        }
+
+        // If viewer is authenticated, show their saved boards. If guest, show for the requested username only.
+        $targetUserId = $user->id;
+        $viewerId = $viewer?->id;
+
+        // Only show saved boards for the requested user
+        $boards = MoodBoard::whereHas('saves', fn($q) => $q->where('user_id', $targetUserId))
+            ->with([
+                'user.profilePicture',
+                'favorites' => fn($q) => $viewerId ? $q->where('user_id', $viewerId) : $q->whereRaw('1 = 0'),
+                'reactions' => fn($q) => $viewerId ? $q->where('user_id', $viewerId) : $q->whereRaw('1 = 0'),
+                'saves' => fn($q) => $viewerId ? $q->where('user_id', $viewerId) : $q->whereRaw('1 = 0'),
+            ])
+            ->withCount([
+                'posts',
+                'comments',
+                'saves as is_saved' => fn($q) => $viewerId ? $q->where('user_id', $viewerId) : $q->whereRaw('1 = 0'),
+            ])
+            ->latest()
+            ->paginate(10);
+
+        // For guests, is_following is always false
+        $isFollowing = $viewerId && $viewerId !== $user->id
+            ? $user->followers()->where('follower_id', $viewerId)->exists()
+            : false;
+
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'profile_picture' => $user->profilePicture?->path,
+                'joined_at' => $user->created_at,
+                'is_following' => $isFollowing,
+                'follower_count' => $user->followers_count,
+            ],
+            'boards' => $boards->map(fn($board) => $this->formatBoard($board)),
+            'next_page_url' => $boards->nextPageUrl(),
+            'current_page' => $boards->currentPage(),
+            'last_page' => $boards->lastPage(),
+        ]);
     }
-
-    $user = User::withCount(['followers', 'following'])
-        ->where('username', $username)
-        ->first();
-
-    if (!$user) {
-        return response()->json(['error' => 'User not found'], 404);
-    }
-
-    $isFollowing = $viewer && $viewer->id !== $user->id
-        ? $user->followers()->where('follower_id', $viewer->id)->exists()
-        : false;
-
-    $boards = MoodBoard::whereHas('saves', fn($q) =>
-            $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0')
-        )
-        ->with([
-            'user.profilePicture',
-            'favorites' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
-            'reactions' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
-            'saves' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
-        ])
-        ->withCount([
-            'posts',
-            'comments',
-            'saves as is_saved' => fn($q) => $viewer ? $q->where('user_id', $viewer->id) : $q->whereRaw('1 = 0'),
-        ])
-        ->latest()
-        ->paginate(10);
-
-    return response()->json([
-        'user' => [
-            'id' => $user->id,
-            'username' => $user->username,
-            'profile_picture' => $user->profilePicture?->path,
-            'joined_at' => $user->created_at,
-            'is_following' => $isFollowing,
-            'follower_count' => $user->followers_count,
-        ],
-        'boards' => $boards->map(fn($board) => $this->formatBoard($board)),
-        'next_page_url' => $boards->nextPageUrl(),
-        'current_page' => $boards->currentPage(),
-        'last_page' => $boards->lastPage(),
-    ]);
-}
 }
