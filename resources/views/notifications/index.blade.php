@@ -48,7 +48,7 @@
         <div class="max-w-2xl mx-auto px-4 py-8">
             <h1 class="text-2xl font-bold mb-6">Notifications</h1>
             <div class="bg-white rounded-lg shadow divide-y">
-                <template x-if="notifications.length === 0">
+                <template x-if="!isLoading && notifications.length === 0">
                     <div class="p-4 text-gray-400 text-center">No notifications yet.</div>
                 </template>
                 <template x-for="group in notifications" :key="group.type + '-' + (group.mood_board_id || '') + '-' + (group.reaction_type || '') + '-' + (group.comment_id || '') + '-' + (group.created_at || '')">
