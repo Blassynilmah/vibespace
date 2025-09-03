@@ -24,16 +24,50 @@ class NotificationController extends Controller
     public function api(Request $request)
     {
         $user = Auth::user();
+        $perPage = 10;
         $notifications = \App\Models\Notification::where('user_id', $user->id)
-            ->where('is_read', 0)
             ->latest()
-            ->get();
+            ->paginate($perPage);
 
-        // Debug: Log notification count to storage/logs/laravel.log
-        \Log::debug('[notifications] User ' . $user->id . ' unread notifications count: ' . $notifications->count());
+        // Add is_read and read_at to each notification
+        $grouped = $this->groupNotifications($notifications->items());
+        // Attach is_read and read_at to each group (for frontend display)
+        foreach ($grouped as &$group) {
+            foreach ($group['notifications'] as &$n) {
+                $n->is_read = (bool) $n->is_read;
+                $n->read_at = $n->read_at;
+            }
+        }
+        return response()->json([
+            'data' => array_values($grouped),
+            'current_page' => $notifications->currentPage(),
+            'next_page_url' => $notifications->nextPageUrl(),
+            'last_page' => $notifications->lastPage(),
+            'total' => $notifications->total(),
+        ]);
+    }
 
-        $grouped = $this->groupNotifications($notifications);
-        return response()->json(array_values($grouped));
+    // Mark all notifications as read
+    public function markAllAsRead(Request $request)
+    {
+        $user = Auth::user();
+        \App\Models\Notification::where('user_id', $user->id)
+            ->where('is_read', 0)
+            ->update(['is_read' => 1, 'read_at' => now()]);
+        return response()->json(['success' => true]);
+    }
+
+    // Mark a single notification as read
+    public function markAsRead(Request $request, $id)
+    {
+        $user = Auth::user();
+        $notification = \App\Models\Notification::where('user_id', $user->id)
+            ->where('id', $id)
+            ->firstOrFail();
+        $notification->is_read = 1;
+        $notification->read_at = now();
+        $notification->save();
+        return response()->json(['success' => true]);
     }
 
     /**

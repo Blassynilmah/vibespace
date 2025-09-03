@@ -43,7 +43,11 @@ Route::post('/register', [RegisterController::class, 'register']);
 Route::middleware('auth:sanctum')->get('/api/user', fn (Request $r) => $r->user());
 
 // Notifications API (SPA/Alpine)
-Route::middleware('auth:sanctum')->get('/api/notifications', [\App\Http\Controllers\NotificationController::class, 'api']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/api/notifications', [\App\Http\Controllers\NotificationController::class, 'api']);
+    Route::post('/api/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
+    Route::post('/api/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead']);
+});
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)

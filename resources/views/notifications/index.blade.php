@@ -46,56 +46,62 @@
     <!-- Main Notifications Area -->
     <div class="flex-1 flex flex-col bg-gray-50 overflow-y-auto">
         <div class="max-w-2xl mx-auto px-4 py-8">
-            <h1 class="text-2xl font-bold mb-6">Notifications</h1>
+            <div class="flex items-center justify-between mb-6">
+                <h1 class="text-2xl font-bold">Notifications</h1>
+                <button @click="markAllAsRead" class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded shadow transition font-semibold text-sm">Mark all as read</button>
+            </div>
             <div class="bg-white rounded-lg shadow divide-y">
                 <template x-if="!isLoading && notifications.length === 0">
                     <div class="p-4 text-gray-400 text-center">No notifications yet.</div>
                 </template>
                 <template x-for="group in notifications" :key="group.type + '-' + (group.mood_board_id || '') + '-' + (group.reaction_type || '') + '-' + (group.comment_id || '') + '-' + (group.created_at || '')">
-                    <div class="p-4 cursor-pointer hover:bg-pink-50 transition">
-                        <div class="text-gray-800">
-                            <template x-if="group.type === 'reaction' || group.type === 'comment_reaction'">
-                                <span>
-                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                                    reacted with <span x-text="group.reaction_type"></span> to your mood board.
-                                </span>
-                            </template>
-                            <template x-if="group.type === 'comment'">
-                                <span>
-                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                                    commented on your mood board.
-                                </span>
-                            </template>
-                            <template x-if="group.type === 'reply'">
-                                <span>
-                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                                    replied to a comment on your mood board.
-                                </span>
-                            </template>
-                            <template x-if="group.type === 'follow'">
-                                <span>
-                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                                    followed you.
-                                </span>
-                            </template>
-                            <template x-if="group.type === 'unfollow'">
-                                <span>
-                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                                    unfollowed you.
-                                </span>
-                            </template>
-                            <template x-if="!['reaction','comment_reaction','comment','reply','follow','unfollow'].includes(group.type)">
-                                <span x-text="group.latest_message"></span>
-                            </template>
+                    <div @click="markAsRead(group)" :class="['p-4', 'cursor-pointer', 'transition', 'rounded', 'mb-2', group.notifications.some(n => n.is_read) ? 'bg-gray-100' : 'bg-yellow-50', 'hover:bg-pink-100', 'border', group.notifications.some(n => n.is_read) ? 'border-gray-200' : 'border-yellow-300', 'shadow-sm']">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-block w-2 h-2 rounded-full" :class="group.notifications.some(n => !n.is_read) ? 'bg-yellow-400' : 'bg-gray-300'"></span>
+                            <div class="flex-1">
+                                <template x-if="group.type === 'reaction' || group.type === 'comment_reaction'">
+                                    <span>
+                                        <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                        reacted with <span x-text="group.reaction_type"></span> to your mood board.
+                                    </span>
+                                </template>
+                                <template x-if="group.type === 'comment'">
+                                    <span>
+                                        <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                        commented on your mood board.
+                                    </span>
+                                </template>
+                                <template x-if="group.type === 'reply'">
+                                    <span>
+                                        <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                        replied to a comment on your mood board.
+                                    </span>
+                                </template>
+                                <template x-if="group.type === 'follow'">
+                                    <span>
+                                        <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                        followed you.
+                                    </span>
+                                </template>
+                                <template x-if="group.type === 'unfollow'">
+                                    <span>
+                                        <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                        unfollowed you.
+                                    </span>
+                                </template>
+                                <template x-if="!['reaction','comment_reaction','comment','reply','follow','unfollow'].includes(group.type)">
+                                    <span x-text="group.latest_message"></span>
+                                </template>
+                            </div>
+                            <div class="text-xs text-gray-500 ml-2" x-text="window.dayjs ? dayjs(group.created_at).fromNow() : group.created_at"></div>
+                        </div>
                         </div>
                         <div class="text-xs text-gray-500 mt-1" x-text="window.dayjs ? dayjs(group.created_at).fromNow() : group.created_at"></div>
                     </div>
                 </template>
             </div>
             <div class="mt-4 flex justify-center">
-                <button @click="fetchNotifications(page-1)" :disabled="page <= 1" class="px-3 py-1 rounded bg-gray-200 mr-2" :class="{'opacity-50': page <= 1}">&laquo; Prev</button>
-                <span class="px-2 text-gray-600">Page <span x-text="page"></span></span>
-                <button @click="fetchNotifications(page+1)" :disabled="!hasMore" class="px-3 py-1 rounded bg-gray-200 ml-2" :class="{'opacity-50': !hasMore}">Next &raquo;</button>
+                <button @click="fetchNotifications(page+1)" x-show="hasMore" class="px-4 py-2 rounded bg-pink-500 hover:bg-pink-600 text-white font-semibold shadow transition">Load more</button>
             </div>
         </div>
     </div>
@@ -123,51 +129,74 @@ document.addEventListener('alpine:init', () => {
         page: 1,
         hasMore: false,
         isLoading: false,
+        loadingMore: false,
         async init() {
             // Check authentication before fetching notifications
             const res = await fetch('/api/user', { credentials: 'include' });
-            console.log('[notifications] /api/user response:', res);
             if (!res.ok) {
                 window.location.href = '/login';
                 return;
             }
-            const user = await res.json();
-            console.log('[notifications] /api/user data:', user);
+            await res.json();
             this.fetchNotifications(1);
             if (Alpine.store('messaging') && typeof Alpine.store('messaging').fetchUnreadConversationsCount === 'function') {
                 Alpine.store('messaging').fetchUnreadConversationsCount();
             }
         },
-async fetchNotifications(page = 1) {
-    this.isLoading = true;
-    try {
-        const res = await fetch(`/api/notifications?page=${page}`, {
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-        });
-        if (!res.ok) throw new Error('Failed to fetch notifications');
-
-        const data = await res.json();
-        console.log('[notifications] /api/notifications data:', data);
-
-        // 🔑 handle both paginator style (with `data`) and plain array
-        const items = Array.isArray(data) ? data : (data.data || []);
-
-        this.notifications = items.map(n => ({
-            ...n,
-            created_at_human: window.dayjs ? dayjs(n.created_at).fromNow() : n.created_at
-        }));
-
-        this.page = data.current_page || 1;
-        this.hasMore = !!data.next_page_url;
-    } catch (e) {
-        this.notifications = [];
-    } finally {
-        this.isLoading = false;
-    }
-}
-    
+        async fetchNotifications(page = 1) {
+            if (page === 1) {
+                this.notifications = [];
+            }
+            this.isLoading = page === 1;
+            this.loadingMore = page > 1;
+            try {
+                const res = await fetch(`/api/notifications?page=${page}`, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!res.ok) throw new Error('Failed to fetch notifications');
+                const data = await res.json();
+                const items = Array.isArray(data.data) ? data.data : [];
+                if (page === 1) {
+                    this.notifications = items.map(n => ({ ...n, created_at_human: window.dayjs ? dayjs(n.created_at).fromNow() : n.created_at }));
+                } else {
+                    this.notifications = this.notifications.concat(items.map(n => ({ ...n, created_at_human: window.dayjs ? dayjs(n.created_at).fromNow() : n.created_at })));
+                }
+                this.page = data.current_page || 1;
+                this.hasMore = !!data.next_page_url;
+            } catch (e) {
+                if (page === 1) this.notifications = [];
+            } finally {
+                this.isLoading = false;
+                this.loadingMore = false;
+            }
+        },
+        async markAllAsRead() {
+            await fetch('/api/notifications/mark-all-read', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+            });
+            this.notifications.forEach(group => {
+                group.notifications.forEach(n => { n.is_read = true; n.read_at = new Date().toISOString(); });
+            });
+        },
+        async markAsRead(group) {
+            // Mark all notifications in the group as read
+            await Promise.all(group.notifications.map(async n => {
+                if (!n.is_read) {
+                    await fetch(`/api/notifications/${n.id}/mark-read`, {
+                        method: 'POST',
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+                    });
+                    n.is_read = true;
+                    n.read_at = new Date().toISOString();
+                }
+            }));
+        }
     }));
+});
 });
 
 </script>
