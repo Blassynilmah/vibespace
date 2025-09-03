@@ -62,6 +62,53 @@ public function react(Request $request, $id)
         ['type' => $request->type]
     );
 
+    // Notify moodboard owner and comment owner (if not the reactor)
+    $reactorId = auth()->id();
+    $moodBoardOwnerId = $comment->moodBoard->user_id ?? null;
+    $commentOwnerId = $comment->user_id;
+    $notified = [];
+
+    // Notify moodboard owner
+    if ($moodBoardOwnerId && $moodBoardOwnerId !== $reactorId) {
+        Notification::create([
+            'user_id' => $moodBoardOwnerId,
+            'reactor_id' => $reactorId,
+            'third_party_ids' => json_encode([$commentOwnerId]),
+            'third_party_message' => auth()->user()->name . ' reacted to a comment on your mood board.',
+            'type'    => 'comment_reaction',
+            'data'    => [
+                'message' => auth()->user()->name . ' reacted to a comment on your mood board.',
+                'comment_id' => $comment->id,
+                'mood_board_id' => $comment->moodBoard->id ?? null,
+                'reaction_type' => $request->type,
+                'reactor_id' => $reactorId,
+            ],
+            'read_at' => null,
+            'is_read' => 0,
+        ]);
+        $notified[] = $moodBoardOwnerId;
+    }
+
+    // Notify comment owner (if not the reactor or already notified)
+    if ($commentOwnerId && $commentOwnerId !== $reactorId && !in_array($commentOwnerId, $notified)) {
+        Notification::create([
+            'user_id' => $commentOwnerId,
+            'reactor_id' => $reactorId,
+            'third_party_ids' => json_encode([$moodBoardOwnerId]),
+            'third_party_message' => auth()->user()->name . ' reacted to your comment.',
+            'type'    => 'comment_reaction',
+            'data'    => [
+                'message' => auth()->user()->name . ' reacted to your comment.',
+                'comment_id' => $comment->id,
+                'mood_board_id' => $comment->moodBoard->id ?? null,
+                'reaction_type' => $request->type,
+                'reactor_id' => $reactorId,
+            ],
+            'read_at' => null,
+            'is_read' => 0,
+        ]);
+    }
+
     return response()->json([
         'message' => 'Reaction saved',
         'like_count' => $comment->commentReactions()->where('type', 'like')->count(),
