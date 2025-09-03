@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reaction;
+use App\Models\MoodBoard;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
@@ -86,6 +88,21 @@ class ReactionController extends Controller
                     'mood' => $data['mood'],
                 ]
             );
+
+            // Send notification to the mood board owner (if not reacting to own board)
+            $moodBoard = MoodBoard::find($data['mood_board_id']);
+            if ($moodBoard && $moodBoard->user_id !== $userId) {
+                Notification::create([
+                    'user_id' => $moodBoard->user_id,
+                    'type'    => 'reaction',
+                    'data'    => [
+                        'message' => $request->user()->name . " reacted to your mood board with '{$data['mood']}'",
+                        'mood_board_id' => $moodBoard->id,
+                        'reactor_id' => $userId,
+                    ],
+                    'read_at' => null,
+                ]);
+            }
 
             Log::info('Reactions: upserted', [
                 'user_id'       => $userId,
