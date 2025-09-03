@@ -29,6 +29,9 @@ class NotificationController extends Controller
             ->latest()
             ->get();
 
+        // Debug: Log notification count to storage/logs/laravel.log
+        \Log::debug('[notifications] User ' . $user->id . ' unread notifications count: ' . $notifications->count());
+
         $grouped = $this->groupNotifications($notifications);
         return response()->json(array_values($grouped));
     }

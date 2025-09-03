@@ -115,52 +115,51 @@
 
 @push('scripts')
 <script>
-fetch('/api/user', { credentials: 'include' })
-  .then(res => {
-    if (!res.ok) {
-      window.location.href = '/login';
-      throw new Error('Not authenticated');
-    }
-    return res.json();
-  })
-  .then(user => {
-    console.log('Authenticated user:', user);
 
-    // ✅ Now safe to init Alpine
-    document.addEventListener('alpine:init', () => {
-      Alpine.data('notificationInbox', () => ({
+
+document.addEventListener('alpine:init', () => {
+    Alpine.data('notificationInbox', () => ({
         notifications: [],
         page: 1,
         hasMore: false,
         isLoading: false,
         async init() {
-          this.fetchNotifications(1);
-          if (Alpine.store('messaging') && typeof Alpine.store('messaging').fetchUnreadConversationsCount === 'function') {
-            Alpine.store('messaging').fetchUnreadConversationsCount();
-          }
+            // Check authentication before fetching notifications
+            const res = await fetch('/api/user', { credentials: 'include' });
+            console.log('[notifications] /api/user response:', res);
+            if (!res.ok) {
+                window.location.href = '/login';
+                return;
+            }
+            const user = await res.json();
+            console.log('[notifications] /api/user data:', user);
+            this.fetchNotifications(1);
+            if (Alpine.store('messaging') && typeof Alpine.store('messaging').fetchUnreadConversationsCount === 'function') {
+                Alpine.store('messaging').fetchUnreadConversationsCount();
+            }
         },
         async fetchNotifications(page = 1) {
-          this.isLoading = true;
-          try {
-            const res = await fetch(`/api/notifications?page=${page}`);
-            if (!res.ok) throw new Error('Failed to fetch notifications');
-            const data = await res.json();
-            this.notifications = (data.data || []).map(n => ({
-              ...n,
-              created_at_human: window.dayjs ? dayjs(n.created_at).fromNow() : n.created_at
-            }));
-            this.page = data.current_page || 1;
-            this.hasMore = !!data.next_page_url;
-          } catch (e) {
-            this.notifications = [];
-          } finally {
-            this.isLoading = false;
-          }
+            this.isLoading = true;
+            try {
+                const res = await fetch(`/api/notifications?page=${page}`);
+                console.log('[notifications] /api/notifications response:', res);
+                if (!res.ok) throw new Error('Failed to fetch notifications');
+                const data = await res.json();
+                console.log('[notifications] /api/notifications data:', data);
+                this.notifications = (data.data || []).map(n => ({
+                    ...n,
+                    created_at_human: window.dayjs ? dayjs(n.created_at).fromNow() : n.created_at
+                }));
+                this.page = data.current_page || 1;
+                this.hasMore = !!data.next_page_url;
+            } catch (e) {
+                this.notifications = [];
+            } finally {
+                this.isLoading = false;
+            }
         }
-      }));
-    });
-  })
-  .catch(() => {});
+    }));
+});
 
 </script>
 @endpush
