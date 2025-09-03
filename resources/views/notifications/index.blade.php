@@ -138,29 +138,35 @@ document.addEventListener('alpine:init', () => {
                 Alpine.store('messaging').fetchUnreadConversationsCount();
             }
         },
-        async fetchNotifications(page = 1) {
-                    this.isLoading = true;
-                    try {
-                        const res = await fetch(`/api/notifications?page=${page}`, {
-                            credentials: 'include',
-                            headers: { 'Accept': 'application/json' }
-                        });
-                        console.log('[notifications] /api/notifications response:', res);
-                        if (!res.ok) throw new Error('Failed to fetch notifications');
-                        const data = await res.json();
-                        console.log('[notifications] /api/notifications data:', data);
-                        this.notifications = (data.data || []).map(n => ({
-                            ...n,
-                            created_at_human: window.dayjs ? dayjs(n.created_at).fromNow() : n.created_at
-                        }));
-                        this.page = data.current_page || 1;
-                        this.hasMore = !!data.next_page_url;
-                    } catch (e) {
-                        this.notifications = [];
-                    } finally {
-                        this.isLoading = false;
-                    }
-        }
+async fetchNotifications(page = 1) {
+    this.isLoading = true;
+    try {
+        const res = await fetch(`/api/notifications?page=${page}`, {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) throw new Error('Failed to fetch notifications');
+
+        const data = await res.json();
+        console.log('[notifications] /api/notifications data:', data);
+
+        // 🔑 handle both paginator style (with `data`) and plain array
+        const items = Array.isArray(data) ? data : (data.data || []);
+
+        this.notifications = items.map(n => ({
+            ...n,
+            created_at_human: window.dayjs ? dayjs(n.created_at).fromNow() : n.created_at
+        }));
+
+        this.page = data.current_page || 1;
+        this.hasMore = !!data.next_page_url;
+    } catch (e) {
+        this.notifications = [];
+    } finally {
+        this.isLoading = false;
+    }
+}
+    
     }));
 });
 
