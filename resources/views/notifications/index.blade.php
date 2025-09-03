@@ -51,10 +51,44 @@
                 <template x-if="notifications.length === 0">
                     <div class="p-4 text-gray-400 text-center">No notifications yet.</div>
                 </template>
-                <template x-for="notification in notifications" :key="notification.id">
-                    <div class="p-4 cursor-pointer hover:bg-pink-50 transition" :class="{'opacity-60': notification.read_at}">
-                        <div class="text-gray-800" x-html="notification.data.message || 'You have a new notification.'"></div>
-                        <div class="text-xs text-gray-500 mt-1" x-text="notification.created_at_human"></div>
+                <template x-for="group in notifications" :key="group.type + '-' + (group.mood_board_id || '') + '-' + (group.reaction_type || '') + '-' + (group.comment_id || '') + '-' + (group.created_at || '')">
+                    <div class="p-4 cursor-pointer hover:bg-pink-50 transition">
+                        <div class="text-gray-800">
+                            <template x-if="group.type === 'reaction' || group.type === 'comment_reaction'">
+                                <span>
+                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                    reacted with <span x-text="group.reaction_type"></span> to your mood board.
+                                </span>
+                            </template>
+                            <template x-if="group.type === 'comment'">
+                                <span>
+                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                    commented on your mood board.
+                                </span>
+                            </template>
+                            <template x-if="group.type === 'reply'">
+                                <span>
+                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                    replied to a comment on your mood board.
+                                </span>
+                            </template>
+                            <template x-if="group.type === 'follow'">
+                                <span>
+                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                    followed you.
+                                </span>
+                            </template>
+                            <template x-if="group.type === 'unfollow'">
+                                <span>
+                                    <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                    unfollowed you.
+                                </span>
+                            </template>
+                            <template x-if="!['reaction','comment_reaction','comment','reply','follow','unfollow'].includes(group.type)">
+                                <span x-text="group.latest_message"></span>
+                            </template>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1" x-text="window.dayjs ? dayjs(group.created_at).fromNow() : group.created_at"></div>
                     </div>
                 </template>
             </div>

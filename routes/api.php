@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Support\Facades\Route;
@@ -6,11 +7,15 @@ use App\Http\Controllers\Api\BoardController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TeaserController;
+use App\Http\Controllers\NotificationController;
 
 // 🔑 Standard Sanctum SPA bootstrap route
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Notifications API
+Route::middleware('auth:sanctum')->get('/notifications', [\App\Http\Controllers\NotificationController::class, 'api']);
 
 // 👤 Alternative alias (optional, same result)
 Route::middleware('auth:sanctum')->get('/me', fn (Request $r) => $r->user());

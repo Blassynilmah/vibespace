@@ -20,6 +20,7 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileListController;
 use App\Http\Controllers\SpaceController;
 use App\Http\Controllers\TeaserController;
+use App\Http\Controllers\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -131,6 +132,11 @@ Route::get('/debug-session', function () {
     ]);
 });
 
+// Notifications
+Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+});
+
 /*
 |--------------------------------------------------------------------------
 | Public Content
@@ -148,8 +154,3 @@ Route::get('/moodboards/{mood_board}', [BoardController::class, 'show'])->name('
 Route::get('/app/{any?}', function () {
     return view('layouts.app');
 })->where('any', '.*')->middleware('auth:sanctum');
-
-// Notifications
-Route::middleware(['auth'])->group(function () {
-    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
-});
