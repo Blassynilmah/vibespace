@@ -94,6 +94,9 @@ class ReactionController extends Controller
             if ($moodBoard && $moodBoard->user_id !== $userId) {
                 Notification::create([
                     'user_id' => $moodBoard->user_id,
+                    'reactor_id' => $userId,
+                    'third_party_ids' => null,
+                    'third_party_message' => null,
                     'type'    => 'reaction',
                     'data'    => [
                         'message' => $request->user()->name . " reacted to your mood board with '{$data['mood']}'",
@@ -101,6 +104,7 @@ class ReactionController extends Controller
                         'reactor_id' => $userId,
                     ],
                     'read_at' => null,
+                    'is_read' => 0,
                 ]);
             }
 

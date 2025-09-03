@@ -7,6 +7,7 @@ use App\Models\Comment;
 use App\Models\MoodBoard;
 use App\Models\Reply;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Notification;
 
 class CommentController extends Controller
 {
@@ -22,6 +23,25 @@ public function store(Request $request, $boardId)
         'user_id' => auth()->id(),
         'body' => $request->body,
     ]);
+
+    // Send notification to the mood board owner (if not commenting on own board)
+    if ($board->user_id !== auth()->id()) {
+        Notification::create([
+            'user_id' => $board->user_id,
+            'reactor_id' => auth()->id(),
+            'third_party_ids' => null,
+            'third_party_message' => null,
+            'type'    => 'comment',
+            'data'    => [
+                'message' => auth()->user()->name . ' commented on your mood board.',
+                'mood_board_id' => $board->id,
+                'comment_id' => $comment->id,
+                'reactor_id' => auth()->id(),
+            ],
+            'read_at' => null,
+            'is_read' => 0,
+        ]);
+    }
 
     return response()->json([
         'message' => 'Comment added!',
