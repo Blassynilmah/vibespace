@@ -115,6 +115,22 @@
 
 @push('scripts')
 <script>
+// Check authentication before Alpine init
+fetch('/api/user', { credentials: 'include' })
+  .then(res => {
+    if (!res.ok) {
+      console.warn('User not authenticated, redirecting to login.');
+      window.location.href = '/login';
+      return Promise.reject('Not authenticated');
+    }
+    return res.json();
+  })
+  .then(user => {
+    console.log('Authenticated user:', user);
+    document.dispatchEvent(new Event('alpine:init'));
+  })
+  .catch(() => {});
+
 document.addEventListener('alpine:init', () => {
     Alpine.data('notificationInbox', () => ({
         notifications: [],
