@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libpq-dev \
     curl \
-    && docker-php-ext-install pdo pdo_pgsql
+    && docker-php-ext-install pdo_pgsql
 
 # Enable Apache mod_rewrite and set DocumentRoot to /var/www/html/public
 RUN a2enmod rewrite \
@@ -30,9 +30,16 @@ RUN a2enmod rewrite \
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy only necessary files first (better build cache for Composer)
-COPY composer.json composer.lock ./
+# Copy composer files + artisan first (needed for post-install scripts)
+COPY composer.json composer.lock artisan ./
+
+# Allow composer to run as root
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+# Copy composer binary
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
 # Copy full app source
