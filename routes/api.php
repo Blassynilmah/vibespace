@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\BoardController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TeaserController;
-use App\Http\Controllers\NotificationController;
 
 // 🔑 Standard Sanctum SPA bootstrap route
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
