@@ -27,9 +27,11 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 COPY --from=build /app/public /var/www/html/public
 
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 755 /var/www/html/public
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
