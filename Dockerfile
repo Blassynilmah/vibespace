@@ -30,8 +30,11 @@ RUN a2enmod rewrite \
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files + artisan first (needed for post-install scripts)
+# Copy composer files + artisan + bootstrap + config
 COPY composer.json composer.lock artisan ./
+COPY bootstrap ./bootstrap
+COPY config ./config
+
 
 # Allow composer to run as root
 ENV COMPOSER_ALLOW_SUPERUSER=1
