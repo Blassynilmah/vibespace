@@ -1,56 +1,133 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-3xl mx-auto py-10 px-4" x-data="singleBoard({{ json_encode($board) }})">
-    {{-- ⬅️ Back to Home --}}
+<div class="max-w-3xl mx-auto py-10 px-4"
+     x-data="singleBoard({{ json_encode($board) }}, {{ json_encode($images) }}, {{ json_encode($video) }})">    {{-- ⬅️ Back to Home --}}
     <div class="mb-6">
         <a href="{{ route('home') }}#board-{{ $board['id'] }}"
            class="text-sm text-blue-500 hover:underline">← Back to Feed</a>
     </div>
 
     {{-- 🔹 Board Header --}}
-    <div class="mb-6">
-        <h1 class="text-3xl font-bold mb-2 text-pink-600" x-text="board.title"></h1>
-        <p class="text-gray-600 text-sm mb-2">
-            By <a :href="'/space/' + board.user.username" class="text-blue-500 hover:underline" x-text="'@' + board.user.username"></a>
-        </p>
-        <div class="flex items-center gap-2 mb-2">
-            <template x-if="board.mood">
-                <span class="text-xs font-medium px-3 py-1 rounded-full capitalize"
-                      :class="{
-                        'bg-green-100 text-green-700': board.mood === 'relaxed',
-                        'bg-yellow-100 text-yellow-700': board.mood === 'craving',
-                        'bg-red-100 text-red-700': board.mood === 'hyped',
-                        'bg-purple-100 text-purple-700': board.mood === 'obsessed'
-                    }"
-                      x-text="moods[board.mood] + ' ' + board.mood.charAt(0).toUpperCase() + board.mood.slice(1) + ' Vibes'">
-                </span>
-            </template>
-        </div>
-        <p class="text-gray-500 text-sm italic" x-text="board.description"></p>
+<div class="mb-6 flex flex-col gap-2">
+    <!-- Mood badge -->
+    <template x-if="board.mood || board.latest_mood">
+        <span
+            class="text-xs font-medium px-2 py-0.5 rounded-full self-start flex items-center gap-1 capitalize mb-1"
+            :class="{
+                'bg-blue-100 text-blue-700': (board.latest_mood ?? board.mood) === 'excited',
+                'bg-orange-100 text-orange-700': (board.latest_mood ?? board.mood) === 'happy',
+                'bg-pink-100 text-pink-700': (board.latest_mood ?? board.mood) === 'chill',
+                'bg-purple-100 text-purple-700': (board.latest_mood ?? board.mood) === 'thoughtful',
+                'bg-teal-100 text-teal-700': (board.latest_mood ?? board.mood) === 'sad',
+                'bg-amber-100 text-amber-700': (board.latest_mood ?? board.mood) === 'flirty',
+                'bg-indigo-100 text-indigo-700': (board.latest_mood ?? board.mood) === 'mindblown',
+                'bg-yellow-100 text-yellow-700': (board.latest_mood ?? board.mood) === 'love',
+            }"
+            style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 1px 0 rgba(0,0,0,0.05);"
+        >
+            <span x-text="moods[board.latest_mood ?? board.mood]"></span>
+            <span x-text="(board.latest_mood ?? board.mood).charAt(0).toUpperCase() + (board.latest_mood ?? board.mood).slice(1)"></span>
+            <span>Vibes</span>
+        </span>
+    </template>
+    <!-- Username and time -->
+    <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">
+        <a :href="'/space/' + board.user.username" class="hover:underline font-medium text-blue-600" x-text="'@' + board.user.username"></a>
+        <span class="mx-1">•</span>
+        <span x-text="timeSince(board.created_at)"></span>
     </div>
+    <!-- Title -->
+    <h1 class="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-1"
+        x-text="board.title"></h1>
+    <!-- Description -->
+    <div x-show="board.description" class="text-base text-black-800 dark:text-black-200 leading-snug">
+        <p class="whitespace-pre-line" x-text="board.description"></p>
+    </div>
+</div>
 
     {{-- 🌐 Media Preview --}}
-    <div id="media-preview-{{ $board->id }}" class="w-full h-full mb-8"></div>
+<div class="order-2 md:order-1 md:col-span-3 w-full mb-3">
+    <template x-if="files && files.length">
+        <div class="md:col-span-3">
+            <div
+                class="mt-3 w-full max-w-md mx-auto aspect-[9/12] min-h-[180px] rounded-xl overflow-hidden flex items-center justify-center relative z-0 bg-gray-50 dark:bg-gray-800 shadow-inner"
+                x-data="{ currentIndex: 0 }"
+            >
+                <!-- 🔢 File count -->
+                <template x-if="files.length > 1">
+                    <div class="absolute top-2 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full z-10">
+                        <span x-text="`${currentIndex + 1} / ${files.length}`"></span>
+                    </div>
+                </template>
 
-    {{-- 💥 Reactions --}}
-    <div class="flex flex-wrap gap-2 mb-6">
-        <template x-for="(emoji, mood) in moods" :key="mood">
-            <button @click.prevent="react(mood)"
-                    class="px-3 py-1 text-xs rounded-full font-medium flex items-center gap-1 transition-all"
-                    :class="[
-                        mood === 'relaxed' ? 'bg-green-100 text-green-700' :
-                        mood === 'craving' ? 'bg-yellow-100 text-yellow-700' :
-                        mood === 'hyped' ? 'bg-red-100 text-red-700' :
-                        mood === 'obsessed' ? 'bg-purple-100 text-purple-700' : '',
-                        board.user_reacted_mood === mood ? 'ring-2 ring-purple-500' : ''
-                    ]">
-                <span x-text="emoji"></span>
-                <span class="capitalize" x-text="mood"></span>
-                <span x-text="board[mood + '_count'] ?? 0" class="text-pink-500 text-[0.75rem]"></span>
-            </button>
-        </template>
-    </div>
+                <!-- 📸 Media Preview -->
+                <div class="flex items-center justify-center w-full h-full">
+                    <template x-if="files[currentIndex].type === 'image'">
+                        <img
+                            :src="files[currentIndex].path"
+                            alt="Preview"
+                            class="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.03] cursor-pointer"
+                        />
+                    </template>
+                    <template x-if="files[currentIndex].type === 'video'">
+                        <video
+                            :src="files[currentIndex].path"
+                            playsinline
+                            preload="metadata"
+                            muted
+                            autoplay
+                            loop
+                            class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
+                        ></video>
+                    </template>
+                </div>
+
+                <!-- ⬅ Prev Arrow -->
+                <button
+                    x-show="files.length > 1"
+                    @click="if (currentIndex > 0) currentIndex--"
+                    :disabled="currentIndex === 0"
+                    class="absolute left-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="top: 50%; transform: translateY(-50%);"
+                >◀</button>
+
+                <!-- ➡ Next Arrow -->
+                <button
+                    x-show="files.length > 1"
+                    @click="if (currentIndex < files.length - 1) currentIndex++"
+                    :disabled="currentIndex === files.length - 1"
+                    class="absolute right-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    style="top: 50%; transform: translateY(-50%);"
+                >▶</button>
+            </div>
+        </div>
+    </template>
+</div>
+
+<!-- 💥 Reactions -->
+<div class="flex flex-wrap gap-2 mb-6">
+  <template x-for="(emoji, mood) in reactionMoods" :key="mood">
+    <button
+      @click.prevent="react(board.id, mood)"
+      class="px-3 py-1 text-xs rounded-full font-medium flex items-center gap-1 transition-all"
+      :class="[
+        board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400' : '',
+        mood === 'fire' && 'bg-blue-100 text-blue-700',
+        mood === 'love' && 'bg-orange-100 text-orange-700',
+        mood === 'funny' && 'bg-red-100 text-red-700',
+        mood === 'mind-blown' && 'bg-purple-100 text-purple-700',
+        mood === 'cool' && 'bg-teal-100 text-teal-700',
+        mood === 'crying' && 'bg-amber-100 text-amber-700',
+        mood === 'clap' && 'bg-indigo-100 text-indigo-700',
+        mood === 'flirty' && 'bg-yellow-100 text-yellow-700',
+      ]">
+      <span x-text="emoji"></span>
+      <span class="capitalize" x-text="mood"></span>
+      <span x-text="getReactionCount(board, mood)" class="text-pink-500 text-[0.75rem]"></span>
+    </button>
+  </template>
+</div>
 
     {{-- 💬 Comment Box --}}
     <div class="bg-white p-4 rounded-xl shadow mb-6">
@@ -67,7 +144,11 @@
             <template x-for="comment in board.comments" :key="comment.id">
                 <div class="bg-gray-50 p-4 rounded-xl shadow">
                     <div class="flex justify-between items-center">
-                        <p class="font-semibold text-sm text-blue-600" x-text="'@' + comment.user.username"></p>
+                        <a
+                        :href="'/space/' + comment.user.username"
+                        class="font-semibold text-sm text-blue-600 hover:underline"
+                        x-text="'@' + comment.user.username"
+                        ></a>
                         <span class="text-xs text-gray-400" x-text="timeSince(comment.created_at)"></span>
                     </div>
                     <p class="text-sm text-gray-700 mt-1" x-text="comment.body"></p>
@@ -117,7 +198,7 @@
     document.addEventListener("alpine:init", () => {
         console.log("✅ Alpine initialized");
 
-        Alpine.data('singleBoard', (raw) => ({
+        Alpine.data('singleBoard', (raw, images, video) => ({
             board: {
                 ...raw,
                 newComment: '',
@@ -132,43 +213,74 @@
             }))
             },
 
+            files: [
+                ...(images || []).map(path => ({
+                    path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                    type: 'image'
+                })),
+                ...(video ? [{
+                    path: video.startsWith('http') ? video : `/storage/${video.replace(/^\/?storage\//, '')}`,
+                    type: 'video'
+                }] : [])
+            ],
+
             moods: {
-                relaxed: "😌",
-                craving: "🤤",
-                hyped: "🔥",
-                obsessed: "🫠"
+                excited: "🔥",
+                happy: "😊",
+                chill: "😎",
+                thoughtful: "🤔",
+                sad: "😭",
+                flirty: "😏",
+                mindblown: "🤯",
+                love: "💖"
             },
 
-            // ✅ Reaction
-            react(mood) {
-                if (this.board.user_reacted_mood === mood) {
-                    showToast("You already picked this mood 💅");
+            reactionMoods: {
+            fire: '🔥',
+            love: '❤️',
+            funny: '😂',
+            'mind-blown': '🤯',
+            cool: '😎',
+            crying: '😭',
+            clap: '👏',
+            flirty: '😉'
+            },
+
+            react(boardId, mood) {
+              const board = (Array.isArray(this.boards) ? this.boards.find(b => b.id === boardId) : null) || this.board;
+                if (!board) { this.showToast("Board not found 😢", true); return; }
+
+                if (board.user_reacted_mood === mood) {
+                    this.showToast("You already picked this mood 💅");
                     return;
                 }
 
-                showToast("Reacting...");
+            showToast("Reacting...");
 
-                setTimeout(() => {
-                    fetch('/reaction', {
-                        method: 'POST',
-                        headers: this._headers(),
-                        body: JSON.stringify({
-                            mood_board_id: this.board.id,
-                            mood: mood
-                        }),
-                    })
-                    .then(res => res.ok ? res.json() : Promise.reject())
-                    .then(() => {
-                        const prev = this.board.user_reacted_mood;
-                        if (prev && prev !== mood) this.board[prev + '_count']--;
-                        this.board[mood + '_count']++;
-                        this.board.user_reacted_mood = mood;
-                        showToast("Mood updated 💖");
-                    })
-                    .catch(() => {
-                        showToast("Failed to react 😢", true);
-                    });
-                }, 3000);
+            setTimeout(() => {
+                fetch('/reaction', {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({ mood_board_id: board.id, mood })
+                })
+                .then(res => res.ok ? res.json() : Promise.reject())
+                .then(() => {
+                const prev = board.user_reacted_mood;
+                if (prev && prev !== mood) {
+                    board[prev + '_count'] = Math.max(0, (board[prev + '_count'] || 0) - 1);
+                }
+                board[mood + '_count'] = (board[mood + '_count'] || 0) + 1;
+                board.user_reacted_mood = mood;
+                showToast("Mood updated 💖");
+                })
+                .catch(() => {
+                showToast("Failed to react 😢", true);
+                });
+            }, 1000);
+            },
+
+            getReactionCount(board, mood) {
+            return board[mood + '_count'] ?? 0;
             },
 
             // ✅ Commenting
@@ -233,7 +345,7 @@
                     .catch(() => {
                         showToast("Reply failed 😢", true);
                     });
-                }, 3000);
+                }, 1000);
             },
 
             // ✅ Utils
@@ -272,7 +384,7 @@
                     .catch(() => {
                         showToast("Failed to react to comment 💔", true);
                     });
-                }, 3000);
+                }, 1000); // 1 second delay
             },
 
             // ✅ Toasts
@@ -307,123 +419,5 @@ function showToast(message, isError = false) {
         toast.classList.add('opacity-0', 'pointer-events-none');
     }, 3000);
 }
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('media-preview-{{ $board->id }}');
-    const mediaPath = @json($board->image ?? $board->video);
-    if (!mediaPath || !container) return;
-
-    const fullPath = mediaPath.startsWith('http') ? mediaPath : `/storage/${mediaPath}`;
-    const ext = fullPath.split('.').pop().toLowerCase();
-
-    if (['mp4', 'webm', 'ogg'].includes(ext)) {
-        const wrapper = document.createElement('div');
-        wrapper.className = "relative max-w-[75%] mx-auto rounded-2xl overflow-hidden group border-2 border-pink-500 shadow-md";
-
-        const video = document.createElement('video');
-        video.src = fullPath;
-        video.playsInline = true;
-        video.preload = "metadata";
-        video.className = "w-full h-auto max-h-[100vh] object-cover rounded-2xl";
-        video.muted = true;
-        video.autoplay = true;
-        video.loop = true;
-
-        let lastTap = 0;
-        let tapTimeout;
-
-        video.addEventListener('click', (e) => {
-            const now = new Date().getTime();
-            const tapX = e.offsetX;
-            const isLeft = tapX < video.offsetWidth / 2;
-            const doubleTap = now - lastTap < 300;
-
-            if (doubleTap) {
-                clearTimeout(tapTimeout);
-                if (isLeft) {
-                    video.currentTime = Math.max(0, video.currentTime - 10);
-                    flashSeek(video, '⏪ -10s');
-                } else {
-                    video.currentTime = Math.min(video.duration, video.currentTime + 10);
-                    flashSeek(video, '+10s ⏩');
-                }
-            } else {
-                tapTimeout = setTimeout(() => {
-                    if (video.paused) video.play();
-                    else video.pause();
-                }, 250);
-            }
-
-            lastTap = now;
-        });
-
-        const muteBtn = document.createElement('button');
-        muteBtn.innerHTML = getMuteIcon(true);
-        muteBtn.className = "absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 z-10";
-        muteBtn.addEventListener('click', () => {
-            video.muted = !video.muted;
-            muteBtn.innerHTML = getMuteIcon(video.muted);
-        });
-
-        const progress = document.createElement('input');
-        progress.type = 'range';
-        progress.min = 0;
-        progress.max = 100;
-        progress.step = 0.1;
-        progress.value = 0;
-        progress.className = "absolute bottom-0 left-0 w-full h-1 appearance-none z-10 cursor-pointer";
-        progress.style.height = '4px';
-        progress.style.background = 'linear-gradient(to right, #ec4899 0%, #ec4899 0%, #ddd 0%, #ddd 100%)';
-
-        video.addEventListener('timeupdate', () => {
-            const val = (video.currentTime / video.duration) * 100 || 0;
-            progress.value = val;
-            progress.style.background = `linear-gradient(to right, #ec4899 0%, #ec4899 ${val}%, #ddd ${val}%, #ddd 100%)`;
-        });
-
-        progress.addEventListener('input', () => {
-            video.currentTime = (progress.value / 100) * video.duration;
-        });
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    video.play().catch(() => {});
-                } else {
-                    video.pause();
-                }
-            });
-        }, { threshold: 0.5 });
-
-        observer.observe(video);
-
-        wrapper.appendChild(video);
-        wrapper.appendChild(progress);
-        wrapper.appendChild(muteBtn);
-        container.appendChild(wrapper);
-    } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
-        const img = document.createElement('img');
-        img.src = fullPath;
-        img.alt = "Moodboard Image";
-        img.className = "w-full h-auto object-cover rounded-2xl border-2 border-pink-500 shadow";
-        container.appendChild(img);
-    }
-
-    function flashSeek(video, label) {
-        const flash = document.createElement('div');
-        flash.textContent = label;
-        flash.className = "absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50 animate-pulse z-20";
-        video.parentElement.appendChild(flash);
-        setTimeout(() => flash.remove(), 500);
-    }
-
-    function getMuteIcon(muted) {
-        return muted
-            ? `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4l-5 5H5z"/></svg>`
-            : `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4l-5 5H5zm14.5 3c0-1.77-.77-3.36-2-4.47v8.94c1.23-1.11 2-2.7 2-4.47z"/></svg>`;
-    }
-});
 </script>
 @endpush

@@ -21,21 +21,9 @@
             <main>
     @yield('content')
 </main>
-<script src="https://cdn.jsdelivr.net/npm/@alpinejs/intersect@3.x.x/dist/cdn.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-
-<script>
-    document.addEventListener('alpine:init', () => {
-        // ✅ Grab the plugin from Alpine's global registry
-        Alpine.plugin(window.AlpineIntersect)
-        Alpine.store('videoSettings', Alpine.reactive({ muted: true }))
-    })
-</script>
-
-
-
         </div>
+
+        @stack('scripts')
     </body>
-    @stack('scripts')
 </html>
 

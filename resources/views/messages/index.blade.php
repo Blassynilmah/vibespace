@@ -1,37 +1,345 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="messageInbox()" x-init="init()" class="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
-    <!-- 📱 Mobile Header -->
-    <div class="lg:hidden sticky top-0 z-50 bg-white shadow">
-        <div class="flex items-center justify-between px-3 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white">
-            <div class="flex-1">
-                <input type="text" x-model="searchQuery" placeholder="Search messages..."
-                    class="w-full px-4 py-2 rounded-full border border-white/30 bg-white/20 placeholder-white text-white text-sm focus:outline-none focus:ring-2 focus:ring-white">
-            </div>
-            <button 
-                @click="
-                    if (window.innerWidth < 1024 && $store.messaging.receiver) {
-                        showRecentChats = true;
-                        $store.messaging.receiver = null;
-                        $store.messaging.messages = [];
-                        history.pushState(null, '', '/messages');
-                    }
-                "
-                class="ml-2 px-4 py-2 bg-white text-pink-600 rounded-full text-sm font-semibold shadow hover:bg-pink-100 transition"
-            >
-                💬 Recent Chats
-            </button>
-        </div>
+<div x-data="messageInbox()" x-init="init()" @open-preview-modal.window="openPreviewModal($event.detail.files, $event.detail.index)" class="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
 
-        <div class="flex justify-around px-2 py-2 border-b border-gray-200 text-sm text-gray-700 bg-white">
-            <a href="{{ route('home') }}" class="flex flex-col items-center hover:text-pink-600"> 🏠 <span class="text-xs mt-1">Home</span> </a>
-            <a href="/messages" class="flex flex-col items-center hover:text-pink-600"> 💌 <span class="text-xs mt-1">Messages</span> </a>
-            <a href="/my-vibes" class="flex flex-col items-center hover:text-pink-600"> 💫 <span class="text-xs mt-1">My Vibes</span> </a>
-            <a href="/notifications" class="flex flex-col items-center hover:text-pink-600"> 🔔 <span class="text-xs mt-1">Alerts</span> </a>
-            <a href="/settings" class="flex flex-col items-center hover:text-pink-600"> ⚙️ <span class="text-xs mt-1">Settings</span> </a>
+<!-- Universal File Preview Modal (Image/Video, navigable by index, for non-attachments only) -->
+<template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number' && !(focusedPreviewFiles[0]?.is_attachment)">
+    <div class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center">
+        <!-- ...existing code for preview modal... -->
+        <button @click="focusedPreviewFiles = []; focusedPreviewIndex = null"
+            class="absolute top-4 sm:top-6 right-4 sm:right-6 text-white text-xl sm:text-2xl hover:text-pink-300 transition">
+            ×
+        </button>
+        <template x-if="focusedPreviewFiles[focusedPreviewIndex]">
+            <div class="relative group">
+                <!-- Video Preview with Custom Controls -->
+                <template x-if="focusedPreviewFiles[focusedPreviewIndex].filename && focusedPreviewFiles[focusedPreviewIndex].filename.match(/\.(mp4|mov|avi|webm)$/i)">
+                    <div class="relative group">
+                        <video
+                            x-ref="previewVideo"
+                            :src="focusedPreviewFiles[focusedPreviewIndex].url || focusedPreviewFiles[focusedPreviewIndex].path"
+                            @timeupdate="videoCurrentTime = $refs.previewVideo.currentTime"
+                            @loadedmetadata="videoDuration = $refs.previewVideo.duration"
+                            @volumechange="videoMuted = $refs.previewVideo.muted"
+                            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
+                            x-init="videoCurrentTime = 0; videoDuration = 0; videoMuted = $refs.previewVideo.muted"
+                            controlslist="nodownload noremoteplayback"
+                            @contextmenu.prevent
+                            @ended="videoCurrentTime = 0"
+                        ></video>
+                        <!-- Custom Progress Bar & Controls -->
+                        <div class="absolute bottom-0 left-0 w-full bg-black/70 text-white px-4 py-2 flex items-center justify-between gap-3 rounded-b-lg">
+                            <div class="flex items-center gap-3">
+                                <button
+                                    @click="
+                                        if ($refs.previewVideo.paused) {
+                                            $refs.previewVideo.play();
+                                        } else {
+                                            $refs.previewVideo.pause();
+                                        }
+                                    "
+                                    class="px-1 hover:text-pink-400"
+                                >
+                                    <template x-if="$refs.previewVideo && $refs.previewVideo.paused">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><polygon points="6,4 18,10 6,16" /></svg>
+                                    </template>
+                                    <template x-if="$refs.previewVideo && !$refs.previewVideo.paused">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="4" width="3" height="12" /><rect x="11" y="4" width="3" height="12" /></svg>
+                                    </template>
+                                </button>
+                                <button @click="$refs.previewVideo.muted = !$refs.previewVideo.muted" class="px-1 hover:text-pink-400">
+                                    <template x-if="!videoMuted">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/></svg>
+                                    </template>
+                                    <template x-if="videoMuted">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+                                    </template>
+                                </button>
+                                <span class="text-xs font-mono min-w-[48px]" x-text="formatTime(videoCurrentTime)"></span>
+                            </div>
+                            <div class="flex-1 mx-3">
+                                <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
+                                     @click="$refs.previewVideo.currentTime = (videoDuration * ($event.offsetX / $event.target.offsetWidth))">
+                                    <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
+                                         :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-mono min-w-[48px]" x-text="formatTime(videoDuration)"></span>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="focusedPreviewFiles[focusedPreviewIndex].filename && focusedPreviewFiles[focusedPreviewIndex].filename.match(/\.(jpg|jpeg|png|gif|webp)$/i)">
+                    <img :src="focusedPreviewFiles[focusedPreviewIndex].url || focusedPreviewFiles[focusedPreviewIndex].path"
+                        class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl object-contain">
+                </template>
+            </div>
+        </template>
+        <button @click="focusedPreviewIndex = Math.max(0, focusedPreviewIndex - 1)"
+                :disabled="focusedPreviewIndex === 0"
+                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">‹</button>
+        <button @click="focusedPreviewIndex = Math.min(focusedPreviewFiles.length - 1, focusedPreviewIndex + 1)"
+                :disabled="focusedPreviewIndex === focusedPreviewFiles.length - 1"
+                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">›</button>
+    </div>
+</template>
+
+<!-- Attachments-Only Preview Modal -->
+<template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number' && focusedPreviewFiles[0]?.is_attachment">
+    <div class="fixed inset-0 bg-black/80 z-[2000] flex items-center justify-center">
+        <!-- Close Button -->
+        <button @click="focusedPreviewFiles = []; focusedPreviewIndex = null"
+            class="absolute top-4 sm:top-6 right-4 sm:right-6 text-white text-xl sm:text-2xl hover:text-pink-300 transition">
+            ×
+        </button>
+        <template x-if="focusedPreviewFiles[focusedPreviewIndex]">
+            <div class="relative group">
+                <!-- Video Preview with Custom Controls -->
+                <template x-if="focusedPreviewFiles[focusedPreviewIndex].extension && ['mp4','mov','avi','webm'].includes(focusedPreviewFiles[focusedPreviewIndex].extension.toLowerCase())">
+                    <div class="relative group">
+                        <video
+                            x-ref="previewVideo"
+                            :src="focusedPreviewFiles[focusedPreviewIndex].url || focusedPreviewFiles[focusedPreviewIndex].file_path"
+                            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
+                            controlslist="nodownload noremoteplayback"
+                            @contextmenu.prevent
+                        ></video>
+                    </div>
+                </template>
+                <!-- Image Preview -->
+                <template x-if="focusedPreviewFiles[focusedPreviewIndex].extension && ['jpg','jpeg','png','gif','webp'].includes(focusedPreviewFiles[focusedPreviewIndex].extension.toLowerCase())">
+                    <img :src="focusedPreviewFiles[focusedPreviewIndex].url || focusedPreviewFiles[focusedPreviewIndex].file_path"
+                        class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl object-contain">
+                </template>
+            </div>
+        </template>
+        <button @click="focusedPreviewIndex = Math.max(0, focusedPreviewIndex - 1)"
+                :disabled="focusedPreviewIndex === 0"
+                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">‹</button>
+        <button @click="focusedPreviewIndex = Math.min(focusedPreviewFiles.length - 1, focusedPreviewIndex + 1)"
+                :disabled="focusedPreviewIndex === focusedPreviewFiles.length - 1"
+                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">›</button>
+    </div>
+</template>
+    <!-- File Picker Modal (mirroring create.blade.php CSS/structure, but keeping logic) -->
+    <div
+        x-show="showMediaModal"
+        x-data="filePicker()"
+        x-cloak
+        @click.self="showMediaModal = false; $store.filePicker && $store.filePicker.selectedIds ? $store.filePicker.selectedIds = [] : null"
+        class="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center"
+        x-transition
+    >
+        <div class="bg-white w-full md:w-[1000px] max-w-[95vw] h-[600px] rounded-xl shadow-2xl overflow-hidden flex flex-col text-base sm:text-sm">
+            <!-- Header -->
+            <div class="sticky top-0 z-10 p-3 sm:p-4 border-b bg-gradient-to-r from-pink-50 to-purple-50">
+                <div class="flex items-center gap-2">
+                    <!-- Back Arrow -->
+                    <button x-show="!showFileListsPanel" @click="showFileListsPanel = true" class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-white rounded-full shadow-sm border border-gray-200 mr-2" title="Show file lists">⬅️</button>
+                    <h2 class="font-bold text-pink-600 text-lg sm:text-xl flex-1 text-center sm:text-left">
+                        📂 Select Your Files
+                    </h2>
+                    <button   @click="showMediaModal = false; selectedIds = []" type="button"
+                        class="px-3 sm:px-2 py-0.5 sm:py-1 rounded bg-red-500 text-white hover:bg-red-600 font-medium text-sm sm:text-base">
+                        Close
+                    </button>
+                </div>
+                <div class="mt-2 sm:mt-3 flex flex-wrap gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600" x-show="!showFileListsPanel">
+                    <select x-model="filters.type" @change="loadFiles()" class="rounded border px-2 py-1 bg-white text-xs sm:text-sm">
+                        <option value="all">📁 All</option>
+                        <option value="image">🖼️ Images</option>
+                        <option value="video">🎬 Videos</option>
+                    </select>
+                    <select x-model="filters.contentType" @change="loadFiles()" class="rounded border px-2 py-1 bg-white text-xs sm:text-sm">
+                        <option value="all">🔒 All</option>
+                        <option value="safe">🙂 Safe</option>
+                        <option value="adult">⚠️ Adult</option>
+                    </select>
+                    <select x-model="filters.sort" @change="loadFiles()" class="rounded border px-2 py-1 bg-white text-xs sm:text-sm">
+                        <option value="latest">⏱️ Latest</option>
+                        <option value="earliest">🕰️ Earliest</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-1 overflow-hidden relative">
+                <!-- File Lists Panel -->
+                <div x-show="showFileListsPanel" class="w-full sm:w-[250px] border-r bg-gray-50 overflow-y-auto p-2 sm:p-4 absolute sm:static z-20 transition-transform duration-200">
+                    <template x-if="isLoadingLists">
+                        <div class="flex items-center justify-center h-40 w-full">
+                            <svg class="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                        </div>
+                    </template>
+                    <template x-if="!isLoadingLists">
+                        <div>
+                            <!-- Default All Media List -->
+                            <button type="button"
+                                @click="setList('all')"
+                                class="flex items-center justify-between w-full px-2 sm:px-3 py-1 sm:py-2 mb-1 sm:mb-2 text-left rounded-lg hover:bg-pink-50 text-sm sm:text-base"
+                                :class="activeListId === 'all' ? 'bg-pink-100 text-pink-700 font-bold' : 'text-gray-700'">
+                                <span class="truncate">All Media</span>
+                                <span class="text-xs sm:text-sm text-gray-500 flex gap-2 ml-2">
+                                    <span class="flex items-center gap-1">
+                                        <span x-text="lists.length > 0 ? lists[0].imageCount : 0"></span>
+                                        <span>🖼️</span>
+                                    </span>
+                                    <span class="flex items-center gap-1">
+                                        <span x-text="lists.length > 0 ? lists[0].videoCount : 0"></span>
+                                        <span>🎬</span>
+                                    </span>
+                                </span>
+                            </button>
+                            <!-- Other Lists -->
+                            <template x-for="list in lists.slice(1)" :key="list.id">
+                                <button type="button"
+                                    @click="setList(list.id)"
+                                    class="flex items-center justify-between w-full px-2 sm:px-3 py-1 sm:py-2 mb-1 sm:mb-2 text-left rounded-lg hover:bg-pink-50 text-sm sm:text-base"
+                                    :class="list.id === activeListId ? 'bg-pink-100 text-pink-700 font-bold' : 'text-gray-700'">
+                                    <span x-text="list.name" class="truncate"></span>
+                                    <span class="text-xs sm:text-sm text-gray-500 flex gap-2 ml-2">
+                                        <span class="flex items-center gap-1">
+                                            <span x-text="list.imageCount || 0"></span>
+                                            <span>🖼️</span>
+                                        </span>
+                                        <span class="flex items-center gap-1">
+                                            <span x-text="list.videoCount || 0"></span>
+                                            <span>🎬</span>
+                                        </span>
+                                    </span>
+                                </button>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- File Grid -->
+                <div x-show="!showFileListsPanel" class="w-full flex-1 h-full overflow-y-auto relative">
+                    <template x-if="isLoadingFiles">
+                        <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                            <svg class="animate-spin h-10 w-10 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                            </svg>
+                        </div>
+                    </template>
+                    <div class="px-2 py-4 sm:px-4 md:px-6 lg:px-8 grid gap-3 sm:gap-4"
+                        style="grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));">
+                        <template x-for="file in files" :key="file.id">
+                            <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative hover:scale-[1.05] transition shadow-sm group cursor-pointer"
+                                @click="$dispatch('open-preview-modal', { files: files, index: files.findIndex(f => f.id === file.id) })">
+                                <!-- Checkbox (top left) -->
+                                <input type="checkbox"
+                                    class="absolute top-1 sm:top-2 left-1 sm:left-2 h-4 w-4 text-pink-500 rounded border-gray-300 z-10"
+                                    :checked="selectedIds.includes(file.id)"
+                                    @click.stop="toggleFileSelection(file.id)">
+                                <!-- File Type Icon (top right, no bg, only 3 types) -->
+                                <div class="absolute top-1 right-1 z-20 text-xl select-none">
+                                    <template x-if="['jpg','jpeg','png','gif','webp'].includes(file.extension)">
+                                        <span title="Image">🖼️</span>
+                                    </template>
+                                    <template x-if="['mp4','mov','webm'].includes(file.extension)">
+                                        <span title="Video">🎬</span>
+                                    </template>
+                                    <template x-if="['mp3','wav','ogg'].includes(file.extension)">
+                                        <span title="Audio">🎵</span>
+                                    </template>
+                                </div>
+                                <template x-if="file.extension && ['mp4','mov','webm'].includes(file.extension)">
+                                    <video :src="file.url || file.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black">
+                                        <template x-if="!(file.url || file.path)">
+                                            <source src="" />
+                                        </template>
+                                    </video>
+                                </template>
+                                <template x-if="file.extension && ['jpg','jpeg','png','gif','webp'].includes(file.extension)">
+                                    <img :src="file.url || file.path" class="w-full h-full object-cover" alt="">
+                                </template>
+                                <template x-if="file.extension && ['mp3','wav','ogg'].includes(file.extension)">
+                                    <div class="flex flex-col items-center justify-center w-full h-full text-blue-500">
+                                        <span class="text-4xl">🎵</span>
+                                        <audio :src="file.url || file.path" controls class="w-full mt-1"></audio>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-2 sm:p-4 border-t bg-white flex justify-end items-center">
+                <div class="flex gap-2">
+                    <button
+                        @click="selectedIds = []"
+                        type="button"
+                        :disabled="selectedIds.length === 0"
+                        class="px-3 sm:px-4 py-1 sm:py-2 rounded bg-red-500 text-white hover:bg-red-600 font-medium text-sm sm:text-base transition"
+                        :class="selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed' : ''"
+                        >
+                        ✖️ Clear
+                    </button>
+                    <button
+                        @click="addSelectedFiles()"
+                        type="button"
+                        :disabled="selectedIds.length === 0"
+                        class="px-3 sm:px-4 py-1 sm:py-2 rounded bg-green-500 text-white hover:bg-green-600 font-medium text-sm sm:text-base transition"
+                        :class="selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed' : ''"
+                        >
+                        ➕ Add (<span x-text="selectedIds.length"></span>/20)
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
+
+    <!-- 📬 Messages Page Mobile Nav -->
+<div class="lg:hidden sticky top-0 z-[99] bg-gradient-to-r from-pink-500 to-purple-600 shadow-md border-b border-white/20">
+    <div class="flex justify-around px-3 py-2 text-white text-sm">
+        <!-- Home -->
+        <a href="{{ route('home') }}"
+             class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+            🏠
+            <span class="text-[11px] mt-1 tracking-wide">Home</span>
+        </a>
+
+        <!-- Messages with unread conversations badge -->
+        <div class="relative flex flex-col items-center">
+            <a href="/messages"
+                 class="flex flex-col items-center text-yellow-300 font-semibold transition duration-300 ease-in-out">
+                💌
+                <span class="text-[11px] mt-1 tracking-wide">Messages</span>
+            </a>
+            <template x-if="$store.messaging.unreadConversationsCount > 0">
+                <span class="absolute -top-1 -right-2 bg-pink-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center z-10" x-text="$store.messaging.unreadConversationsCount"></span>
+            </template>
+        </div>
+
+        <!-- Me -->
+        <a href="/my-vibes"
+             class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+            💫
+            <span class="text-[11px] mt-1 tracking-wide">Me</span>
+        </a>
+
+        <!-- Alerts -->
+        <a href="/notifications"
+             class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+            🔔
+            <span class="text-[11px] mt-1 tracking-wide">Alerts</span>
+        </a>
+
+        <!-- Settings -->
+        <a href="/settings"
+             class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+            ⚙️
+            <span class="text-[11px] mt-1 tracking-wide">Settings</span>
+        </a>
+    </div>
+</div>
+
 
     <!-- Left Sidebar (Recent Chats) -->
     <div class="w-full lg:w-1/3 bg-white border-r flex flex-col">
@@ -64,17 +372,31 @@
                 >
                     <div class="flex justify-between items-center">
                         <div class="min-w-0">
-                            <div class="text-base font-semibold text-gray-800 truncate group-hover:text-pink-600 transition-colors"
+                            <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'" class="text-base truncate group-hover:text-pink-600 transition-colors"
                                 x-text="'@' + contact.username"></div>
-                            <div class="text-xs text-gray-500 truncate flex items-center space-x-1 mt-1 group-hover:text-pink-500 transition-colors">
-                                <template x-if="contact.last_message?.has_attachment">
-                                    <span class="text-pink-500">🖼️</span>
+                            <div class="text-xs truncate flex items-center space-x-1 mt-1 group-hover:text-pink-500 transition-colors"
+                                :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-500'">
+                                <template x-if="contact.has_attachment">
+                                    <span class="text-pink-500 font-bold">🖼️</span>
                                 </template>
-                                <span x-text="contact.last_message?.body || (contact.last_message?.has_attachment ? 'Attachment' : 'No messages yet')"></span>
+                                <template x-if="contact.last_message && contact.last_message.body === 'Attachment'">
+                                    <span class="font-bold">Attachment</span>
+                                </template>
+                                <template x-if="contact.last_message && contact.last_message.body && contact.last_message.body !== 'Attachment'">
+                                    <span x-text="contact.last_message.body"></span>
+                                </template>
+                                <template x-if="!contact.last_message">
+                                    <span>No messages yet</span>
+                                </template>
                             </div>
                         </div>
-                        <div class="text-[0.7rem] text-gray-400 whitespace-nowrap"
-                            x-text="contact.last_message?.created_at ? new Date(contact.last_message.created_at).toLocaleTimeString() : ''">
+                        <div class="flex items-center gap-2">
+                            <template x-if="contact.should_bold && contact.unread_count > 0">
+                                <span class="inline-block min-w-[22px] px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs font-bold text-center" x-text="contact.unread_count"></span>
+                            </template>
+                            <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-400'" class="text-[0.7rem] whitespace-nowrap"
+                                x-text="contact.last_message?.created_at ? new Date(contact.last_message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''">
+                            </div>
                         </div>
                     </div>
                 </a>
@@ -97,10 +419,22 @@
                 <!-- Sticky Chat Header -->
                 <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center justify-between">
                     <div class="flex items-center gap-2">
+                        <!-- Left Arrow: Only show when a conversation is open (mobile/desktop) -->
+                        <template x-if="$store.messaging.receiver">
+                            <button @click="
+                                showRecentChats = true;
+                                $store.messaging.receiver = null;
+                                $store.messaging.messages = [];
+                                history.pushState(null, '', '/messages');
+                            "
+                            class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 mr-2 text-pink-600 text-lg"
+                            title="Back to Recent Chats">
+                                ←
+                            </button>
+                        </template>
                         <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-600 text-sm sm:text-base">
                             <span x-text="$store.messaging.receiver.username.charAt(0).toUpperCase()"></span>
                         </div>
-
                         <!-- ✅ Clickable Username -->
                         <a :href="`/space/${$store.messaging.receiver.username}`"
                         class="font-semibold text-pink-600 text-base sm:text-lg hover:underline truncate max-w-[60vw] sm:max-w-none"
@@ -153,44 +487,39 @@
                             </div>
                         </template>
                         <template x-for="message in $store.messaging.messages" :key="message.id">
+
                             <div class="flex" :class="message.sender_id === $store.messaging.authUser.id ? 'justify-end' : 'justify-start'">
                                 <div class="w-full max-w-[75%] sm:max-w-[60%] px-3 py-2 rounded-xl text-sm shadow relative"
                                     :class="message.sender_id === $store.messaging.authUser.id 
                                         ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
                                         : 'bg-white border border-gray-200 rounded-bl-none'">
 
-                                    <!-- 📌 Attachments Preview -->
+                                    <!-- 📌 Attachments Preview (Modern, Taller, Unified for Images & Videos) -->
                                     <template x-if="message.attachments?.length">
-                                        <div class="relative mt-2 group cursor-pointer w-full max-w-full" x-data="{ index: 0 }" @click="$store.previewModal.open(message.attachments, index)">
+                                        <div class="relative mt-3 group cursor-pointer w-full max-w-full" x-data="{ index: 0 }">
                                             <template x-if="message.attachments[index]">
-                                                <div class="relative w-full max-w-full overflow-hidden rounded-lg">
-                                                    <div class="aspect-video w-full overflow-hidden border border-gray-200 bg-white shadow-sm">
-
-                                                        <!-- 🖼️ Image Preview -->
-                                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                            <img :src="message.attachments[index].url" class="object-cover h-full w-full" />
-                                                        </template>
-
-                                                        <!-- 🎮 Video Thumbnail -->
-                                                        <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                            <div class="relative">
-                                                                <img :src="message.attachments[index].thumbnail || '/video-placeholder.png'" class="object-cover h-full w-full opacity-80" />
-                                                                <div class="absolute inset-0 flex items-center justify-center">
-                                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
-                                                                        <path d="M8 5v14l11-7z" />
-                                                                    </svg>
-                                                                </div>
-                                                            </div>
-                                                        </template>
-
-                                                        <!-- 📄 Fallback -->
-                                                        <template x-if="!['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                            <div class="p-4 text-xs italic text-gray-500 text-center">
-                                                                <span x-text="message.attachments[index]?.name"></span><br>
-                                                                <a :href="message.attachments[index]?.url" target="_blank" class="text-blue-500 underline">Download</a>
-                                                            </div>
-                                                        </template>
-                                                    </div>
+                                                <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;" @click.stop="$dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
+                                                    <!-- Image Preview (robust for all sources) -->
+                                                    <template x-if="['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                        <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
+                                                    </template>
+                                                    <!-- Video Thumbnail Preview (robust for all sources) -->
+                                                    <template x-if="['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                        <div class="relative w-full h-full bg-black">
+                                                            <img
+                                                                :src="message.attachments[index].thumbnail || '/default-video-thumb.jpg'"
+                                                                class="object-cover w-full h-full"
+                                                                alt="Video thumbnail"
+                                                            >
+                                                        </div>
+                                                    </template>
+                                                    <!-- Fallback for other files (robust for all sources) -->
+                                                    <template x-if="!['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                        <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
+                                                            <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
+                                                            <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
+                                                        </div>
+                                                    </template>
                                                 </div>
                                             </template>
 
@@ -198,46 +527,27 @@
                                             <button @click.stop="index = index > 0 ? index - 1 : index"
                                                     :disabled="index === 0"
                                                     :class="index === 0 ? 'opacity-30 cursor-not-allowed' : ''"
-                                                    class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-600 p-1 rounded-full shadow">
+                                                    class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
                                                 ‹
                                             </button>
 
                                             <button @click.stop="index = index < message.attachments.length - 1 ? index + 1 : index"
                                                     :disabled="index === message.attachments.length - 1"
                                                     :class="index === message.attachments.length - 1 ? 'opacity-30 cursor-not-allowed' : ''"
-                                                    class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-600 p-1 rounded-full shadow">
+                                                    class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
                                                 ›
                                             </button>
 
                                             <!-- 📌 File Info -->
                                             <template x-if="message.attachments[index]">
-                                                <div class="absolute bottom-0 left-1/2 transform -translate-x-1/2 bg-white/80 text-xs px-2 py-1 rounded-t shadow flex items-center gap-1">
+                                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
                                                     <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
                                                         <span class="text-pink-500">🖼️</span>
                                                     </template>
                                                     <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                        <span class="text-purple-500">🎮</span>
+                                                        <span class="text-purple-500">🎬</span>
                                                     </template>
                                                     <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-
-                                    <!-- 🔢 Attachment Type Counters -->
-                                    <template x-if="message.attachments?.length">
-                                        <div class="mt-1 text-[0.65rem] text-gray-500 flex gap-3 items-center">
-                                            <div class="flex items-center gap-1">
-                                                📌 <span x-text="message.attachments.length"></span>
-                                            </div>
-                                            <template x-if="message.attachments.filter(f => ['jpg','jpeg','png','gif','webp'].includes(f?.extension?.toLowerCase())).length">
-                                                <div class="flex items-center gap-1 text-pink-500">
-                                                    🖼️ <span x-text="message.attachments.filter(f => ['jpg','jpeg','png','gif','webp'].includes(f?.extension?.toLowerCase())).length"></span>
-                                                </div>
-                                            </template>
-                                            <template x-if="message.attachments.filter(f => ['mp4','mov','webm'].includes(f?.extension?.toLowerCase())).length">
-                                                <div class="flex items-center gap-1 text-purple-500">
-                                                    🎮 <span x-text="message.attachments.filter(f => ['mp4','mov','webm'].includes(f?.extension?.toLowerCase())).length"></span>
                                                 </div>
                                             </template>
                                         </div>
@@ -266,32 +576,50 @@
                     <!-- Message Input -->
                     <div class="sticky bottom-0 z-10 p-3 border-t bg-white">
                         <!-- File Previews -->
-                        <div x-show="$store.messaging.selectedFiles.length > 0" class="flex flex-wrap gap-2 mb-2">
-                            <template x-for="(file, index) in $store.messaging.selectedFiles" :key="index">
-                                <div class="relative group">
-                                    <template x-if="file.content_type.includes('image')">
-                                        <img :src="file.path" class="h-20 w-20 object-cover rounded-lg border border-gray-200">
+                        <div 
+                            x-show="$store.messaging.selectedFiles.length > 0" 
+                            class="flex flex-row gap-2 overflow-x-auto mb-2"
+                            style="padding-bottom: 2px;"
+                        >
+                            <template x-for="(file, index) in $store.messaging.selectedFiles" :key="file.id || index">
+                                <div class="relative group flex-shrink-0 w-20 h-20 rounded-lg border border-gray-200 bg-white overflow-hidden"
+                                    @click="$dispatch('open-preview-modal', { files: $store.messaging.selectedFiles, index })">
+                                    <!-- File Type Icon (top right, no bg, only 3 types) -->
+                                    <div class="absolute top-1 right-1 z-20 text-xl select-none">
+                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                            <span title="Image">🖼️</span>
+                                        </template>
+                                        <template x-if="['mp4','mov','webm'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                            <span title="Video">🎬</span>
+                                        </template>
+                                        <template x-if="['mp3','wav','ogg'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                            <span title="Audio">🎵</span>
+                                        </template>
+                                    </div>
+                                    <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp4','mov','webm'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                        <video :src="file.url || file.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
                                     </template>
-                                    <template x-if="file.content_type.includes('video')">
-                                        <div class="h-20 w-20 relative">
-                                            <video :src="file.path" class="h-full w-full object-cover rounded-lg border border-gray-200" muted playsinline></video>
-                                            <div class="absolute inset-0 flex items-center justify-center">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white/80" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
-                                                </svg>
-                                            </div>
+                                    <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['jpg','jpeg','png','gif','webp'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                        <img :src="file.url || file.path" class="w-full h-full object-cover" alt="">
+                                    </template>
+                                    <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp3','wav','ogg'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                        <div class="flex flex-col items-center justify-center w-full h-full text-blue-500">
+                                            <span class="text-4xl">🎵</span>
+                                            <audio :src="file.url || file.path" controls class="w-full mt-1"></audio>
                                         </div>
                                     </template>
-                                    <button @click="$store.messaging.removeFile(index)" class="absolute top-1 right-1 bg-white/80 hover:bg-white text-red-500 rounded-full p-1 text-xs shadow">
-                                        ×
-                                    </button>
+                                    <button 
+                                        @click="$store.messaging.removeFile(index)" 
+                                        class="absolute top-1 left-1 bg-white/80 hover:bg-white text-red-500 rounded-full p-1 text-xs shadow"
+                                        title="Remove"
+                                    >×</button>
                                 </div>
                             </template>
                         </div>
 
                         <form @submit.prevent="handleSend" class="flex items-center gap-2">
                             <button type="button" 
-                                @click="$store.filePicker.showModal = true"
+                                @click="showMediaModal = true"
                                 :disabled="$store.messaging.selectedFiles.length >= 20"
                                 class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-pink-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 title="Add files (max 20)">
@@ -344,9 +672,14 @@
                 <a href="{{ route('home') }}" class="block px-4 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-pink-100 transition">
                     🏠 Home
                 </a>
-                <a href="/messages" class="block px-4 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-pink-100 transition">
-                    💌 Messages
-                </a>
+                <div class="relative">
+                  <a href="/messages" class="block px-4 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-pink-100 transition">
+                      💌 Messages
+                  </a>
+                  <template x-if="$store.messaging.unreadConversationsCount > 0">
+                    <span class="absolute top-1 right-3 bg-pink-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center z-10" x-text="$store.messaging.unreadConversationsCount"></span>
+                  </template>
+                </div>
                 <a href="/my-vibes" class="block px-4 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-pink-100 transition">
                     💫 My Boards
                 </a>
@@ -360,127 +693,40 @@
         </div>
     </div>
 
-    <!-- File Picker Modal -->
-     
-    <div x-data="filePicker" x-init="init()">
-        <div x-show="$store.filePicker.showModal" x-transition class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <div class="bg-white w-[1000px] max-w-[95vw] h-[600px] rounded-xl shadow-2xl overflow-hidden flex flex-col">
-                <!-- Modal Header -->
-                <div class="sticky top-0 z-10 p-4 border-b bg-gradient-to-r from-pink-50 to-purple-50">
-                    <div class="flex items-center gap-2">
-                        <h2 class="font-bold text-pink-600 text-lg sm:text-xl flex-1">📂 Select Your Files</h2>
-                        <button @click="$store.filePicker.showModal = false" class="text-xl text-gray-600 hover:text-pink-500 w-8 h-8 flex items-center justify-center">
-                            ×
-                        </button>
-                    </div>
-                    
-                    <div class="mt-3 flex flex-wrap gap-2 text-sm text-gray-600">
-                        <select x-model="filters.type" @change="loadFiles()" class="rounded border px-2 py-1 bg-white">
-                            <option value="all">📁 All</option>
-                            <option value="image">🖼️ Images</option>
-                            <option value="video">🎬 Videos</option>
-                        </select>
-
-                        <select x-model="filters.contentType" @change="loadFiles()" class="rounded border px-2 py-1 bg-white">
-                            <option value="all">🔒 All</option>
-                            <option value="safe">🙂 Safe</option>
-                            <option value="adult">⚠️ Adult</option>
-                        </select>
-
-                        <select x-model="filters.sort" @change="loadFiles()" class="rounded border px-2 py-1 bg-white">
-                            <option value="latest">⏱️ Latest</option>
-                            <option value="earliest">🕰️ Earliest</option>
-                        </select>
-                    </div>
+<!-- File Preview Modal -->
+<template x-if="$store.previewModal.show">
+    <div class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" @click.self="$store.previewModal.close()">
+        <div class="relative w-full max-w-4xl h-[80vh] bg-white rounded shadow-lg overflow-hidden flex items-center justify-center">
+            <template x-if="$store.previewModal.previewType === 'image'">
+                <img :src="$store.previewModal.currentFile.url" class="max-w-full max-h-full object-contain" />
+            </template>
+            <template x-if="$store.previewModal.previewType === 'video'">
+                <video :src="$store.previewModal.currentFile.url" class="max-w-full max-h-full object-contain" controls playsinline />
+            </template>
+            <template x-if="$store.previewModal.previewType === 'file'">
+                <div class="text-center text-sm text-white">
+                    <p class="mb-2 italic">File preview not supported</p>
+                    <a :href="$store.previewModal.currentFile.url" target="_blank" class="underline">Download</a>
                 </div>
-
-                <!-- Modal Content -->
-                <div class="flex flex-1 overflow-hidden">
-                   <div class="w-[250px] border-r bg-gray-50 overflow-y-auto p-4">
-                        <template x-if="files.length === 0">
-                            <div class="text-center text-gray-400 py-8 col-span-full">
-                                No files found in this list.
-                            </div>
-                        </template>
-
-                        <template x-for="list in lists" :key="list.id">
-                            <button @click="activeListId = list.id; loadFiles()"
-                                class="flex items-center justify-between w-full px-3 py-2 mb-2 text-left rounded-lg hover:bg-pink-50"
-                                :class="list.id === activeListId ? 'bg-pink-100 text-pink-700 font-bold' : 'text-gray-700'">
-                                <span x-text="list.name" class="truncate"></span>
-                                <span class="text-xs text-gray-500 flex gap-2 ml-2">
-                                    <span x-text="list.imageCount || 0">🖼️</span>
-                                    <span x-text="list.videoCount || 0">🎬</span>
-                                </span>
-                            </button>
-                        </template>
-                    </div>
-
-                    <!-- File Grid -->
-                    <div class="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        <template x-for="file in files" :key="file.id + '-' + file.filename">
-                            <div class="relative h-32 p-1 bg-white border border-gray-200 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-pink-500 transition">
-                                <input type="checkbox"
-                                    class="absolute top-2 left-2 h-4 w-4 text-pink-500 rounded border-gray-300 z-10"
-                                    :checked="selectedIds.includes(file.id)"
-                                    @click.stop="toggleFileSelection(file.id)">
-                                <template x-if="file.content_type.includes('video')">
-                                    <video :src="file.path" muted playsinline class="w-full h-full object-cover"></video>
-                                </template>
-                                <template x-if="file.content_type.includes('image')">
-                                    <img :src="file.path" class="w-full h-full object-cover" alt="">
-                                </template>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Modal Footer -->
-                <div class="p-4 border-t bg-white flex justify-end">
-                    <button
-                        @click="addSelectedFiles"
-                        :disabled="selectedIds.length === 0"
-                        class="px-4 py-2 rounded bg-pink-500 text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-pink-600 transition"
-                    >
-                        ➕ Add Selected
-                    </button>
-                </div>
-            </div>
+            </template>
+            <!-- Navigation -->
+            <button @click="$store.previewModal.index = Math.max(0, $store.previewModal.index - 1)"
+                    :disabled="$store.previewModal.index === 0"
+                    class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">‹</button>
+            <button @click="$store.previewModal.index = Math.min($store.previewModal.files.length - 1, $store.previewModal.index + 1)"
+                    :disabled="$store.previewModal.index === $store.previewModal.files.length - 1"
+                    class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">›</button>
+            <!-- Close -->
+            <button @click="$store.previewModal.close()" class="absolute top-4 right-4 text-white text-xl">×</button>
         </div>
     </div>
+</template>
 
-    <template x-if="$store.previewModal.show">
-        <div class="fixed inset-0 z-50 bg-black/80 flex items-center justify-center" @click.self="$store.previewModal.close()">
-            <div class="relative w-full max-w-4xl h-[80vh] bg-white rounded shadow-lg overflow-hidden flex items-center justify-center">
-                <template x-if="$store.previewModal.previewType === 'image'">
-                    <img :src="$store.previewModal.currentFile.url" class="max-w-full max-h-full object-contain" />
-                </template>
+<style>
+[x-cloak] { display: none !important; }
+</style>
 
-                <template x-if="$store.previewModal.previewType === 'video'">
-                    <video :src="$store.previewModal.currentFile.url" class="max-w-full max-h-full object-contain" controls playsinline />
-                </template>
-
-                <template x-if="$store.previewModal.previewType === 'file'">
-                    <div class="text-center text-sm text-white">
-                        <p class="mb-2 italic">File preview not supported</p>
-                        <a :href="$store.previewModal.currentFile.url" target="_blank" class="underline">Download</a>
-                    </div>
-                </template>
-
-                <!-- Navigation -->
-                <button @click="$store.previewModal.index = Math.max(0, $store.previewModal.index - 1)"
-                        :disabled="$store.previewModal.index === 0"
-                        class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">‹</button>
-                <button @click="$store.previewModal.index = Math.min($store.previewModal.files.length - 1, $store.previewModal.index + 1)"
-                        :disabled="$store.previewModal.index === $store.previewModal.files.length - 1"
-                        class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-2xl">›</button>
-
-                <!-- Close -->
-                <button @click="$store.previewModal.close()" class="absolute top-4 right-4 text-white text-xl">×</button>
-            </div>
-        </div>
-    </template>
-</div>
+    <!-- End File Picker Modal -->
 @endsection
 
 @push('scripts')
@@ -491,9 +737,6 @@
 </script>
 <script>
 document.addEventListener('alpine:init', () => {
-    Alpine.store('filePicker', {
-        showModal: false,
-        });
 Alpine.store('messaging', {
     authUser: @json(auth()->user()),
     contacts: @json($contacts),
@@ -508,10 +751,27 @@ Alpine.store('messaging', {
     searchQuery: '',
     autoScrollFailed: false,
     showRecentChats: window.innerWidth < 1024,
+    unreadConversationsCount: 0,
+
+    async fetchUnreadConversationsCount() {
+        try {
+            const res = await fetch('/api/messages/unread-conversations-count', {
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await res.json();
+            this.unreadConversationsCount = data.count || 0;
+        } catch (e) {
+            this.unreadConversationsCount = 0;
+        }
+    },
 
     init() {
         // Load recent chats list
         this.loadContacts();
+        this.fetchUnreadConversationsCount();
 
         // 🧠 If there's a receiver passed in from the backend, load their messages
         if (this.receiver) {
@@ -581,6 +841,16 @@ Alpine.store('messaging', {
             this.receiver = data.receiver;
             this.messages = data.messages;
             this.offset = this.messages.length;
+
+            // Immediately clear unread state for this contact in the sidebar
+            const contact = this.contacts.find(c => c.id === receiverId);
+            if (contact) {
+                contact.should_bold = false;
+                contact.unread_count = 0;
+            }
+
+            // Update unread conversations count
+            this.fetchUnreadConversationsCount();
 
             await Alpine.nextTick();
             const el = document.getElementById('chat-scroll');
@@ -681,11 +951,27 @@ Alpine.store('messaging', {
             const data = await res.json();
             this.messages.push(data.message);
 
+            // Update the conversations list (sidebar) immediately
+            const contact = this.contacts.find(c => c.id === this.receiver.id);
+            if (contact) {
+                contact.last_message = {
+                    id: data.message.id,
+                    body: data.message.body,
+                    created_at: data.message.created_at,
+                    has_attachment: (data.message.attachments && data.message.attachments.length > 0),
+                };
+                contact.should_bold = false;
+                contact.unread_count = 0;
+                contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
+            }
+
             await Alpine.nextTick();
             const el = document.getElementById('chat-scroll');
             if (el) el.scrollTop = el.scrollHeight;
 
             this.selectedFiles = [];
+            // Update unread conversations count
+            this.fetchUnreadConversationsCount();
         } catch (e) {
             console.error('[Send Message] Error:', e);
             this.error = e.message;
@@ -707,9 +993,16 @@ Alpine.data('messageInbox', () => ({
     searchQuery: '',
     newMessage: '',
     showModal: false,
+    showMediaModal: false, // <-- Added for modal reactivity
     selectedFiles: [],
     showRecentChats: window.innerWidth < 1024,
     isDesktop: window.innerWidth >= 1024,
+    focusedPreviewFiles: [],
+    focusedPreviewIndex: null,
+    openPreviewModal(files, index = 0) {
+        this.focusedPreviewFiles = files;
+        this.focusedPreviewIndex = index;
+    },
 
     init() {
         this.$store.messaging.init();
@@ -739,7 +1032,9 @@ Alpine.data('messageInbox', () => ({
         console.log('[CHAT SELECTED] User:', user);
         this.$store.messaging.loadInitialMessages(user.id);
         this.showRecentChats = false;
-        history.pushState(null, null, `/messages/${user.id}`);
+    // Do not reload filePicker lists/files here; only load when file picker modal is opened
+        // Use a valid route for pushState (adjust as needed for your backend)
+        history.pushState(null, null, `/messages?receiver_id=${user.id}`);
     },
 
     async handleSend() {
@@ -779,83 +1074,60 @@ Alpine.data('messageInbox', () => ({
         },
         lists: [],
         activeListId: 'all',
+        showFileListsPanel: true,
+        isLoadingLists: false,
+        isLoadingFiles: false,
+
         get showModal() {
             return Alpine.store('filePicker').showModal;
         },
         set showModal(value) {
             Alpine.store('filePicker').showModal = value;
         },
-        
-        async loadFiles() {
-            try {
-                let response;
 
-                if (this.activeListId === 'all') {
-                    const params = new URLSearchParams({
-                        list_id: this.activeListId,
-                        type: this.filters.type,
-                        content: this.filters.contentType,
-                        sort: this.filters.sort
-                    });
-
-                    console.log('[🔄 FILES] Fetching all files with params:', Object.fromEntries(params.entries()));
-                    response = await fetch(`/user-files?${params}`);
-                } else {
-                    console.log(`[📂 FILES] Fetching list items for list: ${this.activeListId}`);
-                    response = await fetch(`/file-lists/${this.activeListId}/items`);
-                }
-
-                const data = await response.json();
-                console.log('[FILES RAW RESPONSE]', data);
-
-                // Handle flexible response formats
-                this.files = Array.isArray(data)
-                    ? data
-                    : Array.isArray(data.files)
-                        ? data.files
-                        : [];
-
-                console.log(`[✅ FILES] ${this.files.length} files loaded`);
-            } catch (error) {
-                console.error('[❌ FILES] Failed to load files:', error);
-            }
+        setList(id) {
+            this.activeListId = id;
+            this.files = [];
+            this.filesOffset = 0;
+            this.filesHasMore = true;
+            this.loadFiles();
+            this.showFileListsPanel = false; // if you want to hide lists after selection
         },
         
         async loadLists() {
             try {
-                console.log('[🔄 LISTS] Fetching file lists...');
+                console.log('[🔄 LISTS] Fetching file lists from /files/lists-with-counts ...');
 
                 const response = await fetch('/files/lists-with-counts');
                 const contentType = response.headers.get('Content-Type');
 
                 if (!response.ok || !contentType.includes('application/json')) {
+                    console.error('[❌ LISTS] Bad response:', response.status, contentType);
                     throw new Error(`Invalid response format. Status: ${response.status}, Content-Type: ${contentType}`);
                 }
 
                 const dbLists = await response.json();
+                console.log('[📦 LISTS] Raw response:', dbLists);
 
                 // Inject "All Media" list manually
                 const allMediaList = {
                     id: 'all',
                     name: '🎞️ All Media',
-                    imageCount: dbLists.allMedia.imageCount,
-                    videoCount: dbLists.allMedia.videoCount,
-                    safeCount: dbLists.allMedia.safeCount,
-                    adultCount: dbLists.allMedia.adultCount,
-                    totalCount: dbLists.allMedia.totalCount
+                    imageCount: dbLists.allMedia?.imageCount ?? 0,
+                    videoCount: dbLists.allMedia?.videoCount ?? 0,
+                    safeCount: dbLists.allMedia?.safeCount ?? 0,
+                    adultCount: dbLists.allMedia?.adultCount ?? 0,
+                    totalCount: dbLists.allMedia?.totalCount ?? 0
                 };
 
-                this.lists = [allMediaList, ...dbLists.lists];
+                this.lists = [allMediaList, ...(Array.isArray(dbLists.lists) ? dbLists.lists : [])];
 
-                // ✨ Console Summary
+                console.log(`[✅ LISTS] this.lists:`, this.lists);
                 console.log(`[✅ LISTS] ${this.lists.length} total lists (including All Media)`);
                 if (this.lists.length > 0) {
-                    console.table(this.lists.map(list => ({
-                        ID: list.id,
-                        Name: list.name,
-                        '🖼️ Images': list.imageCount ?? 'N/A',
-                        '🎬 Videos': list.videoCount ?? 'N/A'
-                    })));
+                    this.lists.forEach((list, i) => {
+                        console.log(`#${i}: id=${list.id}, name=${list.name}, images=${list.imageCount}, videos=${list.videoCount}`);
+                    });
                 } else {
                     console.warn('[⚠️ LISTS] No lists found.');
                 }
@@ -865,30 +1137,107 @@ Alpine.data('messageInbox', () => ({
             }
         },
         
+        async loadFiles() {
+            // Reset offset and hasMore if needed (optional, for pagination)
+            if (typeof this.filesOffset === 'undefined') this.filesOffset = 0;
+            if (typeof this.filesHasMore === 'undefined') this.filesHasMore = true;
+
+            if (!this.filesHasMore) return;
+
+            try {
+                const params = new URLSearchParams({
+                    offset: this.filesOffset,
+                    limit: 20,
+                    type: this.filters.type || 'all',
+                    content: this.filters.contentType || 'all',
+                    sort: this.filters.sort || 'latest'
+                });
+
+                // Use correct endpoint for all media or a specific list
+                const url = this.activeListId === 'all'
+                    ? `/user-files?${params.toString()}`
+                    : `/file-lists/${this.activeListId}/items?${params.toString()}`;
+
+                const res = await fetch(url);
+                const data = await res.json();
+
+                // Get files array from response (handles both endpoints)
+                let newFiles = Array.isArray(data.files)
+                    ? data.files
+                    : Array.isArray(data)
+                        ? data
+                        : [];
+
+                // Add extension property to each file
+                newFiles = newFiles.map(file => ({
+                    ...file,
+                    extension: file.filename ? file.filename.split('.').pop().toLowerCase() : ''
+                }));
+
+                // Deduplicate by id
+                this.files = this.filesOffset === 0
+                    ? newFiles
+                    : [
+                        ...this.files,
+                        ...newFiles.filter(f => !this.files.some(existing => existing.id === f.id))
+                    ];
+
+                this.filesOffset += newFiles.length;
+                this.filesHasMore = newFiles.length >= 20;
+            } catch (err) {
+                this.showToast('Could not load files', true);
+                console.error('File fetch failed:', err);
+            }
+        },
+
         toggleFileSelection(id) {
-            if (this.selectedIds.includes(id)) {
-                this.selectedIds = this.selectedIds.filter(fileId => fileId !== id);
+            const file = this.files.find(f => f.id === id);
+            if (!file) return;
+
+            let wasSelected = this.selectedIds.includes(id);
+            if (wasSelected) {
+                this.selectedIds = this.selectedIds.filter(fid => fid !== id);
             } else {
-                this.selectedIds = [...this.selectedIds, id];
+                // Only allow up to 20 files total (including already selected in messaging.selectedFiles)
+                const totalSelected = this.selectedIds.length + (this.$store.messaging.selectedFiles?.length || 0);
+                if (totalSelected >= 20) {
+                    this.showToast('You can select up to 20 files only.', true);
+                    // Uncheck automatically (do not add)
+                    return;
+                }
+                this.selectedIds.push(id);
             }
         },
         
         addSelectedFiles() {
-            console.log('[🧠 addSelectedFiles] Running...');
-            const selectedFiles = this.files.filter(file => 
-                this.selectedIds.includes(file.id)
-            );
-            
-            this.$store.messaging.addSelectedFiles(selectedFiles);
-            Alpine.store('filePicker').showModal = false;
-            this.selectedIds = [];
-
-            console.log('[📦 Files Added] Closing modal:', this.showModal);
+            // Only add if total will not exceed 20
+            const alreadySelected = this.$store.messaging.selectedFiles || [];
+            const newSelectedFiles = this.files.filter(file => this.selectedIds.includes(file.id));
+            // Remove duplicates by id
+            const allFiles = [...alreadySelected, ...newSelectedFiles.filter(f => !alreadySelected.some(a => a.id === f.id))];
+            if (allFiles.length > 20) {
+                this.showToast('You can only add up to 20 files in total.', true);
+                return;
+            }
+            this.$store.messaging.selectedFiles = allFiles;
+            this.showFileListsPanel = true;
+            this.showMediaModal = false; // closes the modal
         },
         
         init() {
             this.loadLists();
             this.loadFiles();
+            this.showFileListsPanel = true;
+            // Sync selectedIds with already selected files when modal opens
+            this.$watch('showMediaModal', (val) => {
+                if (val) {
+                    // When opening, pre-check files already in selectedFiles
+                    this.selectedIds = (this.$store.messaging.selectedFiles || []).map(f => f.id);
+                } else {
+                    // When closing, clear selection
+                    this.selectedIds = [];
+                }
+            });
         }
     }));
 
@@ -926,73 +1275,3 @@ Alpine.data('messageInbox', () => ({
 });
 </script>
 @endpush
-
-<!-- ✨ Basic Moodboard
-<div class="max-w-6xl mx-auto px-6 py-10 space-y-10">
-  <div class="bg-white rounded-2xl shadow-xl p-6 border border-pink-200">
-    <div class="flex justify-between items-center">
-      <h2 class="text-3xl font-bold text-pink-600 flex items-center gap-2">
-        <svg class="w-6 h-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.946a1 1 0 00.95.69h4.15c.969 0 1.371 1.24.588 1.81l-3.36 2.444a1 1 0 00-.364 1.118l1.286 3.946c.3.921-.755 1.688-1.54 1.118l-3.36-2.444a1 1 0 00-1.176 0l-3.36 2.444c-.784.57-1.838-.197-1.539-1.118l1.286-3.946a1 1 0 00-.364-1.118L2.075 9.373c-.783-.57-.38-1.81.588-1.81h4.15a1 1 0 00.95-.69l1.286-3.946z" /></svg>
-        Premium Moodboard
-      </h2>
-      <span class="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-sm font-semibold">Ksh.250</span>
-    </div>
-
-    <div class="mt-4 grid grid-cols-5 gap-4">
-      <img src="/placeholder1.jpg" alt="Preview 1" class="rounded-xl object-cover w-full h-32">
-      <img src="/placeholder2.jpg" alt="Preview 2" class="rounded-xl object-cover w-full h-32">
-      <div class="col-span-3 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 text-sm">
-        <span class="text-center">Unlock to view 12 more images<br/>+ caption pack, filter preset & IG bios</span>
-      </div>
-    </div>
-
-    <div class="mt-6 flex flex-wrap justify-between items-center gap-4">
-      <button class="bg-pink-600 text-white px-6 py-2 rounded-full shadow hover:bg-pink-700">💖 Unlock Moodboard</button>
-      <button class="text-pink-600 font-semibold hover:underline">🔥 React to Preview</button>
-      <button class="text-gray-500 hover:underline">🔖 Save to Wishlist</button>
-      <span class="text-sm text-gray-400">💬 40 Reactions · 🔓 103 Unlocks</span>
-    </div>
-  </div>
-
-  
-  <div class="bg-white rounded-xl shadow-md p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">Alt Girl Room Vibes <span class="text-gray-400 text-sm">(Basic)</span></h2>
-    <div class="grid grid-cols-6 gap-2">
-      <img src="/basic1.jpg" alt="Basic 1" class="rounded-xl object-cover w-full h-28">
-      <img src="/basic2.jpg" alt="Basic 2" class="rounded-xl object-cover w-full h-28">
-      <img src="/basic3.jpg" alt="Basic 3" class="rounded-xl object-cover w-full h-28">
-      <img src="/basic4.jpg" alt="Basic 4" class="rounded-xl object-cover w-full h-28">
-      <img src="/basic5.jpg" alt="Basic 5" class="rounded-xl object-cover w-full h-28">
-      <img src="/basic6.jpg" alt="Basic 6" class="rounded-xl object-cover w-full h-28">
-    </div>
-    <div class="mt-4 flex justify-between items-center">
-      <div class="flex gap-4">
-        <button class="text-pink-600 hover:underline">🔥 React</button>
-        <button class="text-gray-600 hover:underline">📁 Save</button>
-        <button class="text-gray-600 hover:underline">📣 Share</button>
-      </div>
-      <span class="text-sm text-gray-400">💬 22 Reactions</span>
-    </div>
-  </div>
-
-  <div class="bg-white rounded-xl shadow-sm p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">My Dream Picnic <span class="text-green-500 text-sm">(Free)</span></h2>
-    <div class="grid grid-cols-6 gap-2">
-      <img src="/free1.jpg" alt="Free 1" class="rounded-xl object-cover w-full h-24">
-      <img src="/free2.jpg" alt="Free 2" class="rounded-xl object-cover w-full h-24">
-      <img src="/free3.jpg" alt="Free 3" class="rounded-xl object-cover w-full h-24">
-      <img src="/free4.jpg" alt="Free 4" class="rounded-xl object-cover w-full h-24">
-      <img src="/free5.jpg" alt="Free 5" class="rounded-xl object-cover w-full h-24">
-      <img src="/free6.jpg" alt="Free 6" class="rounded-xl object-cover w-full h-24">
-    </div>
-    <div class="mt-4 flex justify-between items-center">
-      <div class="flex gap-4">
-        <button class="text-pink-600 hover:underline">❤️ React</button>
-        <button class="text-gray-600 hover:underline">💬 Comment</button>
-        <button class="text-gray-600 hover:underline">🎨 Remix</button>
-      </div>
-      <span class="text-sm text-gray-400">💬 14 Reactions · 🗨️ 3 Comments</span>
-    </div>
-  </div>
-</div>
- -->

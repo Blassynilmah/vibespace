@@ -116,4 +116,18 @@ public function files()
     return $this->hasMany(UserFile::class);
 }
 
+public function favoriteMoodboards()
+{
+    return $this->hasMany(UserFavoriteMoodboard::class);
+}
+
+public function savedMoodboards()
+{
+    return $this->hasMany(SavedMoodboard::class);
+}
+
+public function teasers()
+{
+    return $this->hasMany(Teaser::class);
+}
 }

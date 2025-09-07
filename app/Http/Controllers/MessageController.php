@@ -11,6 +11,17 @@ use Illuminate\Support\Collection;
 
 class MessageController extends Controller
 {
+    // API: Get count of unique users with unread messages for the logged-in user
+    public function unreadConversationsCount()
+    {
+        $user = Auth::user();
+        // Get all unread messages where the logged-in user is the receiver
+        $unread = Message::where('receiver_id', $user->id)
+            ->where('is_read', false)
+            ->pluck('sender_id')
+            ->unique();
+        return response()->json(['count' => $unread->count()]);
+    }
     // 📨 Show inbox + selected thread
     public function index(Request $request)
     {
@@ -42,8 +53,28 @@ class MessageController extends Controller
                 return $msg->sender_id === $auth->id ? $msg->receiver_id : $msg->sender_id;
             });
 
-        $contacts->transform(function ($u) use ($latestMessages) {
-            $u->last_message = optional($latestMessages[$u->id])->first();
+        $contacts->transform(function ($u) use ($latestMessages, $auth) {
+            $lastMsg = optional($latestMessages[$u->id])->first();
+            $u->unread_count = 0;
+            $u->should_bold = false;
+            $u->has_attachment = false;
+            if ($lastMsg) {
+                // Count unread messages where auth is receiver and contact is sender
+                if ($lastMsg->sender_id !== $auth->id) {
+                    $u->unread_count = Message::where('sender_id', $u->id)
+                        ->where('receiver_id', $auth->id)
+                        ->where('is_read', false)
+                        ->count();
+                    $u->should_bold = $u->unread_count > 0;
+                }
+                // If last message has no body but has attachment, set body to 'Attachment'
+                $hasAttachment = method_exists($lastMsg, 'attachments') && $lastMsg->attachments && $lastMsg->attachments->count() > 0;
+                $u->has_attachment = $hasAttachment;
+                if ((empty($lastMsg->body) || trim($lastMsg->body) === '') && $hasAttachment) {
+                    $lastMsg->body = 'Attachment';
+                }
+            }
+            $u->last_message = $lastMsg;
             return $u;
         });
 
@@ -220,52 +251,45 @@ public function store(Request $request)
         public function recentChats()
         {
             $user = Auth::user();
-            \Log::info('[RecentChats] Auth user:', ['id' => $user->id]);
-
-            // 📨 Step 1: Fetch recent messages involving the user
             $recentMessages = Message::with('attachments')
                 ->where('sender_id', $user->id)
                 ->orWhere('receiver_id', $user->id)
                 ->latest()
                 ->get();
 
-            \Log::info('[RecentChats] Recent messages count:', ['count' => $recentMessages->count()]);
-
-            // 🧠 Step 2: Extract contact IDs
             $contactIds = $recentMessages->map(function ($msg) use ($user) {
                 return $msg->sender_id === $user->id ? $msg->receiver_id : $msg->sender_id;
             })->unique()->take(20);
 
-            \Log::info('[RecentChats] Contact IDs:', ['ids' => $contactIds->values()]);
-
-            // 👥 Step 3: Fetch contact users
             $contacts = User::whereIn('id', $contactIds)->get();
-            \Log::info('[RecentChats] Found users:', ['count' => $contacts->count()]);
 
-            // 💬 Step 4: Group messages by contact
+            // Group messages by contact
             $groupedMessages = $recentMessages->groupBy(function ($msg) use ($user) {
                 return $msg->sender_id === $user->id ? $msg->receiver_id : $msg->sender_id;
             });
 
-            \Log::info('[RecentChats] Grouped latest messages:', ['keys' => $groupedMessages->keys()]);
-
-            // ✨ Step 5: Attach enriched last_message to each contact
-            $contacts->transform(function ($contact) use ($groupedMessages) {
-                $msg = optional($groupedMessages[$contact->id])->first();
-
-                $hasAttachment = $msg && $msg->attachments && $msg->attachments->count() > 0;
-
-                $contact->last_message = $msg ? [
-                    'id' => $msg->id,
-                    'body' => $msg->body ?: ($hasAttachment ? 'Attachment' : ''),
-                    'created_at' => $msg->created_at,
-                    'has_attachment' => $hasAttachment,
-                ] : null;
-
-                return $contact;
+            $contacts->transform(function ($u) use ($groupedMessages, $user) {
+                $msg = optional($groupedMessages[$u->id])->first();
+                $u->unread_count = 0;
+                $u->should_bold = false;
+                $u->has_attachment = false;
+                if ($msg) {
+                    if ($msg->sender_id !== $user->id) {
+                        $u->unread_count = Message::where('sender_id', $u->id)
+                            ->where('receiver_id', $user->id)
+                            ->where('is_read', false)
+                            ->count();
+                        $u->should_bold = $u->unread_count > 0;
+                    }
+                    $hasAttachment = method_exists($msg, 'attachments') && $msg->attachments && $msg->attachments->count() > 0;
+                    $u->has_attachment = $hasAttachment;
+                    if ((empty($msg->body) || trim($msg->body) === '') && $hasAttachment) {
+                        $msg->body = 'Attachment';
+                    }
+                }
+                $u->last_message = $msg;
+                return $u;
             });
-
-            \Log::info('[RecentChats] Final contacts list:', ['user_ids' => $contacts->pluck('id')]);
 
             return response()->json($contacts);
         }
@@ -284,6 +308,13 @@ public function thread($receiverId)
 
         $limit = intval(request('limit', 20));
         $offset = intval(request('offset', 0));
+
+
+        // Mark all unread messages from the other user as read
+        Message::where('sender_id', $receiverId)
+            ->where('receiver_id', $userId)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
 
         $messages = Message::with('attachments')
             ->where(function ($query) use ($userId, $receiverId) {

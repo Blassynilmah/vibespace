@@ -63,22 +63,25 @@
 
     {{-- JS to handle live validation --}}
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('login-form');
-            const email = document.getElementById('email');
-            const password = document.getElementById('password');
-            const submit = form.querySelector('button[type="submit"]');
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('login-form')
+  if (!form) return
+  const email = document.getElementById('email')
+  const password = document.getElementById('password')
+  const submit = form.querySelector('button[type="submit"]')
 
-            const validate = () => {
-                const filled = email.value.trim() !== '' && password.value.trim() !== '';
-                submit.disabled = !filled;
-                submit.classList.toggle('opacity-50', !filled);
-                submit.classList.toggle('cursor-not-allowed', !filled);
-            };
+  if (!email || !password || !submit) return
 
-            email.addEventListener('input', validate);
-            password.addEventListener('input', validate);
-            validate(); // on load
-        });
+  const validate = () => {
+    const filled = email.value.trim() && password.value.trim()
+    submit.disabled = !filled
+    submit.classList.toggle('opacity-50', !filled)
+    submit.classList.toggle('cursor-not-allowed', !filled)
+  }
+
+  email.addEventListener('input', validate)
+  password.addEventListener('input', validate)
+  validate()
+})
     </script>
 </x-guest-layout>
