@@ -12,7 +12,10 @@ class Kernel extends HttpKernel
      * These middleware run during every request to your application.
      */
     protected $middleware = [
-        // Handles CORS for cross‑domain requests (needed for SPA + Sanctum)
+        // Trust proxy headers (needed for HTTPS detection on Render)
+        \App\Http\Middleware\TrustProxies::class,
+
+        // Handles CORS for cross-domain requests (needed for SPA + Sanctum)
         \Fruitcake\Cors\HandleCors::class,
     ];
 
