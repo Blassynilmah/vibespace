@@ -4,6 +4,7 @@
 FROM node:18 AS build
 WORKDIR /app
 
+# Install dependencies and build frontend
 COPY package*.json vite.config.js ./
 RUN npm install
 
@@ -21,7 +22,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libpq-dev \
     curl \
-    && docker-php-ext-install pdo_pgsql
+    && docker-php-ext-install pdo pdo_pgsql
 
 # Enable Apache mod_rewrite and set DocumentRoot to /var/www/html/public
 RUN a2enmod rewrite \
@@ -30,26 +31,15 @@ RUN a2enmod rewrite \
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy composer files + artisan + bootstrap + config
-COPY composer.json composer.lock artisan ./
-COPY bootstrap ./bootstrap
-COPY config ./config
-
-
-# Allow composer to run as root
-ENV COMPOSER_ALLOW_SUPERUSER=1
-
-# Copy composer binary
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader
-
-# Copy full app source
+# Copy full app source first
 COPY . .
 
-# Copy built frontend assets
+# Copy built frontend assets from Node build
 COPY --from=build /app/public/build /var/www/html/public/build
+
+# Install Composer & PHP dependencies
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+RUN composer install --no-dev --optimize-autoloader
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
