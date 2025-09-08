@@ -22,6 +22,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libpq-dev \
     curl \
+    vim \
+    less \
     && docker-php-ext-install pdo pdo_pgsql
 
 # Enable Apache mod_rewrite and set DocumentRoot to /var/www/html/public
@@ -31,7 +33,7 @@ RUN a2enmod rewrite \
 # Set working directory
 WORKDIR /var/www/html
 
-# Copy full app source first
+# Copy full Laravel source
 COPY . .
 
 # Copy built frontend assets from Node build
@@ -46,6 +48,17 @@ RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
     && chmod -R 755 /var/www/html/public
 
+# ------------------------
+# Setup log tailing for debug
+# ------------------------
+# Stream Laravel logs to stdout so you can see them in Render
+RUN touch /var/www/html/storage/logs/laravel.log \
+    && chown www-data:www-data /var/www/html/storage/logs/laravel.log
+
+# Apache error log will also go to stdout
+RUN ln -sf /dev/stdout /var/log/apache2/error.log \
+    && ln -sf /dev/stdout /var/log/apache2/access.log
+
 # Expose port
 EXPOSE 80
 
@@ -56,10 +69,11 @@ HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
   CMD curl -f http://localhost/ || exit 1
 
 # ------------------------
-# Start command
+# Start command with cache clear & log tail
 # ------------------------
 CMD php artisan config:clear \
     && php artisan cache:clear \
     && php artisan route:clear \
     && php artisan view:clear \
-    && apache2-foreground
+    && tail -F /var/www/html/storage/logs/laravel.log \
+    & apache2-foreground
