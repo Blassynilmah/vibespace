@@ -1,8 +1,27 @@
 services:
   - type: web
-    name: vibespace
+    name: blassy
     env: docker
-    plan: free
+    plan: starter
     region: oregon
     dockerfilePath: ./Dockerfile
     autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: true
+      - key: APP_URL
+        value: https://blassy.onrender.com
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        value: dpg-d2u30n3uibrs73f9jr6g-a.render.com
+      - key: DB_PORT
+        value: 5432
+      - key: DB_DATABASE
+        value: blassy_db
+      - key: DB_USERNAME
+        value: blassy_db_user
+      - key: DB_PASSWORD
+        value: vXviAKaDlgE1XVeO45ZR5msr3w1kUzfA
