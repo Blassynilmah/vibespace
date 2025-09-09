@@ -681,112 +681,129 @@ document.addEventListener('alpine:init', () => {
         init() {
             console.log("Alpine vibeFeed initialized");
             this.page = 1;
-            this.boards = [];
+            this.items = [];
             this.allLoaded = false;
             this.loadBoards();
         },
 
-        async loadBoards() {
-        if (this.loading || this.allLoaded) return;
-        this.loading = true;
+async loadBoards() {
+    if (this.loading || this.allLoaded) return;
+    this.loading = true;
 
-        const perPage = this.page === 1 ? 20 : 10;
-        const url = `/api/boards/latest?page=${this.page}&per_page=${perPage}`;
+    const perPage = this.page === 1 ? 20 : 10;
+    // Use the new endpoint that returns both boards and teasers
+    const url = `/api/boards?page=${this.page}&per_page=${perPage}`;
 
-        try {
-            const res = await fetch(url, {
+    try {
+        const res = await fetch(url, {
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
-            });
+        });
 
-            const contentType = res.headers.get('content-type') || '';
-            if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        if (!res.ok) {
             const text = await res.text();
             console.error(`HTTP ${res.status} on ${url}`, text.slice(0, 500));
             throw new Error(`Request failed: ${res.status}`);
-            }
-            if (!contentType.includes('application/json')) {
+        }
+        if (!contentType.includes('application/json')) {
             const text = await res.text();
             console.error('Expected JSON, got HTML/text:', text.slice(0, 500));
             throw new Error('Non-JSON response received');
-            }
+        }
 
-            const json = await res.json();
+        const json = await res.json();
 
-            if (!json.data || json.data.length === 0) {
+        if (!json.data || json.data.length === 0) {
             this.allLoaded = true;
             return;
-            }
-
-            const newBoards = json.data.map(board => {
-            let files = [];
-            let imgs = board.images ?? board.image;
-
-            if (typeof imgs === 'string') {
-                try { imgs = JSON.parse(imgs); } catch {}
-            }
-
-            if (Array.isArray(imgs)) {
-                files.push(...imgs.map(path => ({
-                path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-                type: 'image'
-                })));
-            } else if (typeof imgs === 'string' && imgs) {
-                files.push({
-                path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
-                type: 'image'
-                });
-            }
-
-            if (board.video) {
-                const v = board.video;
-                files.push({
-                path: v.startsWith('http') ? v : `/storage/${v.replace(/^\/?storage\//, '')}`,
-                type: 'video'
-                });
-            }
-
-            const seen = new Set();
-            files = files.filter(f => {
-                if (seen.has(f.path)) return false;
-                seen.add(f.path);
-                return true;
-            });
-
-            return {
-                ...board,
-                files,
-                newComment: '',
-                comment_count: board.comment_count ?? 0,
-                is_saved: !!board.is_saved,
-                expanded: false,
-                saving: false
-            };
-            });
-
-            console.group(`Loaded ${newBoards.length} boards (page ${this.page})`);
-            newBoards.forEach(b => {
-            console.log(`Board #${b.id}${b.title ? ` (${b.title})` : ''} → is_saved: ${b.is_saved}`);
-            });
-            console.groupEnd();
-
-            this.boards.push(...newBoards);
-            this.page += 1;
-
-            // Trust the paginator
-            this.allLoaded = !json.next_page_url;
-
-        } catch (error) {
-            console.error('Failed to load boards', error);
-        } finally {
-            this.loading = false;
         }
-        },
+
+        // Prepare new items (boards and teasers)
+        const newItems = json.data.map(item => {
+            if (item.type === 'board') {
+                let files = [];
+                let imgs = item.images ?? item.image;
+
+                if (typeof imgs === 'string') {
+                    try { imgs = JSON.parse(imgs); } catch {}
+                }
+
+                if (Array.isArray(imgs)) {
+                    files.push(...imgs.map(path => ({
+                        path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                        type: 'image'
+                    })));
+                } else if (typeof imgs === 'string' && imgs) {
+                    files.push({
+                        path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
+                        type: 'image'
+                    });
+                }
+
+                if (item.video) {
+                    const v = item.video;
+                    files.push({
+                        path: v.startsWith('http') ? v : `/storage/${v.replace(/^\/?storage\//, '')}`,
+                        type: 'video'
+                    });
+                }
+
+                const seen = new Set();
+                files = files.filter(f => {
+                    if (seen.has(f.path)) return false;
+                    seen.add(f.path);
+                    return true;
+                });
+
+                return {
+                    ...item,
+                    files,
+                    newComment: '',
+                    comment_count: item.comment_count ?? 0,
+                    is_saved: !!item.is_saved,
+                    expanded: false,
+                    saving: false
+                };
+            } else if (item.type === 'teaser') {
+                // You can add teaser-specific logic here if needed
+                return {
+                    ...item,
+                    // Add any teaser-specific computed properties here
+                };
+            }
+            return item;
+        });
+
+        console.group(`Loaded ${newItems.length} items (page ${this.page})`);
+        newItems.forEach(i => {
+            if (i.type === 'board') {
+                console.log(`Board #${i.id}${i.title ? ` (${i.title})` : ''} → is_saved: ${i.is_saved}`);
+            } else if (i.type === 'teaser') {
+                console.log(`Teaser #${i.id}${i.title ? ` (${i.title})` : ''}`);
+            }
+        });
+        console.groupEnd();
+
+        // Initialize items array if not already
+        if (!this.items) this.items = [];
+        this.items.push(...newItems);
+        this.page += 1;
+
+        // Trust the paginator
+        this.allLoaded = !json.next_page_url;
+
+    } catch (error) {
+        console.error('Failed to load boards/teasers', error);
+    } finally {
+        this.loading = false;
+    }
+},
 
         toggleSaveById(boardId) {
             // Find the board from existing state
             const board =
-                this.boards.find(b => b.id === boardId) ||
+                this.items.find(b => b.id === boardId) ||
                 (this.filteredBoards && Array.isArray(this.filteredBoards)
                     ? this.filteredBoards.find(b => b.id === boardId)
                     : null);
@@ -830,7 +847,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         get filteredBoards() {
-            return this.boards.filter(board => {
+            return this.items.filter(board => {
                 const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(board.latest_mood);
                 const hasImage = !!board.image;
                 const hasVideo = !!board.video;
@@ -873,7 +890,7 @@ document.addEventListener('alpine:init', () => {
                 this.selectedMoods.push(mood);
             }
             this.page = 1;
-            this.boards = [];
+            this.items = [];
             this.allLoaded = false;
             this.loadBoards();
         },
@@ -886,7 +903,7 @@ document.addEventListener('alpine:init', () => {
                 this.selectedMediaTypes.push(type);
             }
             this.page = 1;
-            this.boards = [];
+            this.items = [];
             this.allLoaded = false;
             this.loadBoards();
         },
@@ -1043,7 +1060,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         react(boardId, mood) {
-        const board = this.boards.find(b => b.id === boardId);
+        const board = this.items.find(b => b.id === boardId);
         if (!board) { this.showToast("Board not found", 'error'); return; }
         if (board.user_reacted_mood === mood) { this.showToast("You already picked this mood 💅", 'error'); return; }
 
