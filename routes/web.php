@@ -57,8 +57,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Dashboard / Home
     Route::get('/dashboard', fn () => redirect()->route('home'))->name('dashboard');
-    Route::get('/home', [HomeController::class, 'index'])->name('home');
-
+    Route::get('/home', [BoardController::class, 'index'])->name('home');
     // MoodBoards
     Route::resource('boards', BoardController::class);
     Route::get('/api/boards/me', [ApiBoardController::class, 'myBoards']);
