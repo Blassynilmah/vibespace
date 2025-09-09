@@ -426,9 +426,100 @@
                             </div>
                         </div>
                     </template>
-                    @include('partials.board-tile', ['board' => $item])
                 @elseif($item->type === 'teaser')
-                    @include('partials.teaser-tile', ['teaser' => $item])
+                    <template>
+                        <div class="overflow-y-auto snap-y snap-mandatory h-screen scroll-smooth">
+                            <!-- Loading State -->
+                            <template x-if="loadingTeasers">
+                                <div class="text-center text-gray-400 py-8">Loading your teasers...</div>
+                            </template>
+
+                            <!-- Empty State -->
+                            <template x-if="!loadingTeasers && (!teasers || !teasers.length)">
+                                <div class="text-center text-gray-400 py-8">You haven’t added any teasers yet.</div>
+                            </template>
+
+                            <!-- Teaser Tiles -->
+                            <template x-for="teaser in teasers" :key="teaser.id">
+                                <div
+                                    class="snap-center h-screen flex flex-col mb-20 mt-40 lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl h-screen"
+                                    :class="{
+                                        'h-[90vh]': window.innerWidth < 768,
+                                        'md:h-[90vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
+                                        'lg:h-[80vh]': window.innerWidth >= 1024
+                                    }"
+                                    >
+                                    <!-- Video Section -->
+                                    <div
+                                    class="relative w-full h-full lg:w-1/2"
+                                    :class="{
+                                        'h-[60vh]': window.innerWidth < 768,
+                                        'md:h-[70vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
+                                        'lg:h-full': window.innerWidth >= 1024
+                                    }"
+                                    >
+                                    <video
+                                        :src="'/storage/' + teaser.video"
+                                        :autoplay="currentPlayingTeaserId === teaser.id"
+                                        :muted="false"
+                                        playsinline
+                                        loop
+                                        tabindex="0"
+                                    class="w-full h-full object-cover bg-black rounded-2xl"
+                                        x-ref="'videoEl' + teaser.id"
+                                        @play="handlePlay(teaser.id)"
+                                        @pause="handlePause(teaser.id)"
+                                        @click="togglePlay($refs['videoEl' + teaser.id])"
+                                        @mousedown="startFastForward($refs['videoEl' + teaser.id])"
+                                        @mouseup="stopFastForward($refs['videoEl' + teaser.id])"
+                                        @touchstart="startFastForward($refs['videoEl' + teaser.id])"
+                                        @touchend="stopFastForward($refs['videoEl' + teaser.id])"
+                                    ></video>
+
+                                    <!-- Mobile Overlay -->
+                                    <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
+                                        <div class="text-sm font-semibold mb-1">@<span x-text="teaser.username"></span></div>
+                                        <div class="text-xs text-pink-300 mb-1" x-text="teaser.hashtags"></div>
+                                        <div class="text-xs mb-1" x-text="teaser.description"></div>
+                                        <div class="flex items-center gap-2 text-xs text-gray-200">
+                                        <span x-text="timeSince(teaser.created_at)"></span>
+                                        <span>•</span>
+                                        <span x-text="getRemainingTime(teaser.expires_on)"></span>
+                                        </div>
+                                    </div>
+                                    </div>
+
+                                    <!-- Info Section (Desktop) -->
+                                    <div class="hidden lg:flex flex-1 flex-col justify-between p-8">
+                                    <div>
+                                        <div class="flex items-center gap-2 mb-2">
+                                        <span class="font-semibold text-pink-600">@<span x-text="teaser.username"></span></span>
+                                        <span class="text-xs text-gray-400" x-text="timeSince(teaser.created_at)"></span>
+                                        </div>
+                                        <div class="mb-2">
+                                        <span class="inline-block bg-pink-100 text-pink-700 rounded-full px-2 py-0.5 text-xs font-medium" x-text="teaser.hashtags"></span>
+                                        </div>
+                                        <div class="text-sm text-gray-700 mb-2" x-text="teaser.description"></div>
+                                    </div>
+                                    <div class="flex flex-wrap gap-4 text-xs text-gray-500 mt-2">
+                                        <div>
+                                        <span class="font-semibold">Time Remaining:</span>
+                                        <span x-text="getRemainingTime(teaser.expires_on)"></span>
+                                        </div>
+                                        <div>
+                                        <span class="font-semibold">Duration:</span>
+                                        <span x-text="teaser.expires_after ? teaser.expires_after + ' hrs' : '—'"></span>
+                                        </div>
+                                        <div>
+                                        <span class="font-semibold">Created:</span>
+                                        <span x-text="new Date(teaser.created_at).toLocaleString()"></span>
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
                 @endif
             @endforeach
         </div>
