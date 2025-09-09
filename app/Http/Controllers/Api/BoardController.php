@@ -48,11 +48,42 @@ public function index(Request $request)
             return $teaser;
         });
 
-    // Merge and shuffle (except first), always start with a board
-    $all = $boards->slice(1)->merge($teasers)->shuffle()->prepend($boards->first())->values();
+    // Shuffle both arrays
+    $boards = $boards->shuffle()->values();
+    $teasers = $teasers->shuffle()->values();
+
+    $final = [];
+    $teaserIndex = 0;
+    $boardIndex = 0;
+    $totalBoards = $boards->count();
+    $totalTeasers = $teasers->count();
+
+    // Always start with a board if available
+    if ($totalBoards > 0) {
+        $final[] = $boards[$boardIndex++];
+    }
+
+    // Sprinkle teasers, never two in a row
+    while ($boardIndex < $totalBoards || $teaserIndex < $totalTeasers) {
+        $canInsertTeaser = $teaserIndex < $totalTeasers && (empty($final) || $final[count($final) - 1]->type !== 'teaser');
+        $canInsertBoard = $boardIndex < $totalBoards;
+
+        if ($canInsertTeaser && $canInsertBoard) {
+            // 30% chance to insert a teaser, 70% board
+            if (mt_rand(1, 100) <= 30) {
+                $final[] = $teasers[$teaserIndex++];
+            } else {
+                $final[] = $boards[$boardIndex++];
+            }
+        } elseif ($canInsertBoard) {
+            $final[] = $boards[$boardIndex++];
+        } elseif ($canInsertTeaser) {
+            $final[] = $teasers[$teaserIndex++];
+        }
+    }
 
     // Format for API response
-    $formatted = $all->map(function ($item) use ($viewerId) {
+    $formatted = collect($final)->map(function ($item) use ($viewerId) {
         if ($item->type === 'board') {
             return $this->formatBoard($item) + ['type' => 'board'];
         } else {
