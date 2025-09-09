@@ -21,19 +21,19 @@ class BoardController extends Controller
     // 🌿 Show Recent MoodBoards (Home Page)
 public function index()
 {
-    // Get 35 random boards (70% of 50)
+    // Get the latest 35 moodboards
     $boards = \App\Models\MoodBoard::with(['user.profilePicture'])
-        ->inRandomOrder()
+        ->latest()
         ->limit(35)
         ->get();
 
-    // Get 15 random teasers (30% of 50)
+    // Get the latest 15 teasers
     $teasers = \App\Models\Teaser::with('user')
-        ->inRandomOrder()
+        ->latest()
         ->limit(15)
         ->get();
 
-    // Merge and shuffle, but ensure first is always a board
+    // Tag each item with its type
     $items = $boards->map(function ($b) {
         $b->type = 'board';
         return $b;
@@ -44,7 +44,7 @@ public function index()
         return $t;
     })->values();
 
-    // Merge and shuffle (except first)
+    // Merge and shuffle (except first), always start with a board
     $all = $items->slice(1)->merge($teaserItems)->shuffle()->prepend($items->first());
 
     return view('home', [
