@@ -8,59 +8,77 @@ use App\Models\MoodBoard;
 use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Throwable;
+use App\Models\Teaser;
 
 
 class BoardController extends Controller
 {
     // 🏠 Home Feed / Filtered Boards
-    public function index(Request $request)
-    {
-        $viewerId = optional($request->user())->id ?? 0;
+public function index(Request $request)
+{
+    $viewerId = optional($request->user())->id ?? 0;
 
-        $query = MoodBoard::query()
-            ->with([
-                'user',
-                'favorites' => fn($q) => $q->where('user_id', $viewerId),
-                'reactions' => fn($q) => $q->where('user_id', $viewerId)
-            ])
-            ->withCount([
-                'posts',
-                'comments',
-                'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
-            ]);
+    // Get latest 35 moodboards
+    $boards = MoodBoard::query()
+        ->with([
+            'user',
+            'favorites' => fn($q) => $q->where('user_id', $viewerId),
+            'reactions' => fn($q) => $q->where('user_id', $viewerId)
+        ])
+        ->withCount([
+            'posts',
+            'comments',
+            'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
+        ])
+        ->latest()
+        ->limit(35)
+        ->get()
+        ->map(function ($board) {
+            $board->type = 'board';
+            return $board;
+        });
 
-        // 🎯 Mood Filter
-        if ($request->filled('moods')) {
-            $query->whereIn('latest_mood', $request->input('moods'));
+    // Get latest 15 teasers
+    $teasers = Teaser::with('user')
+        ->latest()
+        ->limit(15)
+        ->get()
+        ->map(function ($teaser) {
+            $teaser->type = 'teaser';
+            return $teaser;
+        });
+
+    // Merge and shuffle (except first), always start with a board
+    $all = $boards->slice(1)->merge($teasers)->shuffle()->prepend($boards->first())->values();
+
+    // Format for API response
+    $formatted = $all->map(function ($item) use ($viewerId) {
+        if ($item->type === 'board') {
+            return $this->formatBoard($item) + ['type' => 'board'];
+        } else {
+            return [
+                'id' => $item->id,
+                'title' => $item->title ?? '',
+                'description' => $item->description ?? '',
+                'created_at' => $item->created_at,
+                'user' => [
+                    'id' => $item->user->id,
+                    'username' => $item->user->username,
+                    'profile_picture' => $item->user->profilePicture->path ?? null,
+                ],
+                'type' => 'teaser',
+                // Add more teaser fields as needed
+            ];
         }
+    });
 
-        // 🖼️ Media Type Filter
-        if ($request->filled('types')) {
-            $types = $request->input('types');
-            $query->where(function ($q) use ($types) {
-                if (in_array('image', $types)) {
-                    $q->orWhereNotNull('image');
-                }
-                if (in_array('video', $types)) {
-                    $q->orWhereNotNull('video');
-                }
-                if (in_array('text', $types)) {
-                    $q->orWhere(function ($subQ) {
-                        $subQ->whereNull('image')->whereNull('video');
-                    });
-                }
-            });
-        }
-
-        $boards = $query->latest()->paginate(10);
-
-        return response()->json([
-            'data' => $boards->map(fn($board) => $this->formatBoard($board)),
-            'next_page_url' => $boards->nextPageUrl(),
-            'current_page' => $boards->currentPage(),
-            'last_page' => $boards->lastPage(),
-        ]);
-    }
+    return response()->json([
+        'data' => $formatted,
+        'next_page_url' => null, // Not paginated
+        'current_page' => 1,
+        'last_page' => 1,
+    ]);
+}
 
 public function showUserBoards($username)
 {
