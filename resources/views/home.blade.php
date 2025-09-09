@@ -129,9 +129,9 @@
         </div>
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
-            @foreach($items as $item)
-                @if($item->type === 'board')
-                    <template x-for="board in filteredBoards" :key="board.id + '-' + board.created_at">
+            <template x-for="item in filteredBoards" :key="item.id + '-' + item.created_at">
+                <div>
+                    <template x-if="item.type === 'board'">
                         <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
                             <div 
                             class="relative flex flex-col items-start p-3 sm:p-4 lg:p-6"
@@ -426,8 +426,7 @@
                             </div>
                         </div>
                     </template>
-                @elseif($item->type === 'teaser')
-                    <template>
+                    <template x-if="item.type === 'teaser'">
                         <div class="overflow-y-auto snap-y snap-mandatory h-screen scroll-smooth">
                             <!-- Loading State -->
                             <template x-if="loadingTeasers">
@@ -520,8 +519,8 @@
                             </template>
                         </div>
                     </template>
-                @endif
-            @endforeach
+                </div>
+            </template>
         </div>
 
         {{-- 🔽 Load More --}}
@@ -847,18 +846,20 @@ async loadBoards() {
         },
 
         get filteredBoards() {
-            return this.items.filter(board => {
-                const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(board.latest_mood);
-                const hasImage = !!board.image;
-                const hasVideo = !!board.video;
-                const hasMedia = hasImage || hasVideo;
-                let boardType = 'text';
-                if (hasImage) boardType = 'image';
-                if (hasVideo) boardType = 'video';
-
-                const typeMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(boardType);
-
-                return moodMatch && typeMatch;
+            return this.items.filter(item => {
+                if (item.type === 'board') {
+                    const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
+                    const hasImage = !!item.image;
+                    const hasVideo = !!item.video;
+                    const hasMedia = !!hasImage || !!hasVideo;
+                    let boardType = 'text';
+                    if (hasImage) boardType = 'image';
+                    if (hasVideo) boardType = 'video';
+                    const typeMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(boardType);
+                    return moodMatch && typeMatch;
+                }
+                // For teasers, you can add filter logic or just return true
+                return true;
             });
         },
 
