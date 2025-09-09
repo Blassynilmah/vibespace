@@ -129,301 +129,308 @@
         </div>
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
-            <template x-for="board in filteredBoards" :key="board.id + '-' + board.created_at">
-                <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
-                    <div 
-                    class="relative flex flex-col items-start p-3 sm:p-4 lg:p-6"
-                    :class="board.files?.length ? 'md:grid md:grid-cols-5 md:gap-6' : 'md:flex md:flex-col'"
-                    >
+            @foreach($items as $item)
+                @if($item->type === 'board')
+                    <template x-for="board in filteredBoards" :key="board.id + '-' + board.created_at">
+                        <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
+                            <div 
+                            class="relative flex flex-col items-start p-3 sm:p-4 lg:p-6"
+                            :class="board.files?.length ? 'md:grid md:grid-cols-5 md:gap-6' : 'md:flex md:flex-col'"
+                            >
 
-                    <!-- 💾 Save Button -->
-                    <div class="absolute top-3 right-3 z-10">
-                        <button
-                            @click.prevent="toggleSaveById(board.id)"
-                            :disabled="board.saving"
-                            :class="[
-                                'px-3 py-1 rounded-full text-xs font-semibold transition-all',
-                                board.is_saved
-                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-                                board.saving ? 'opacity-50 cursor-not-allowed' : ''
-                            ]"
-                        >
-                            <span x-text="board.is_saved ? '✔️ Saved' : '💾 Save'"></span>
-                        </button>
-                    </div>
-                        <!-- User Info, Title, Description (Top on mobile, right on desktop) -->
-                        <div class="order-1 md:order-2 md:col-span-2 flex flex-col w-full mb-3 md:mb-0">
-                            <!-- User Info -->
-                            <div class="flex items-start gap-3 mb-2 shrink-0">
-                                <img
-                                    :src="board.user?.profile_picture
-                                        ? '/storage/' + board.user.profile_picture
-                                        : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
-                                    alt="User Avatar"
-                                    class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-pink-300 dark:border-pink-500 object-cover"
-                                    style="box-shadow: 0 2px 6px rgba(0,0,0,0.08);"
+                            <!-- 💾 Save Button -->
+                            <div class="absolute top-3 right-3 z-10">
+                                <button
+                                    @click.prevent="toggleSaveById(board.id)"
+                                    :disabled="board.saving"
+                                    :class="[
+                                        'px-3 py-1 rounded-full text-xs font-semibold transition-all',
+                                        board.is_saved
+                                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                                        board.saving ? 'opacity-50 cursor-not-allowed' : ''
+                                    ]"
                                 >
-                                <div class="flex flex-wrap items-center text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                                    <template x-if="board.latest_mood">
-                                        <span
-                                            class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                                            :class="{
-                                                'bg-blue-100 text-blue-700': board.latest_mood === 'excited',
-                                                'bg-orange-100 text-orange-700': board.latest_mood === 'happy',
-                                                'bg-pink-100 text-pink-700': board.latest_mood === 'chill',
-                                                'bg-purple-100 text-purple-700': board.latest_mood === 'thoughtful',
-                                                'bg-teal-100 text-teal-700': board.latest_mood === 'sad',
-                                                'bg-amber-100 text-amber-700': board.latest_mood === 'flirty',
-                                                'bg-indigo-100 text-indigo-700': board.latest_mood === 'mindblown',
-                                                'bg-yellow-100 text-yellow-700': board.latest_mood === 'love',
-                                            }"
-                                            style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 1px 0 rgba(0,0,0,0.05);"
-                                        >
-                                            <span x-text="moods[board.latest_mood]"></span>
-                                            <span x-text="board.latest_mood.charAt(0).toUpperCase() + board.latest_mood.slice(1)"></span>
-                                            <span>Vibes</span>
-                                        </span>
-                                    </template>
-
-                                    <div>
-                                        <template x-if="board.user">
-                                            <a 
-                                                :href="`/space/${board.user.username}-${board.user.id}`" 
-                                                class="hover:underline font-medium text-blue-600 text-xs sm:text-sm"
-                                                :title="`View ${board.user.username}'s profile`"
-                                                :aria-label="`View profile of ${board.user.username}`"
-                                                x-text="'@' + board.user.username">
-                                            </a>
-                                        </template>
-
-
-                                        <span class="mx-1">•</span>
-
-                                        <span x-text="timeSince(board.created_at)"></span>
-                                    </div>
-                                </div>
+                                    <span x-text="board.is_saved ? '✔️ Saved' : '💾 Save'"></span>
+                                </button>
                             </div>
-
-                            <div class="flex flex-col">
-                                <h3 class="text-base sm:text-lg font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-1"
-                                    x-text="board.title">
-                                </h3>
-                                <div x-show="board.description" class="text-sm text-black-800 dark:text-black-200 leading-snug">
-                                    <p 
-                                        x-text="board.expanded 
-                                            ? (board.description || '') 
-                                            : (board.files && board.files.length 
-                                                ? (board.description ? board.description.split(' ').slice(0, 20).join(' ') + (board.description.split(' ').length > 20 ? '...' : '') : '') 
-                                                : (board.description ? board.description.split(' ').slice(0, 200).join(' ') + (board.description.split(' ').length > 200 ? '...' : '') : '')
-                                            )"
-                                        class="whitespace-pre-line"
-                                    ></p>
-                                    <button 
-                                        x-show="(!board.expanded && (board.files && board.description && board.description.split(' ').length > 20))
-                                            || (!board.expanded && (!board.files || !board.files.length) && board.description && board.description.split(' ').length > 200)"
-                                        @click="board.expanded = true"
-                                        class="mt-1 text-pink-500 hover:underline text-xs font-medium"
+                                <!-- User Info, Title, Description (Top on mobile, right on desktop) -->
+                                <div class="order-1 md:order-2 md:col-span-2 flex flex-col w-full mb-3 md:mb-0">
+                                    <!-- User Info -->
+                                    <div class="flex items-start gap-3 mb-2 shrink-0">
+                                        <img
+                                            :src="board.user?.profile_picture
+                                                ? '/storage/' + board.user.profile_picture
+                                                : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
+                                            alt="User Avatar"
+                                            class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-pink-300 dark:border-pink-500 object-cover"
+                                            style="box-shadow: 0 2px 6px rgba(0,0,0,0.08);"
                                         >
-                                        More
-                                    </button>
-                                </div>
-                            </div>
-                                                <!-- Desktop/Tablet reactions/comments -->
-                            <div class="hidden md:block">                     
-                                <div class="hidden md:grid grid-cols-2 grid-rows-4 gap-3 mt-2 w-full p-2 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-inner">
-                                    <template x-for="(emoji, mood) in reactionMoods" :key="mood">
-                                        <button
-                                            @click.prevent="react(board.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
-                                            x-data="{ showName: false }"
-                                            @mouseenter="showName = true" 
-                                            @mouseleave="showName = false"
-                                            class="w-full relative rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
-                                                px-3 py-2 text-sm font-medium"
-                                            :class="[
-                                                board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
-                                                mood === 'fire' && 'bg-red-200 text-red-800',
-                                                mood === 'love' && 'bg-rose-300 text-rose-900',
-                                                mood === 'funny' && 'bg-yellow-200 text-yellow-800',
-                                                mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
-                                                mood === 'cool' && 'bg-teal-200 text-teal-800',
-                                                mood === 'crying' && 'bg-sky-200 text-sky-800',
-                                                mood === 'clap' && 'bg-emerald-200 text-emerald-800',
-                                                mood === 'flirty' && 'bg-pink-200 text-pink-800'
-                                            ]"
-                                            style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
-                                        >
-                                            <span class="capitalize text-xs font-semibold leading-tight" x-text="mood"></span>
-                                            <div class="flex items-center gap-1">
-                                                <span x-text="emoji" class="text-lg"></span>
-                                                <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-xs" 
-                                                    x-text="getReactionCount(board, mood)">
+                                        <div class="flex flex-wrap items-center text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            <template x-if="board.latest_mood">
+                                                <span
+                                                    class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
+                                                    :class="{
+                                                        'bg-blue-100 text-blue-700': board.latest_mood === 'excited',
+                                                        'bg-orange-100 text-orange-700': board.latest_mood === 'happy',
+                                                        'bg-pink-100 text-pink-700': board.latest_mood === 'chill',
+                                                        'bg-purple-100 text-purple-700': board.latest_mood === 'thoughtful',
+                                                        'bg-teal-100 text-teal-700': board.latest_mood === 'sad',
+                                                        'bg-amber-100 text-amber-700': board.latest_mood === 'flirty',
+                                                        'bg-indigo-100 text-indigo-700': board.latest_mood === 'mindblown',
+                                                        'bg-yellow-100 text-yellow-700': board.latest_mood === 'love',
+                                                    }"
+                                                    style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 1px 0 rgba(0,0,0,0.05);"
+                                                >
+                                                    <span x-text="moods[board.latest_mood]"></span>
+                                                    <span x-text="board.latest_mood.charAt(0).toUpperCase() + board.latest_mood.slice(1)"></span>
+                                                    <span>Vibes</span>
                                                 </span>
+                                            </template>
+
+                                            <div>
+                                                <template x-if="board.user">
+                                                    <a 
+                                                        :href="`/space/${board.user.username}-${board.user.id}`" 
+                                                        class="hover:underline font-medium text-blue-600 text-xs sm:text-sm"
+                                                        :title="`View ${board.user.username}'s profile`"
+                                                        :aria-label="`View profile of ${board.user.username}`"
+                                                        x-text="'@' + board.user.username">
+                                                    </a>
+                                                </template>
+
+
+                                                <span class="mx-1">•</span>
+
+                                                <span x-text="timeSince(board.created_at)"></span>
                                             </div>
-                                        </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col">
+                                        <h3 class="text-base sm:text-lg font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-1"
+                                            x-text="board.title">
+                                        </h3>
+                                        <div x-show="board.description" class="text-sm text-black-800 dark:text-black-200 leading-snug">
+                                            <p 
+                                                x-text="board.expanded 
+                                                    ? (board.description || '') 
+                                                    : (board.files && board.files.length 
+                                                        ? (board.description ? board.description.split(' ').slice(0, 20).join(' ') + (board.description.split(' ').length > 20 ? '...' : '') : '') 
+                                                        : (board.description ? board.description.split(' ').slice(0, 200).join(' ') + (board.description.split(' ').length > 200 ? '...' : '') : '')
+                                                    )"
+                                                class="whitespace-pre-line"
+                                            ></p>
+                                            <button 
+                                                x-show="(!board.expanded && (board.files && board.description && board.description.split(' ').length > 20))
+                                                    || (!board.expanded && (!board.files || !board.files.length) && board.description && board.description.split(' ').length > 200)"
+                                                @click="board.expanded = true"
+                                                class="mt-1 text-pink-500 hover:underline text-xs font-medium"
+                                                >
+                                                More
+                                            </button>
+                                        </div>
+                                    </div>
+                                                        <!-- Desktop/Tablet reactions/comments -->
+                                    <div class="hidden md:block">                     
+                                        <div class="hidden md:grid grid-cols-2 grid-rows-4 gap-3 mt-2 w-full p-2 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-inner">
+                                            <template x-for="(emoji, mood) in reactionMoods" :key="mood">
+                                                <button
+                                                    @click.prevent="react(board.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
+                                                    x-data="{ showName: false }"
+                                                    @mouseenter="showName = true" 
+                                                    @mouseleave="showName = false"
+                                                    class="w-full relative rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
+                                                        px-3 py-2 text-sm font-medium"
+                                                    :class="[
+                                                        board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
+                                                        mood === 'fire' && 'bg-red-200 text-red-800',
+                                                        mood === 'love' && 'bg-rose-300 text-rose-900',
+                                                        mood === 'funny' && 'bg-yellow-200 text-yellow-800',
+                                                        mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
+                                                        mood === 'cool' && 'bg-teal-200 text-teal-800',
+                                                        mood === 'crying' && 'bg-sky-200 text-sky-800',
+                                                        mood === 'clap' && 'bg-emerald-200 text-emerald-800',
+                                                        mood === 'flirty' && 'bg-pink-200 text-pink-800'
+                                                    ]"
+                                                    style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
+                                                >
+                                                    <span class="capitalize text-xs font-semibold leading-tight" x-text="mood"></span>
+                                                    <div class="flex items-center gap-1">
+                                                        <span x-text="emoji" class="text-lg"></span>
+                                                        <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-xs" 
+                                                            x-text="getReactionCount(board, mood)">
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            </template>
+                                        </div>
+                                            <!-- Comments -->
+                                        <div class="mt-3 md:mt-4 hidden md:block">
+                                            <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
+                                                <input
+                                                    type="text"
+                                                    x-model="board.newComment"
+                                                    placeholder="Type a comment..."
+                                                    class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
+                                                    @keydown.enter.prevent="postComment(board)"
+                                                >
+                                                <button
+                                                    @click.prevent="postComment(board)"
+                                                    class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
+                                                >
+                                                    Post
+                                                </button>
+                                            </div>
+                                            <div class="text-xs text-gray-500 flex justify-between">
+                                                <span x-text="(board.comment_count ?? 0) + ' comments'"></span>
+                                                <a :href="'/boards/' + board.id" class="text-pink-600 hover:underline text-sm font-medium">
+                                                    → View Board
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Media (Middle on mobile, left on desktop) -->
+                                <div class="order-2 md:order-1 md:col-span-3 w-full">
+                                    <template x-if="board.files?.length">
+                                        <div class="md:col-span-3">
+                                            <div
+                                                class="mt-3 w-full mx-auto aspect-[9/12] min-h-[220px] rounded-xl overflow-hidden flex items-center justify-center relative z-0 bg-gray-50 dark:bg-gray-800 shadow-inner"
+                                                x-data="{ currentIndex: 0 }"
+                                            >
+                                                <!-- 🔢 File count -->
+                                                <template x-if="board.files.length > 1">
+                                                    <div class="absolute top-2 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full z-10">
+                                                        <span x-text="`${currentIndex + 1} / ${board.files.length}`"></span>
+                                                    </div>
+                                                </template>
+
+                                                <!-- 📸 Media Preview -->
+                                                <div class="flex items-center justify-center w-full h-full">
+                                                    <template x-if="board.files[currentIndex].type === 'image'">
+                                                        <img
+                                                            :src="board.files[currentIndex].path"
+                                                            alt="Preview"
+                                                            class="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.03] cursor-pointer"
+                                                            @click="previewBoardFile = board.files[currentIndex]; showBoardPreviewModal = true"
+                                                        />
+                                                    </template>
+                                                    <template x-if="board.files[currentIndex].type === 'video'">
+                                                        <video
+                                                            :src="board.files[currentIndex].path"
+                                                            playsinline
+                                                            preload="metadata"
+                                                            muted
+                                                            autoplay
+                                                            loop
+                                                            class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
+                                                            @click="previewBoardFile = board.files[currentIndex]; showBoardPreviewModal = true"
+                                                        ></video>
+                                                    </template>
+                                                </div>
+
+                                                <!-- ⬅ Prev Arrow -->
+                                                <button
+                                                    x-show="board.files.length > 1"
+                                                    @click="if (currentIndex > 0) currentIndex--"
+                                                    :disabled="currentIndex === 0"
+                                                    class="absolute left-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    style="top: 50%; transform: translateY(-50%);"
+                                                >◀</button>
+
+                                                <!-- ➡ Next Arrow -->
+                                                <button
+                                                    x-show="board.files.length > 1"
+                                                    @click="if (currentIndex < board.files.length - 1) currentIndex++"
+                                                    :disabled="currentIndex === board.files.length - 1"
+                                                    class="absolute right-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    style="top: 50%; transform: translateY(-50%);"
+                                                >▶</button>
+                                            </div>
+                                        </div>
                                     </template>
                                 </div>
-                                    <!-- Comments -->
-                                <div class="mt-3 md:mt-4 hidden md:block">
-                                    <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
-                                        <input
-                                            type="text"
-                                            x-model="board.newComment"
-                                            placeholder="Type a comment..."
-                                            class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
-                                            @keydown.enter.prevent="postComment(board)"
-                                        >
-                                        <button
-                                            @click.prevent="postComment(board)"
-                                            class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
-                                        >
-                                            Post
-                                        </button>
-                                    </div>
-                                    <div class="text-xs text-gray-500 flex justify-between">
-                                        <span x-text="(board.comment_count ?? 0) + ' comments'"></span>
-                                        <a :href="'/boards/' + board.id" class="text-pink-600 hover:underline text-sm font-medium">
-                                            → View Board
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Media (Middle on mobile, left on desktop) -->
-                        <div class="order-2 md:order-1 md:col-span-3 w-full">
-                            <template x-if="board.files?.length">
-                                <div class="md:col-span-3">
-                                    <div
-                                        class="mt-3 w-full mx-auto aspect-[9/12] min-h-[220px] rounded-xl overflow-hidden flex items-center justify-center relative z-0 bg-gray-50 dark:bg-gray-800 shadow-inner"
-                                        x-data="{ currentIndex: 0 }"
-                                    >
-                                        <!-- 🔢 File count -->
-                                        <template x-if="board.files.length > 1">
-                                            <div class="absolute top-2 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full z-10">
-                                                <span x-text="`${currentIndex + 1} / ${board.files.length}`"></span>
-                                            </div>
+                                <!-- Reactions & Comments (Bottom on mobile, right on desktop) -->
+                                <div class="order-3 md:order-2 md:col-span-2 flex flex-col mt-3 md:mt-0 w-full block md:hidden">
+                                    <!-- Reactions -->
+                                    <div class="flex flex-wrap gap-2 sm:grid sm:grid-cols-2 sm:gap-3 mt-2 w-full">
+                                        <template x-for="(emoji, mood) in reactionMoods" :key="mood">
+                                            <button
+                                                @click.prevent="react(board.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
+                                                x-data="{ showName: false }"
+                                                @mouseenter="showName = true" 
+                                                @mouseleave="showName = false"
+                                                class="flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
+                                                    px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm font-medium rounded-lg"
+                                                :class="[
+                                                    board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
+                                                    mood === 'fire' && 'bg-red-200 text-red-800',
+                                                    mood === 'love' && 'bg-rose-300 text-rose-900',
+                                                    mood === 'funny' && 'bg-yellow-200 text-yellow-800',
+                                                    mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
+                                                    mood === 'cool' && 'bg-teal-200 text-teal-800',
+                                                    mood === 'crying' && 'bg-sky-200 text-sky-800',
+                                                    mood === 'clap' && 'bg-emerald-200 text-emerald-800',
+                                                    mood === 'flirty' && 'bg-pink-200 text-pink-800'
+                                                ]"
+                                                style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
+                                            >
+                                                <!-- Mood name (desktop only) -->
+                                                <span class="hidden sm:block capitalize text-[0.65rem] sm:text-[0.7rem] font-semibold leading-tight" x-text="mood"></span>
+                                                <!-- Emoji + Counter -->
+                                                <div class="flex items-center gap-1">
+                                                    <span x-text="emoji" class="text-lg sm:text-xl"></span>
+                                                    <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-[0.6rem]" 
+                                                        x-text="getReactionCount(board, mood)">
+                                                    </span>
+                                                </div>
+                                                <!-- Tooltip for mobile -->
+                                                <div 
+                                                    x-show="showName && window.innerWidth < 640" 
+                                                    class="absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-white text-[0.6rem] rounded px-2 py-0.5 shadow opacity-90">
+                                                    <span x-text="mood"></span>
+                                                </div>
+                                            </button>
                                         </template>
-
-                                        <!-- 📸 Media Preview -->
-                                        <div class="flex items-center justify-center w-full h-full">
-                                            <template x-if="board.files[currentIndex].type === 'image'">
-                                                <img
-                                                    :src="board.files[currentIndex].path"
-                                                    alt="Preview"
-                                                    class="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.03] cursor-pointer"
-                                                    @click="previewBoardFile = board.files[currentIndex]; showBoardPreviewModal = true"
-                                                />
-                                            </template>
-                                            <template x-if="board.files[currentIndex].type === 'video'">
-                                                <video
-                                                    :src="board.files[currentIndex].path"
-                                                    playsinline
-                                                    preload="metadata"
-                                                    muted
-                                                    autoplay
-                                                    loop
-                                                    class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
-                                                    @click="previewBoardFile = board.files[currentIndex]; showBoardPreviewModal = true"
-                                                ></video>
-                                            </template>
-                                        </div>
-
-                                        <!-- ⬅ Prev Arrow -->
-                                        <button
-                                            x-show="board.files.length > 1"
-                                            @click="if (currentIndex > 0) currentIndex--"
-                                            :disabled="currentIndex === 0"
-                                            class="absolute left-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                            style="top: 50%; transform: translateY(-50%);"
-                                        >◀</button>
-
-                                        <!-- ➡ Next Arrow -->
-                                        <button
-                                            x-show="board.files.length > 1"
-                                            @click="if (currentIndex < board.files.length - 1) currentIndex++"
-                                            :disabled="currentIndex === board.files.length - 1"
-                                            class="absolute right-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                            style="top: 50%; transform: translateY(-50%);"
-                                        >▶</button>
                                     </div>
-                                </div>
-                            </template>
-                        </div>
-
-                        <!-- Reactions & Comments (Bottom on mobile, right on desktop) -->
-                        <div class="order-3 md:order-2 md:col-span-2 flex flex-col mt-3 md:mt-0 w-full block md:hidden">
-                            <!-- Reactions -->
-                            <div class="flex flex-wrap gap-2 sm:grid sm:grid-cols-2 sm:gap-3 mt-2 w-full">
-                                <template x-for="(emoji, mood) in reactionMoods" :key="mood">
-                                    <button
-                                        @click.prevent="react(board.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
-                                        x-data="{ showName: false }"
-                                        @mouseenter="showName = true" 
-                                        @mouseleave="showName = false"
-                                        class="flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
-                                            px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm font-medium rounded-lg"
-                                        :class="[
-                                            board.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
-                                            mood === 'fire' && 'bg-red-200 text-red-800',
-                                            mood === 'love' && 'bg-rose-300 text-rose-900',
-                                            mood === 'funny' && 'bg-yellow-200 text-yellow-800',
-                                            mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
-                                            mood === 'cool' && 'bg-teal-200 text-teal-800',
-                                            mood === 'crying' && 'bg-sky-200 text-sky-800',
-                                            mood === 'clap' && 'bg-emerald-200 text-emerald-800',
-                                            mood === 'flirty' && 'bg-pink-200 text-pink-800'
-                                        ]"
-                                        style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
-                                    >
-                                        <!-- Mood name (desktop only) -->
-                                        <span class="hidden sm:block capitalize text-[0.65rem] sm:text-[0.7rem] font-semibold leading-tight" x-text="mood"></span>
-                                        <!-- Emoji + Counter -->
-                                        <div class="flex items-center gap-1">
-                                            <span x-text="emoji" class="text-lg sm:text-xl"></span>
-                                            <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-[0.6rem]" 
-                                                x-text="getReactionCount(board, mood)">
-                                            </span>
+                                    <!-- Comments -->
+                                    <div class="mt-3 md:mt-4">
+                                        <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
+                                            <input
+                                                type="text"
+                                                x-model="board.newComment"
+                                                placeholder="Type a comment..."
+                                                class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
+                                                @keydown.enter.prevent="postComment(board)"
+                                            >
+                                            <button
+                                                @click.prevent="postComment(board)"
+                                                class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
+                                            >
+                                                Post
+                                            </button>
                                         </div>
-                                        <!-- Tooltip for mobile -->
-                                        <div 
-                                            x-show="showName && window.innerWidth < 640" 
-                                            class="absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-white text-[0.6rem] rounded px-2 py-0.5 shadow opacity-90">
-                                            <span x-text="mood"></span>
+                                        <div class="mt-2 space-y-2 max-h-32 overflow-y-auto pr-1">
+                                            <div class="text-xs text-gray-500 flex justify-between">
+                                                <span x-text="(board.comment_count ?? 0) + ' comments'"></span>
+                                                <a :href="'/boards/' + board.id" class="text-pink-600 hover:underline text-sm font-medium">
+                                                    → View Board
+                                                </a>
+                                            </div>
                                         </div>
-                                    </button>
-                                </template>
-                            </div>
-                            <!-- Comments -->
-                            <div class="mt-3 md:mt-4">
-                                <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
-                                    <input
-                                        type="text"
-                                        x-model="board.newComment"
-                                        placeholder="Type a comment..."
-                                        class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
-                                        @keydown.enter.prevent="postComment(board)"
-                                    >
-                                    <button
-                                        @click.prevent="postComment(board)"
-                                        class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
-                                    >
-                                        Post
-                                    </button>
-                                </div>
-                                <div class="mt-2 space-y-2 max-h-32 overflow-y-auto pr-1">
-                                    <div class="text-xs text-gray-500 flex justify-between">
-                                        <span x-text="(board.comment_count ?? 0) + ' comments'"></span>
-                                        <a :href="'/boards/' + board.id" class="text-pink-600 hover:underline text-sm font-medium">
-                                            → View Board
-                                        </a>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </template>
+                    </template>
+                    @include('partials.board-tile', ['board' => $item])
+                @elseif($item->type === 'teaser')
+                    @include('partials.teaser-tile', ['teaser' => $item])
+                @endif
+            @endforeach
         </div>
 
         {{-- 🔽 Load More --}}
