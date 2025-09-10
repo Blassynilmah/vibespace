@@ -219,18 +219,23 @@ private function formatBoard($board)
     ];
 }
 
-    private function formatImages($imageJson)
-    {
-        $decoded = json_decode($imageJson, true);
+private function formatImages($imageJson)
+{
+    // Try to decode as JSON array
+    $decoded = json_decode($imageJson, true);
 
-        if (!is_array($decoded)) {
-            $decoded = [$decoded];
-        }
-
-        return collect($decoded)->map(function ($path) {
-            return asset('storage/' . ltrim($path, '/'));
-        })->toArray();
+    if (is_array($decoded)) {
+        $paths = $decoded;
+    } elseif (is_string($imageJson) && !empty($imageJson)) {
+        $paths = [$imageJson];
+    } else {
+        $paths = [];
     }
+
+    return collect($paths)->map(function ($path) {
+        return asset('storage/' . ltrim($path, '/'));
+    })->toArray();
+}
 
 public function latest(Request $request)
 {
