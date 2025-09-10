@@ -51,21 +51,28 @@ public function index(Request $request)
     $boards = $boards->shuffle()->values();
     $teasers = $teasers->shuffle()->values();
 
-    // Interleave teasers randomly among boards
     $final = [];
     $teaserIndex = 0;
     $totalTeasers = $teasers->count();
 
+    // Always start with a board
     foreach ($boards as $i => $board) {
         $final[] = $board;
-        // Randomly decide to insert a teaser after this board
+        // Only insert a teaser after a board, and never two teasers in a row
         if ($teaserIndex < $totalTeasers && mt_rand(0, 1) === 1) {
             $final[] = $teasers[$teaserIndex++];
         }
     }
-    // If any teasers remain, append them at the end
+
+    // If any teasers remain, try to insert them after boards (but never two teasers in a row)
     while ($teaserIndex < $totalTeasers) {
-        $final[] = $teasers[$teaserIndex++];
+        // Only insert if the last item is a board
+        if (!empty($final) && $final[count($final) - 1]->type === 'board') {
+            $final[] = $teasers[$teaserIndex++];
+        } else {
+            // No valid spot left, break to avoid teaser after teaser
+            break;
+        }
     }
 
     // Format for API response
