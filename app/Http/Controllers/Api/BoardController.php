@@ -18,7 +18,7 @@ public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
 
-    // Get latest 35 moodboards
+    // Fetch latest boards and teasers
     $boards = MoodBoard::query()
         ->with([
             'user',
@@ -38,8 +38,7 @@ public function index(Request $request)
             return $board;
         });
 
-    // Get latest 15 teasers
-    $teasers = \App\Models\Teaser::with('user')
+    $teasers = Teaser::with('user')
         ->latest()
         ->limit(15)
         ->get()
@@ -52,69 +51,53 @@ public function index(Request $request)
     $boards = $boards->shuffle()->values();
     $teasers = $teasers->shuffle()->values();
 
+    // Interleave teasers randomly among boards
     $final = [];
     $teaserIndex = 0;
-    $boardIndex = 0;
-    $totalBoards = $boards->count();
     $totalTeasers = $teasers->count();
 
-    // Always start with a board if available
-    if ($totalBoards > 0) {
-        $final[] = $boards[$boardIndex++];
-    }
-
-    // Sprinkle teasers, never two in a row
-    while ($boardIndex < $totalBoards || $teaserIndex < $totalTeasers) {
-        $canInsertTeaser = $teaserIndex < $totalTeasers && (empty($final) || $final[count($final) - 1]->type !== 'teaser');
-        $canInsertBoard = $boardIndex < $totalBoards;
-
-        if ($canInsertTeaser && $canInsertBoard) {
-            // 30% chance to insert a teaser, 70% board
-            if (mt_rand(1, 100) <= 30) {
-                $final[] = $teasers[$teaserIndex++];
-            } else {
-                $final[] = $boards[$boardIndex++];
-            }
-        } elseif ($canInsertBoard) {
-            $final[] = $boards[$boardIndex++];
-        } elseif ($canInsertTeaser) {
+    foreach ($boards as $i => $board) {
+        $final[] = $board;
+        // Randomly decide to insert a teaser after this board
+        if ($teaserIndex < $totalTeasers && mt_rand(0, 1) === 1) {
             $final[] = $teasers[$teaserIndex++];
-        } else {
-            // Prevent infinite loop if both are false
-            break;
         }
+    }
+    // If any teasers remain, append them at the end
+    while ($teaserIndex < $totalTeasers) {
+        $final[] = $teasers[$teaserIndex++];
     }
 
     // Format for API response
-        $formatted = collect($final)->map(function ($item) use ($viewerId) {
-            if ($item->type === 'board') {
-                return $this->formatBoard($item) + ['type' => 'board'];
-            } else {
-                return [
-                    'id' => $item->id,
-                    'title' => $item->title ?? '',
-                    'description' => $item->description ?? '',
-                    'created_at' => $item->created_at,
-                    'video' => $item->video
-                        ? asset('storage/teasers/' . $item->user_id . '/' . ltrim($item->video, '/'))
-                        : null,
-                    'hashtags' => $item->hashtags ?? '',
-                    'username' => $item->user->username ?? '',
-                    'user' => [
-                        'id' => $item->user->id,
-                        'username' => $item->user->username,
-                        'profile_picture' => $item->user->profilePicture->path ?? null,
-                    ],
-                    'expires_on' => $item->expires_on ?? null,
-                    'expires_after' => $item->expires_after ?? null,
-                    'type' => 'teaser',
-                ];
-            }
-        });
+    $formatted = collect($final)->map(function ($item) use ($viewerId) {
+        if ($item->type === 'board') {
+            return $this->formatBoard($item) + ['type' => 'board'];
+        } else {
+            return [
+                'id' => $item->id,
+                'title' => $item->title ?? '',
+                'description' => $item->description ?? '',
+                'created_at' => $item->created_at,
+                'video' => $item->video
+                    ? asset('storage/teasers/' . $item->user_id . '/' . ltrim($item->video, '/'))
+                    : null,
+                'hashtags' => $item->hashtags ?? '',
+                'username' => $item->user->username ?? '',
+                'user' => [
+                    'id' => $item->user->id,
+                    'username' => $item->user->username,
+                    'profile_picture' => $item->user->profilePicture->path ?? null,
+                ],
+                'expires_on' => $item->expires_on ?? null,
+                'expires_after' => $item->expires_after ?? null,
+                'type' => 'teaser',
+            ];
+        }
+    });
 
     return response()->json([
         'data' => $formatted,
-        'next_page_url' => null, // Not paginated
+        'next_page_url' => null,
         'current_page' => 1,
         'last_page' => 1,
     ]);
