@@ -13,12 +13,12 @@ use App\Models\Teaser;
 
 class BoardController extends Controller
 {
-    // 🏠 Home Feed / Filtered Boards
+
 public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
 
-    // Fetch latest boards and teasers
+    // Fetch latest boards
     $boards = MoodBoard::query()
         ->with([
             'user',
@@ -38,12 +38,16 @@ public function index(Request $request)
             return $board;
         });
 
-    $teasers = Teaser::with('user')
+    // Fetch latest teasers, build video URL like myTeasers
+    $teasers = Teaser::with('user.profilePicture')
         ->latest()
         ->limit(15)
         ->get()
         ->map(function ($teaser) {
             $teaser->type = 'teaser';
+            $teaser->video = $teaser->video
+                ? asset('storage/' . ltrim($teaser->video, '/'))
+                : null;
             return $teaser;
         });
 
@@ -85,9 +89,7 @@ public function index(Request $request)
                 'title' => $item->title ?? '',
                 'description' => $item->description ?? '',
                 'created_at' => $item->created_at,
-                'video' => $item->video
-                    ? asset('storage/teasers/' . $item->user_id . '/' . ltrim($item->video, '/'))
-                    : null,
+                'video' => $item->video, // Already formatted above!
                 'hashtags' => $item->hashtags ?? '',
                 'username' => $item->user->username ?? '',
                 'user' => [
