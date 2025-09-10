@@ -724,7 +724,28 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
+        initializePlayStates() {
+            this.items.forEach(item => {
+                if (item.type === 'teaser' && item.id) {
+                    if (this.teaserPlayStates[item.id] === undefined) {
+                        this.teaserPlayStates[item.id] = false;
+                    }
+                }
+                if (item.type === 'board' && Array.isArray(item.files)) {
+                    item.files.forEach((file, idx) => {
+                        if (file.type === 'video') {
+                            const key = 'board-' + item.id + '-' + idx;
+                            if (this.teaserPlayStates[key] === undefined) {
+                                this.teaserPlayStates[key] = false;
+                            }
+                        }
+                    });
+                }
+            });
+        },
+
         isTeaserPlaying(id) {
+            if (!id) return false;
             return !!this.teaserPlayStates[id];
         },
 
