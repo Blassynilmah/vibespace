@@ -318,7 +318,7 @@
                                                         />
                                                     </template>
                                                     <template x-if="item.files[currentIndex].type === 'video'">
-                                                        <div class="relative w-full h-full">
+                                                        <div x-show="item && item.id" class="relative w-full h-full">
                                                             <video
                                                                 :src="item.files[currentIndex].path"
                                                                 playsinline
@@ -337,7 +337,7 @@
                                                                 <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
                                                                     @click.stop="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])">
                                                                     <template x-if="!(teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false)">▶️</template>
-<template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</template>
+                                                                    <template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</template>
                                                                 </span>
                                                             </button>
                                                         </div>
@@ -451,8 +451,7 @@
                                 }"
                             >
                                 <!-- Video Section -->
-                                <div
-                                    class="relative w-full h-[70vh] lg:w-1/2"
+                                <div x-show="item && item.id" class="relative w-full h-[70vh] lg:w-1/2"
                                     :class="{
                                         'h-[35vh]': window.innerWidth < 768,
                                         'md:h-[40vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
