@@ -427,8 +427,8 @@
                         </div>
                     </template>
                     <template x-if="item.type === 'teaser'">
-                        <div class="overflow-y-auto snap-y snap-mandatory h-screen scroll-smooth">
-                            <!-- Teaser Tile (use item directly, no loadingTeasers/teasers) -->
+                        <div class="snap-y snap-mandatory h-screen scroll-smooth">
+                                <!-- Teaser Tile (use item directly, no loadingTeasers/teasers) -->
                             <div
                                 class="snap-center h-screen flex flex-col mb-20 mt-40 lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl h-screen"
                                 :class="{
@@ -439,19 +439,18 @@
                             >
                                 <!-- Video Section -->
                                 <div
-                                    class="relative w-full h-full lg:w-1/2"
+                                    class="relative w-full h-[40vh] lg:w-1/2"
                                     :class="{
-                                        'h-[60vh]': window.innerWidth < 768,
-                                        'md:h-[70vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
-                                        'lg:h-full': window.innerWidth >= 1024
+                                        'h-[35vh]': window.innerWidth < 768,
+                                        'md:h-[40vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
+                                        'lg:h-[45vh]': window.innerWidth >= 1024
                                     }"
                                 >
                                     <video
                                         :src="'/storage/' + item.video"
-                                        :autoplay="currentPlayingTeaserId === item.id"
-                                        :muted="false"
                                         playsinline
                                         loop
+                                        :autoplay="false"
                                         tabindex="0"
                                         class="w-full h-full object-cover bg-black rounded-2xl"
                                         x-ref="'videoEl' + item.id"
@@ -463,6 +462,22 @@
                                         @touchstart="startFastForward($refs['videoEl' + item.id])"
                                         @touchend="stopFastForward($refs['videoEl' + item.id])"
                                     ></video>
+
+                                    <!-- Add inside the same div as the <video> -->
+                                    <button
+                                        class="absolute inset-0 flex items-center justify-center z-20"
+                                        style="pointer-events: none;"
+                                        x-show="!$refs['videoEl' + item.id]?.paused"
+                                    >
+                                        <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto" @click.stop="togglePlay($refs['videoEl' + item.id])">
+                                            <template x-if="$refs['videoEl' + item.id]?.paused">
+                                                ▶️
+                                            </template>
+                                            <template x-if="!$refs['videoEl' + item.id]?.paused">
+                                                ⏸️
+                                            </template>
+                                        </span>
+                                    </button>
 
                                     <!-- Mobile Overlay -->
                                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
