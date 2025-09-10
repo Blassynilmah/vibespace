@@ -664,6 +664,7 @@ document.addEventListener('alpine:init', () => {
             video: "🎥 Video",
             text: "📝 Text"
         },
+        currentPlayingTeaserId: null,
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -673,119 +674,153 @@ document.addEventListener('alpine:init', () => {
             this.loadBoards();
         },
 
-async loadBoards() {
-    if (this.loading || this.allLoaded) return;
-    this.loading = true;
+        async loadBoards() {
+            if (this.loading || this.allLoaded) return;
+            this.loading = true;
 
-    const perPage = this.page === 1 ? 20 : 10;
-    // Use the new endpoint that returns both boards and teasers
-    const url = `/api/boards?page=${this.page}&per_page=${perPage}`;
+            const perPage = this.page === 1 ? 20 : 10;
+            // Use the new endpoint that returns both boards and teasers
+            const url = `/api/boards?page=${this.page}&per_page=${perPage}`;
 
-    try {
-        const res = await fetch(url, {
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-        });
-
-        const contentType = res.headers.get('content-type') || '';
-        if (!res.ok) {
-            const text = await res.text();
-            console.error(`HTTP ${res.status} on ${url}`, text.slice(0, 500));
-            throw new Error(`Request failed: ${res.status}`);
-        }
-        if (!contentType.includes('application/json')) {
-            const text = await res.text();
-            console.error('Expected JSON, got HTML/text:', text.slice(0, 500));
-            throw new Error('Non-JSON response received');
-        }
-
-        const json = await res.json();
-
-        if (!json.data || json.data.length === 0) {
-            this.allLoaded = true;
-            return;
-        }
-
-        // Prepare new items (boards and teasers)
-        const newItems = json.data.map(item => {
-            if (item.type === 'board') {
-                let files = [];
-                let imgs = item.images ?? item.image;
-
-                if (typeof imgs === 'string') {
-                    try { imgs = JSON.parse(imgs); } catch {}
-                }
-
-                if (Array.isArray(imgs)) {
-                    files.push(...imgs.map(path => ({
-                        path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-                        type: 'image'
-                    })));
-                } else if (typeof imgs === 'string' && imgs) {
-                    files.push({
-                        path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
-                        type: 'image'
-                    });
-                }
-
-                if (item.video) {
-                    const v = item.video;
-                    files.push({
-                        path: v.startsWith('http') ? v : `/storage/${v.replace(/^\/?storage\//, '')}`,
-                        type: 'video'
-                    });
-                }
-
-                const seen = new Set();
-                files = files.filter(f => {
-                    if (seen.has(f.path)) return false;
-                    seen.add(f.path);
-                    return true;
+            try {
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
                 });
 
-                return {
-                    ...item,
-                    files,
-                    newComment: '',
-                    comment_count: item.comment_count ?? 0,
-                    is_saved: !!item.is_saved,
-                    expanded: false,
-                    saving: false
-                };
-            } else if (item.type === 'teaser') {
-                // You can add teaser-specific logic here if needed
-                return {
-                    ...item,
-                    // Add any teaser-specific computed properties here
-                };
+                const contentType = res.headers.get('content-type') || '';
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error(`HTTP ${res.status} on ${url}`, text.slice(0, 500));
+                    throw new Error(`Request failed: ${res.status}`);
+                }
+                if (!contentType.includes('application/json')) {
+                    const text = await res.text();
+                    console.error('Expected JSON, got HTML/text:', text.slice(0, 500));
+                    throw new Error('Non-JSON response received');
+                }
+
+                const json = await res.json();
+
+                if (!json.data || json.data.length === 0) {
+                    this.allLoaded = true;
+                    return;
+                }
+
+                // Prepare new items (boards and teasers)
+                const newItems = json.data.map(item => {
+                    if (item.type === 'board') {
+                        let files = [];
+                        let imgs = item.images ?? item.image;
+
+                        if (typeof imgs === 'string') {
+                            try { imgs = JSON.parse(imgs); } catch {}
+                        }
+
+                        if (Array.isArray(imgs)) {
+                            files.push(...imgs.map(path => ({
+                                path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                                type: 'image'
+                            })));
+                        } else if (typeof imgs === 'string' && imgs) {
+                            files.push({
+                                path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
+                                type: 'image'
+                            });
+                        }
+
+                        if (item.video) {
+                            const v = item.video;
+                            files.push({
+                                path: v.startsWith('http') ? v : `/storage/${v.replace(/^\/?storage\//, '')}`,
+                                type: 'video'
+                            });
+                        }
+
+                        const seen = new Set();
+                        files = files.filter(f => {
+                            if (seen.has(f.path)) return false;
+                            seen.add(f.path);
+                            return true;
+                        });
+
+                        return {
+                            ...item,
+                            files,
+                            newComment: '',
+                            comment_count: item.comment_count ?? 0,
+                            is_saved: !!item.is_saved,
+                            expanded: false,
+                            saving: false
+                        };
+                    } else if (item.type === 'teaser') {
+                        // You can add teaser-specific logic here if needed
+                        return {
+                            ...item,
+                            // Add any teaser-specific computed properties here
+                        };
+                    }
+                    return item;
+                });
+
+                console.group(`Loaded ${newItems.length} items (page ${this.page})`);
+                newItems.forEach(i => {
+                    if (i.type === 'board') {
+                        console.log(`Board #${i.id}${i.title ? ` (${i.title})` : ''} → is_saved: ${i.is_saved}`);
+                    } else if (i.type === 'teaser') {
+                        console.log(`Teaser #${i.id}${i.title ? ` (${i.title})` : ''}`);
+                    }
+                });
+                console.groupEnd();
+
+                // Initialize items array if not already
+                if (!this.items) this.items = [];
+                this.items.push(...newItems);
+                this.page += 1;
+
+                // Trust the paginator
+                this.allLoaded = !json.next_page_url;
+
+            } catch (error) {
+                console.error('Failed to load boards/teasers', error);
+            } finally {
+                this.loading = false;
             }
-            return item;
-        });
+        },
 
-        console.group(`Loaded ${newItems.length} items (page ${this.page})`);
-        newItems.forEach(i => {
-            if (i.type === 'board') {
-                console.log(`Board #${i.id}${i.title ? ` (${i.title})` : ''} → is_saved: ${i.is_saved}`);
-            } else if (i.type === 'teaser') {
-                console.log(`Teaser #${i.id}${i.title ? ` (${i.title})` : ''}`);
+        handlePlay(id) {
+            this.currentPlayingTeaserId = id;
+        },
+        handlePause(id) {
+            if (this.currentPlayingTeaserId === id) {
+                this.currentPlayingTeaserId = null;
             }
-        });
-        console.groupEnd();
-
-        // Initialize items array if not already
-        if (!this.items) this.items = [];
-        this.items.push(...newItems);
-        this.page += 1;
-
-        // Trust the paginator
-        this.allLoaded = !json.next_page_url;
-
-    } catch (error) {
-        console.error('Failed to load boards/teasers', error);
-    } finally {
-        this.loading = false;
-    }
-},
+        },
+        togglePlay(videoEl) {
+            if (videoEl.paused) {
+                videoEl.play();
+            } else {
+                videoEl.pause();
+            }
+        },
+        startFastForward(videoEl) {
+            if (!videoEl) return;
+            videoEl.playbackRate = 2.0;
+        },
+        stopFastForward(videoEl) {
+            if (!videoEl) return;
+            videoEl.playbackRate = 1.0;
+        },
+        getRemainingTime(expiresOn) {
+            if (!expiresOn) return '—';
+            const now = new Date();
+            const expires = new Date(expiresOn);
+            const diff = expires - now;
+            if (diff <= 0) return 'Expired';
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hours}h ${mins}m`;
+        },
 
         toggleSaveById(boardId) {
             // Find the board from existing state
