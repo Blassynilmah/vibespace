@@ -336,8 +336,8 @@
                                                             >
                                                                 <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
                                                                     @click.stop="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])">
-                                                                    <template x-if="!teaserPlayStates['board-' + item.id + '-' + currentIndex]">▶️</template>
-                                                                    <template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex]">⏸️</template>
+                                                                    <template x-if="!(teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false)">▶️</template>
+                                                                    <template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</template>
                                                                 </span>
                                                             </button>
                                                         </div>
@@ -703,6 +703,17 @@ document.addEventListener('alpine:init', () => {
             this.items = [];
             this.allLoaded = false;
             this.loadBoards();
+            this.$nextTick(() => {
+                this.items.forEach(item => {
+                    if (item.type === 'board' && Array.isArray(item.files)) {
+                        item.files.forEach((file, idx) => {
+                            if (file.type === 'video') {
+                                this.teaserPlayStates['board-' + item.id + '-' + idx] = false;
+                            }
+                        });
+                    }
+                });
+            });
         },
 
         isTeaserPlaying(id) {
