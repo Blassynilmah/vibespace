@@ -39,7 +39,7 @@ public function index(Request $request)
         });
 
     // Get latest 15 teasers
-    $teasers = Teaser::with('user')
+    $teasers = \App\Models\Teaser::with('user')
         ->latest()
         ->limit(15)
         ->get()
@@ -79,6 +79,9 @@ public function index(Request $request)
             $final[] = $boards[$boardIndex++];
         } elseif ($canInsertTeaser) {
             $final[] = $teasers[$teaserIndex++];
+        } else {
+            // Prevent infinite loop if both are false
+            break;
         }
     }
 
