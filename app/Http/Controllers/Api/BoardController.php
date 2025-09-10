@@ -86,29 +86,31 @@ public function index(Request $request)
     }
 
     // Format for API response
-$formatted = collect($final)->map(function ($item) use ($viewerId) {
-    if ($item->type === 'board') {
-        return $this->formatBoard($item) + ['type' => 'board'];
-    } else {
-        return [
-            'id' => $item->id,
-            'title' => $item->title ?? '',
-            'description' => $item->description ?? '',
-            'created_at' => $item->created_at,
-            'video' => $item->video ? asset('storage/' . ltrim($item->video, '/')) : null,
-            'hashtags' => $item->hashtags ?? '',
-            'username' => $item->user->username ?? '',
-            'user' => [
-                'id' => $item->user->id,
-                'username' => $item->user->username,
-                'profile_picture' => $item->user->profilePicture->path ?? null,
-            ],
-            'expires_on' => $item->expires_on ?? null,
-            'expires_after' => $item->expires_after ?? null,
-            'type' => 'teaser',
-        ];
-    }
-});
+        $formatted = collect($final)->map(function ($item) use ($viewerId) {
+            if ($item->type === 'board') {
+                return $this->formatBoard($item) + ['type' => 'board'];
+            } else {
+                return [
+                    'id' => $item->id,
+                    'title' => $item->title ?? '',
+                    'description' => $item->description ?? '',
+                    'created_at' => $item->created_at,
+                    'video' => $item->video
+                        ? asset('storage/teasers/' . $item->user_id . '/' . ltrim($item->video, '/'))
+                        : null,
+                    'hashtags' => $item->hashtags ?? '',
+                    'username' => $item->user->username ?? '',
+                    'user' => [
+                        'id' => $item->user->id,
+                        'username' => $item->user->username,
+                        'profile_picture' => $item->user->profilePicture->path ?? null,
+                    ],
+                    'expires_on' => $item->expires_on ?? null,
+                    'expires_after' => $item->expires_after ?? null,
+                    'type' => 'teaser',
+                ];
+            }
+        });
 
     return response()->json([
         'data' => $formatted,
