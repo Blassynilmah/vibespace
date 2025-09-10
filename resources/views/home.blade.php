@@ -322,8 +322,6 @@
                                                             :src="item.files[currentIndex].path"
                                                             playsinline
                                                             preload="metadata"
-                                                            muted="false"
-                                                            autoplay
                                                             loop
                                                             class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
                                                             @click="previewBoardFile = item.files[currentIndex]; showBoardPreviewModal = true"
@@ -430,16 +428,16 @@
                         <div class="snap-y snap-mandatory h-screen scroll-smooth">
                                 <!-- Teaser Tile (use item directly, no loadingTeasers/teasers) -->
                             <div
-                                class="snap-center h-screen flex flex-col mb-20 mt-40 lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl h-screen"
+                                class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl"
                                 :class="{
-                                    'h-[90vh]': window.innerWidth < 768,
-                                    'md:h-[90vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
-                                    'lg:h-[80vh]': window.innerWidth >= 1024
+                                    'h-[70vh]': window.innerWidth < 768,
+                                    'md:h-[70vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
+                                    'lg:h-[70vh]': window.innerWidth >= 1024
                                 }"
                             >
                                 <!-- Video Section -->
                                 <div
-                                    class="relative w-full h-[40vh] lg:w-1/2"
+                                    class="relative w-full h-[70vh] lg:w-1/2"
                                     :class="{
                                         'h-[35vh]': window.innerWidth < 768,
                                         'md:h-[40vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
@@ -450,7 +448,6 @@
                                         :src="'/storage/' + item.video"
                                         playsinline
                                         loop
-                                        :autoplay="false"
                                         tabindex="0"
                                         class="w-full h-full object-cover bg-black rounded-2xl"
                                         x-ref="'videoEl' + item.id"
@@ -467,15 +464,11 @@
                                     <button
                                         class="absolute inset-0 flex items-center justify-center z-20"
                                         style="pointer-events: none;"
-                                        x-show="!$refs['videoEl' + item.id]?.paused"
                                     >
-                                        <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto" @click.stop="togglePlay($refs['videoEl' + item.id])">
-                                            <template x-if="$refs['videoEl' + item.id]?.paused">
-                                                ▶️
-                                            </template>
-                                            <template x-if="!$refs['videoEl' + item.id]?.paused">
-                                                ⏸️
-                                            </template>
+                                        <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
+                                            @click.stop="togglePlay($refs['videoEl' + item.id])">
+                                            <template x-if="!isTeaserPlaying(item.id)">▶️</template>
+                                            <template x-if="isTeaserPlaying(item.id)">⏸️</template>
                                         </span>
                                     </button>
 
@@ -680,6 +673,7 @@ document.addEventListener('alpine:init', () => {
             text: "📝 Text"
         },
         currentPlayingTeaserId: null,
+        teaserPlayStates: {},
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -687,6 +681,10 @@ document.addEventListener('alpine:init', () => {
             this.items = [];
             this.allLoaded = false;
             this.loadBoards();
+        },
+
+        isTeaserPlaying(id) {
+            return !!this.teaserPlayStates[id];
         },
 
         async loadBoards() {
@@ -805,27 +803,36 @@ document.addEventListener('alpine:init', () => {
 
         handlePlay(id) {
             this.currentPlayingTeaserId = id;
+            this.teaserPlayStates[id] = true;
         },
+
         handlePause(id) {
             if (this.currentPlayingTeaserId === id) {
                 this.currentPlayingTeaserId = null;
             }
+            this.teaserPlayStates[id] = false;
         },
+
         togglePlay(videoEl) {
+            if (!videoEl) return;
+            videoEl.muted = false;
             if (videoEl.paused) {
                 videoEl.play();
             } else {
                 videoEl.pause();
             }
         },
+
         startFastForward(videoEl) {
             if (!videoEl) return;
             videoEl.playbackRate = 2.0;
         },
+
         stopFastForward(videoEl) {
             if (!videoEl) return;
             videoEl.playbackRate = 1.0;
         },
+
         getRemainingTime(expiresOn) {
             if (!expiresOn) return '—';
             const now = new Date();
