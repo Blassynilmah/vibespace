@@ -444,6 +444,7 @@
                                         'lg:h-[45vh]': window.innerWidth >= 1024
                                     }"
                                 >
+                                <template x-if="!item.teaserError">
                                     <video
                                         :src="'/storage/' + item.video"
                                         playsinline
@@ -459,6 +460,12 @@
                                         @touchstart="startFastForward($refs['videoEl' + item.id])"
                                         @touchend="stopFastForward($refs['videoEl' + item.id])"
                                     ></video>
+                                </template>
+                                <template x-if="item.teaserError">
+                                    <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
+                                        teaser error
+                                    </div>
+                                </template>
 
                                     <!-- Add inside the same div as the <video> -->
                                     <button
@@ -692,7 +699,6 @@ document.addEventListener('alpine:init', () => {
             this.loading = true;
 
             const perPage = this.page === 1 ? 20 : 10;
-            // Use the new endpoint that returns both boards and teasers
             const url = `/api/boards?page=${this.page}&per_page=${perPage}`;
 
             try {
@@ -767,10 +773,10 @@ document.addEventListener('alpine:init', () => {
                             saving: false
                         };
                     } else if (item.type === 'teaser') {
-                        // You can add teaser-specific logic here if needed
+                        // If teaser has no video, mark as error
                         return {
                             ...item,
-                            // Add any teaser-specific computed properties here
+                            teaserError: !item.video
                         };
                     }
                     return item;
@@ -786,12 +792,10 @@ document.addEventListener('alpine:init', () => {
                 });
                 console.groupEnd();
 
-                // Initialize items array if not already
                 if (!this.items) this.items = [];
                 this.items.push(...newItems);
                 this.page += 1;
 
-                // Trust the paginator
                 this.allLoaded = !json.next_page_url;
 
             } catch (error) {
