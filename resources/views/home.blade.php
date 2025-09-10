@@ -318,14 +318,29 @@
                                                         />
                                                     </template>
                                                     <template x-if="item.files[currentIndex].type === 'video'">
-                                                        <video
-                                                            :src="item.files[currentIndex].path"
-                                                            playsinline
-                                                            preload="metadata"
-                                                            loop
-                                                            class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
-                                                            @click="previewBoardFile = item.files[currentIndex]; showBoardPreviewModal = true"
-                                                        ></video>
+                                                        <div class="relative w-full h-full">
+                                                            <video
+                                                                :src="item.files[currentIndex].path"
+                                                                playsinline
+                                                                preload="metadata"
+                                                                loop
+                                                                class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
+                                                                x-ref="'boardVideo' + item.id + '-' + currentIndex"
+                                                                @play="teaserPlayStates['board-' + item.id + '-' + currentIndex] = true"
+                                                                @pause="teaserPlayStates['board-' + item.id + '-' + currentIndex] = false"
+                                                                @click="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])"
+                                                            ></video>
+                                                            <button
+                                                                class="absolute inset-0 flex items-center justify-center z-20"
+                                                                style="pointer-events: none;"
+                                                            >
+                                                                <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
+                                                                    @click.stop="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])">
+                                                                    <template x-if="!teaserPlayStates['board-' + item.id + '-' + currentIndex]">▶️</template>
+                                                                    <template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex]">⏸️</template>
+                                                                </span>
+                                                            </button>
+                                                        </div>
                                                     </template>
                                                 </div>
 
