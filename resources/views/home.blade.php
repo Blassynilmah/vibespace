@@ -337,7 +337,7 @@
                                                                 <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
                                                                     @click.stop="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])">
                                                                     <template x-if="!(teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false)">▶️</template>
-                                                                    <template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</template>
+<template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</template>
                                                                 </span>
                                                             </button>
                                                         </div>
@@ -489,8 +489,8 @@
                                     >
                                         <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
                                             @click.stop="togglePlay($refs['videoEl' + item.id])">
-                                            <template x-if="!isTeaserPlaying(item.id)">▶️</template>
-                                            <template x-if="isTeaserPlaying(item.id)">⏸️</template>
+                                            <template x-if="!isTeaserPlaying(item.id ?? '')">▶️</template>
+                                            <template x-if="isTeaserPlaying(item.id ?? '')">⏸️</template>
                                         </span>
                                     </button>
 
@@ -703,12 +703,21 @@ document.addEventListener('alpine:init', () => {
             this.items = [];
             this.allLoaded = false;
             this.loadBoards();
+            // In your Alpine init() or after loading boards:
             this.$nextTick(() => {
                 this.items.forEach(item => {
+                    if (item.type === 'teaser') {
+                        if (this.teaserPlayStates[item.id] === undefined) {
+                            this.teaserPlayStates[item.id] = false;
+                        }
+                    }
                     if (item.type === 'board' && Array.isArray(item.files)) {
                         item.files.forEach((file, idx) => {
                             if (file.type === 'video') {
-                                this.teaserPlayStates['board-' + item.id + '-' + idx] = false;
+                                const key = 'board-' + item.id + '-' + idx;
+                                if (this.teaserPlayStates[key] === undefined) {
+                                    this.teaserPlayStates[key] = false;
+                                }
                             }
                         });
                     }
