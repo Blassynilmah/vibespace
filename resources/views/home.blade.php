@@ -461,7 +461,7 @@
                                 >
                                 <template x-if="!item.teaserError">
                                     <video
-                                        :src="'/storage/' + item.video"
+                                        :src="item.video"
                                         playsinline
                                         loop
                                         tabindex="0"
