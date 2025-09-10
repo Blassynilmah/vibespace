@@ -322,7 +322,7 @@
                                                             :src="item.files[currentIndex].path"
                                                             playsinline
                                                             preload="metadata"
-                                                            muted
+                                                            muted="false"
                                                             autoplay
                                                             loop
                                                             class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
