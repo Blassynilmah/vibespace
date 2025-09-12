@@ -720,40 +720,40 @@ document.addEventListener('alpine:init', () => {
             this.setupVideoObservers();
         },
 
-scrollHandler() {
-    this.$nextTick(() => {
-        const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-        if (!feed) return;
-        const tiles = feed.querySelectorAll('.feed-tile');
-        if (tiles.length === 0) return;
+        scrollHandler() {
+            this.$nextTick(() => {
+                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+                if (!feed) return;
+                const tiles = feed.querySelectorAll('.feed-tile');
+                if (tiles.length === 0) return;
 
-        let lastVisibleIndex = -1;
-        for (let i = tiles.length - 1; i >= 0; i--) {
-            const rect = tiles[i].getBoundingClientRect();
-            if (rect.top < window.innerHeight) {
-                lastVisibleIndex = i;
-                break;
-            }
-        }
+                let lastVisibleIndex = -1;
+                for (let i = tiles.length - 1; i >= 0; i--) {
+                    const rect = tiles[i].getBoundingClientRect();
+                    if (rect.top < window.innerHeight) {
+                        lastVisibleIndex = i;
+                        break;
+                    }
+                }
 
-        console.log(
-        'Checking trigger: lastVisibleIndex:', lastVisibleIndex,
-        'tiles.length:', tiles.length,
-        'trigger at:', tiles.length - 15,
-        'loading:', this.loading,
-        'allLoaded:', this.allLoaded
-        );
-        
-        if (
-            lastVisibleIndex >= tiles.length - 15 &&
-            !this.loading &&
-            !this.allLoaded
-        ) {
-            console.log('Within 15 tiles of the end, loading more...');
-            this.loadBoards();
-        }
-    });
-},
+                console.log(
+                'Checking trigger: lastVisibleIndex:', lastVisibleIndex,
+                'tiles.length:', tiles.length,
+                'trigger at:', tiles.length - 15,
+                'loading:', this.loading,
+                'allLoaded:', this.allLoaded
+                );
+                
+                if (
+                    lastVisibleIndex >= tiles.length - 15 &&
+                    !this.loading &&
+                    !this.allLoaded
+                ) {
+                    console.log('Within 15 tiles of the end, loading more...');
+                    this.loadBoards();
+                }
+            });
+        },
 
         setupVideoObservers() {
             this.$nextTick(() => {
@@ -850,7 +850,8 @@ scrollHandler() {
                 // Log the number of tiles fetched from the backend
                 console.log(`Fetched ${json.data ? json.data.length : 0} tiles from backend (page ${this.page})`);
 
-                if (!json.data || json.data.length === 0) {
+                // In your loadBoards method, after fetching json:
+                if (!json.data || json.data.length === 0 || json.all_loaded) {
                     this.allLoaded = true;
                     return;
                 }
