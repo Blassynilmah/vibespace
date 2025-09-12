@@ -482,6 +482,7 @@
 
                                     <!-- Add inside the same div as the <video> -->
                                     <button
+                                        x-show="$refs['videoEl' + item.id]"
                                         class="absolute inset-0 flex items-center justify-center z-20"
                                         style="pointer-events: none;"
                                     >
@@ -491,6 +492,10 @@
                                             <span x-show="isTeaserPlaying(item.id ?? '')">⏸️</span>
                                         </span>
                                     </button>
+
+                                    <div x-show="!$refs['videoEl' + item.id]" class="absolute inset-0 flex items-center justify-center z-20">
+                                        <span class="animate-spin text-3xl text-white">⏳</span>
+                                    </div>
 
                                     <!-- Mobile Overlay -->
                                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
