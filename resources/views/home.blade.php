@@ -851,6 +851,8 @@ document.addEventListener('alpine:init', () => {
                 this.items.push(...newItems);
                 this.page += 1;
 
+                this.initializePlayStates();
+
                 this.allLoaded = !json.next_page_url;
 
             } catch (error) {
