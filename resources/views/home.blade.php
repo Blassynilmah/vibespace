@@ -661,6 +661,8 @@
 <script>
 document.addEventListener('alpine:init', () => {
     Alpine.data('vibeFeed', () => ({
+        items: [],
+        loading: false,
         boards: [],
         page: 1,
         allLoaded: false,
