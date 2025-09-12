@@ -211,6 +211,7 @@
                                         <h3 class="text-base sm:text-lg font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-1"
                                             x-text="item.title">
                                         </h3>
+                                        <!-- Description -->
                                         <div x-show="item.description" class="text-sm text-black-800 dark:text-black-200 leading-snug">
                                             <p 
                                                 x-text="item.expanded 
@@ -221,13 +222,27 @@
                                                     )"
                                                 class="whitespace-pre-line"
                                             ></p>
+                                            <!-- More Button -->
                                             <button 
-                                                x-show="(!item.expanded && (item.files && item.description && item.description.split(' ').length > 20))
-                                                    || (!item.expanded && (!item.files || !item.files.length) && item.description && item.description.split(' ').length > 200)"
+                                                x-show="!item.expanded && (
+                                                    (item.files && item.description && item.description.split(' ').length > 20) ||
+                                                    ((!item.files || !item.files.length) && item.description && item.description.split(' ').length > 200)
+                                                )"
                                                 @click="item.expanded = true"
                                                 class="mt-1 text-pink-500 hover:underline text-xs font-medium"
-                                                >
+                                            >
                                                 More
+                                            </button>
+                                            <!-- Less Button -->
+                                            <button 
+                                                x-show="item.expanded && (
+                                                    (item.files && item.description && item.description.split(' ').length > 20) ||
+                                                    ((!item.files || !item.files.length) && item.description && item.description.split(' ').length > 200)
+                                                )"
+                                                @click="item.expanded = false"
+                                                class="mt-1 text-pink-500 hover:underline text-xs font-medium"
+                                            >
+                                                Less
                                             </button>
                                         </div>
                                     </div>
