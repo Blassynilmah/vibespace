@@ -458,23 +458,22 @@
                                         'lg:h-[45vh]': window.innerWidth >= 1024
                                     }"
                                 >
-                                <template x-if="!item.teaserError">
-                                    <video
-                                        :src="item.video"
-                                        playsinline
-                                        loop
-                                        tabindex="0"
-                                        class="w-full h-full object-cover bg-black rounded-2xl"
-                                        x-ref="'videoEl' + item.id"
-                                        @play="handlePlay(item.id)"
-                                        @pause="handlePause(item.id)"
-                                        @click="togglePlay($refs['videoEl' + item.id])"
-                                        @mousedown="startFastForward($refs['videoEl' + item.id])"
-                                        @mouseup="stopFastForward($refs['videoEl' + item.id])"
-                                        @touchstart="startFastForward($refs['videoEl' + item.id])"
-                                        @touchend="stopFastForward($refs['videoEl' + item.id])"
-                                    ></video>
-                                </template>
+                                <video
+                                    x-show="!item.teaserError"
+                                    :src="item.video"
+                                    playsinline
+                                    loop
+                                    tabindex="0"
+                                    class="w-full h-full object-cover bg-black rounded-2xl"
+                                    x-ref="'videoEl' + item.id"
+                                    @play="handlePlay(item.id)"
+                                    @pause="handlePause(item.id)"
+                                    @click="togglePlay($refs['videoEl' + item.id])"
+                                    @mousedown="startFastForward($refs['videoEl' + item.id])"
+                                    @mouseup="stopFastForward($refs['videoEl' + item.id])"
+                                    @touchstart="startFastForward($refs['videoEl' + item.id])"
+                                    @touchend="stopFastForward($refs['videoEl' + item.id])"
+                                ></video>
                                 <template x-if="item.teaserError">
                                     <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
                                         teaser error
