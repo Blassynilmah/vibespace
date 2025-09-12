@@ -18,8 +18,14 @@ public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
 
-    // Fetch latest boards
-    $boards = MoodBoard::query()
+    // Get counts and pages from query params
+    $moodboardCount = (int) $request->query('moodboards', 25);
+    $teaserCount = (int) $request->query('teasers', 10);
+    $moodboardPage = (int) $request->query('moodboard_page', 1);
+    $teaserPage = (int) $request->query('teaser_page', 1);
+
+    // Paginate moodboards
+    $boardsPaginator = MoodBoard::query()
         ->with([
             'user',
             'favorites' => fn($q) => $q->where('user_id', $viewerId),
@@ -31,25 +37,25 @@ public function index(Request $request)
             'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
         ])
         ->latest()
-        ->limit(35)
-        ->get()
-        ->map(function ($board) {
-            $board->type = 'board';
-            return $board;
-        });
+        ->paginate($moodboardCount, ['*'], 'page', $moodboardPage);
 
-    // Fetch latest teasers, build video URL like myTeasers
-    $teasers = Teaser::with('user.profilePicture')
+    $boards = $boardsPaginator->getCollection()->map(function ($board) {
+        $board->type = 'board';
+        return $board;
+    });
+
+    // Paginate teasers
+    $teasersPaginator = Teaser::with('user.profilePicture')
         ->latest()
-        ->limit(15)
-        ->get()
-        ->map(function ($teaser) {
-            $teaser->type = 'teaser';
-            $teaser->video = $teaser->video
-                ? asset('storage/' . ltrim($teaser->video, '/'))
-                : null;
-            return $teaser;
-        });
+        ->paginate($teaserCount, ['*'], 'page', $teaserPage);
+
+    $teasers = $teasersPaginator->getCollection()->map(function ($teaser) {
+        $teaser->type = 'teaser';
+        $teaser->video = $teaser->video
+            ? asset('storage/' . ltrim($teaser->video, '/'))
+            : null;
+        return $teaser;
+    });
 
     // Shuffle both arrays
     $boards = $boards->shuffle()->values();
@@ -70,11 +76,9 @@ public function index(Request $request)
 
     // If any teasers remain, try to insert them after boards (but never two teasers in a row)
     while ($teaserIndex < $totalTeasers) {
-        // Only insert if the last item is a board
         if (!empty($final) && $final[count($final) - 1]->type === 'board') {
             $final[] = $teasers[$teaserIndex++];
         } else {
-            // No valid spot left, break to avoid teaser after teaser
             break;
         }
     }
@@ -89,7 +93,7 @@ public function index(Request $request)
                 'title' => $item->title ?? '',
                 'description' => $item->description ?? '',
                 'created_at' => $item->created_at,
-                'video' => $item->video, // Already formatted above!
+                'video' => $item->video,
                 'hashtags' => $item->hashtags ?? '',
                 'username' => $item->user->username ?? '',
                 'user' => [
@@ -106,9 +110,18 @@ public function index(Request $request)
 
     return response()->json([
         'data' => $formatted,
-        'next_page_url' => null,
-        'current_page' => 1,
-        'last_page' => 1,
+        'next_page' => [
+            'moodboard_page' => $boardsPaginator->currentPage() < $boardsPaginator->lastPage() ? $boardsPaginator->currentPage() + 1 : null,
+            'teaser_page' => $teasersPaginator->currentPage() < $teasersPaginator->lastPage() ? $teasersPaginator->currentPage() + 1 : null,
+        ],
+        'current_page' => [
+            'moodboard_page' => $boardsPaginator->currentPage(),
+            'teaser_page' => $teasersPaginator->currentPage(),
+        ],
+        'last_page' => [
+            'moodboard_page' => $boardsPaginator->lastPage(),
+            'teaser_page' => $teasersPaginator->lastPage(),
+        ],
     ]);
 }
 
