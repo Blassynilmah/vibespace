@@ -465,15 +465,14 @@
                                     loop
                                     tabindex="0"
                                     class="w-full h-full object-cover bg-black rounded-2xl"
-                                    x-ref="'videoEl' + item.id"
                                     @loadeddata="item.videoLoaded = true"
                                     @play="handlePlay(item.id)"
                                     @pause="handlePause(item.id)"
-                                    @click="togglePlay($refs['videoEl' + item.id])"
-                                    @mousedown="startFastForward($refs['videoEl' + item.id])"
-                                    @mouseup="stopFastForward($refs['videoEl' + item.id])"
-                                    @touchstart="startFastForward($refs['videoEl' + item.id])"
-                                    @touchend="stopFastForward($refs['videoEl' + item.id])"
+                                    @click="togglePlay($event.target)"
+                                    @mousedown="startFastForward($event.target)"
+                                    @mouseup="stopFastForward($event.target)"
+                                    @touchstart="startFastForward($event.target)"
+                                    @touchend="stopFastForward($event.target)"
                                 ></video>
 
                                 <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
@@ -485,19 +484,6 @@
                                         teaser error
                                     </div>
                                 </template>
-
-                                    <!-- Add inside the same div as the <video> -->
-                                    <button
-                                        x-show="!item.teaserError"
-                                        class="absolute inset-0 flex items-center justify-center z-20"
-                                        style="pointer-events: none;"
-                                    >
-                                        <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
-                                            @click.stop="togglePlay($refs['videoEl' + item.id])">
-                                            <span x-show="!isTeaserPlaying(item.id ?? '')">▶️</span>
-                                            <span x-show="isTeaserPlaying(item.id ?? '')">⏸️</span>
-                                        </span>
-                                    </button>
 
                                     <!-- Mobile Overlay -->
                                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
