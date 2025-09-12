@@ -734,7 +734,11 @@ document.addEventListener('alpine:init', () => {
                     }
                 }
 
+                // Log when the scroll handler is checked
+                console.log('Scroll handler checked. Tiles:', tiles.length, 'Last visible index:', lastVisibleIndex);
+
                 if (tiles.length - lastVisibleIndex <= 10 && !this.loading && !this.allLoaded) {
+                    console.log('Within 10 tiles of the end, loading more...');
                     this.loadBoards();
                 }
             });
@@ -800,7 +804,6 @@ document.addEventListener('alpine:init', () => {
             if (this.loading || this.allLoaded) return;
             this.loading = true;
 
-            const perPage = this.page === 1 ? 20 : 10;
             const url = `/api/boards?page=${this.page}&moodboards=25&teasers=10`;
 
             try {
@@ -822,6 +825,9 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 const json = await res.json();
+
+                // Log the number of tiles fetched from the backend
+                console.log(`Fetched ${json.data ? json.data.length : 0} tiles from backend (page ${this.page})`);
 
                 if (!json.data || json.data.length === 0) {
                     this.allLoaded = true;
@@ -858,6 +864,7 @@ document.addEventListener('alpine:init', () => {
                             });
                         }
 
+                        // Remove duplicate files
                         const seen = new Set();
                         files = files.filter(f => {
                             if (seen.has(f.path)) return false;
@@ -877,7 +884,6 @@ document.addEventListener('alpine:init', () => {
                             saving: false
                         };
                     } else if (item.type === 'teaser') {
-                        // If teaser has no video, mark as error
                         return {
                             ...item,
                             teaserError: !item.video
@@ -886,6 +892,7 @@ document.addEventListener('alpine:init', () => {
                     return item;
                 });
 
+                // Log details of loaded items
                 console.group(`Loaded ${newItems.length} items (page ${this.page})`);
                 newItems.forEach(i => {
                     if (i.type === 'board') {
@@ -898,12 +905,15 @@ document.addEventListener('alpine:init', () => {
 
                 if (!this.items) this.items = [];
                 this.items.push(...newItems);
+
                 this.setupVideoObservers();
                 this.page += 1;
-
                 this.initializePlayStates();
 
-                this.allLoaded = !json.next_page_url;
+                // If backend signals no more pages, set allLoaded
+                if (!json.next_page || (json.data && json.data.length === 0)) {
+                    this.allLoaded = true;
+                }
 
             } catch (error) {
                 console.error('Failed to load boards/teasers', error);
@@ -911,7 +921,7 @@ document.addEventListener('alpine:init', () => {
                 this.loading = false;
             }
         },
-
+        
         handlePlay(id) {
             this.currentPlayingTeaserId = id;
             this.teaserPlayStates[id] = true;
