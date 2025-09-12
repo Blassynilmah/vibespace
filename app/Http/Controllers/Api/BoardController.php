@@ -18,14 +18,19 @@ public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
 
-    // Get counts and pages from query params
-    $moodboardCount = (int) $request->query('moodboards', 25);
-    $teaserCount = (int) $request->query('teasers', 10);
-    $moodboardPage = (int) $request->query('moodboard_page', 1);
-    $teaserPage = (int) $request->query('teaser_page', 1);
+    // Get counts from query params
+    $moodboardCount = 20;
+    $teaserCount = 5;
 
-    // Paginate moodboards
-    $boardsPaginator = MoodBoard::query()
+    // Get IDs to exclude (already sent to frontend)
+    $excludeBoardIds = $request->query('exclude_board_ids', []);
+    $excludeTeaserIds = $request->query('exclude_teaser_ids', []);
+    if (!is_array($excludeBoardIds)) $excludeBoardIds = explode(',', $excludeBoardIds);
+    if (!is_array($excludeTeaserIds)) $excludeTeaserIds = explode(',', $excludeTeaserIds);
+
+    // Fetch moodboards not already sent
+    $boards = MoodBoard::query()
+        ->whereNotIn('id', $excludeBoardIds)
         ->with([
             'user',
             'favorites' => fn($q) => $q->where('user_id', $viewerId),
@@ -37,39 +42,41 @@ public function index(Request $request)
             'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
         ])
         ->latest()
-        ->paginate($moodboardCount, ['*'], 'page', $moodboardPage);
+        ->take($moodboardCount)
+        ->get()
+        ->map(function ($board) {
+            $board->type = 'board';
+            return $board;
+        });
 
-    $boards = $boardsPaginator->getCollection()->map(function ($board) {
-        $board->type = 'board';
-        return $board;
-    });
-
-    // Paginate teasers
-    $teasersPaginator = Teaser::with('user.profilePicture')
+    // Fetch teasers not already sent
+    $teasers = Teaser::query()
+        ->whereNotIn('id', $excludeTeaserIds)
+        ->with('user.profilePicture')
         ->latest()
-        ->paginate($teaserCount, ['*'], 'page', $teaserPage);
-
-    $teasers = $teasersPaginator->getCollection()->map(function ($teaser) {
-        $teaser->type = 'teaser';
-        $teaser->video = $teaser->video
-            ? asset('storage/' . ltrim($teaser->video, '/'))
-            : null;
-        return $teaser;
-    });
+        ->take($teaserCount)
+        ->get()
+        ->map(function ($teaser) {
+            $teaser->type = 'teaser';
+            $teaser->video = $teaser->video
+                ? asset('storage/' . ltrim($teaser->video, '/'))
+                : null;
+            return $teaser;
+        });
 
     // Shuffle both arrays
     $boards = $boards->shuffle()->values();
     $teasers = $teasers->shuffle()->values();
 
+    // Merge: never two teasers in a row, always start with a board if possible
     $final = [];
     $teaserIndex = 0;
     $totalTeasers = $teasers->count();
 
-    // Always start with a board
     foreach ($boards as $i => $board) {
         $final[] = $board;
         // Only insert a teaser after a board, and never two teasers in a row
-        if ($teaserIndex < $totalTeasers && mt_rand(0, 1) === 1) {
+        if ($teaserIndex < $totalTeasers && (empty($final) || $final[count($final) - 1]->type === 'board')) {
             $final[] = $teasers[$teaserIndex++];
         }
     }
@@ -108,20 +115,15 @@ public function index(Request $request)
         }
     });
 
+    // Return the IDs sent, so frontend can track and exclude next time
+    $sentBoardIds = $boards->pluck('id')->all();
+    $sentTeaserIds = $teasers->pluck('id')->all();
+
     return response()->json([
         'data' => $formatted,
-        'next_page' => [
-            'moodboard_page' => $boardsPaginator->currentPage() < $boardsPaginator->lastPage() ? $boardsPaginator->currentPage() + 1 : null,
-            'teaser_page' => $teasersPaginator->currentPage() < $teasersPaginator->lastPage() ? $teasersPaginator->currentPage() + 1 : null,
-        ],
-        'current_page' => [
-            'moodboard_page' => $boardsPaginator->currentPage(),
-            'teaser_page' => $teasersPaginator->currentPage(),
-        ],
-        'last_page' => [
-            'moodboard_page' => $boardsPaginator->lastPage(),
-            'teaser_page' => $teasersPaginator->lastPage(),
-        ],
+        'sent_board_ids' => $sentBoardIds,
+        'sent_teaser_ids' => $sentTeaserIds,
+        'all_loaded' => ($boards->count() < $moodboardCount) && ($teasers->count() < $teaserCount),
     ]);
 }
 
