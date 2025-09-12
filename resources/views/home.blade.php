@@ -934,11 +934,6 @@ document.addEventListener('alpine:init', () => {
                 this.page += 1;
                 this.initializePlayStates();
 
-                // If backend signals no more pages, set allLoaded
-                if (!json.next_page || (json.data && json.data.length === 0)) {
-                    this.allLoaded = true;
-                }
-
             } catch (error) {
                 console.error('Failed to load boards/teasers', error);
             } finally {
