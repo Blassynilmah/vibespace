@@ -736,8 +736,14 @@ scrollHandler() {
             }
         }
 
-        console.log('Scroll handler checked. Tiles:', tiles.length, 'Last visible index:', lastVisibleIndex);
-
+        console.log(
+        'Checking trigger: lastVisibleIndex:', lastVisibleIndex,
+        'tiles.length:', tiles.length,
+        'trigger at:', tiles.length - 15,
+        'loading:', this.loading,
+        'allLoaded:', this.allLoaded
+        );
+        
         if (
             lastVisibleIndex >= tiles.length - 15 &&
             !this.loading &&
