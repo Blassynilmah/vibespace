@@ -838,6 +838,8 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 const json = await res.json();
+                console.log('Backend response:', json);
+
 
                 // Update fetched IDs
                 if (json.sent_board_ids) {
