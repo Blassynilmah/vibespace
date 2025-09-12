@@ -330,16 +330,6 @@
                                                                 @pause="teaserPlayStates['board-' + item.id + '-' + currentIndex] = false"
                                                                 @click="togglePlay($event.target)"
                                                             ></video>
-                                                            <button
-                                                                class="absolute inset-0 flex items-center justify-center z-20"
-                                                                style="pointer-events: none;"
-                                                            >
-                                                                <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
-                                                                    @click.stop="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])">
-                                                                    <span x-show="!(teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false)">▶️</span>
-                                                                    <span x-show="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</span>
-                                                                </span>
-                                                            </button>
                                                         </div>
                                                     </template>
                                                 </div>
@@ -877,6 +867,7 @@ document.addEventListener('alpine:init', () => {
 
                 if (!this.items) this.items = [];
                 this.items.push(...newItems);
+                this.setupVideoObservers();
                 this.page += 1;
 
                 this.initializePlayStates();
@@ -903,8 +894,13 @@ document.addEventListener('alpine:init', () => {
         },
 
         togglePlay(videoEl) {
-            console.log('togglePlay', videoEl);
             if (!videoEl) return;
+
+            // Pause all other videos
+            document.querySelectorAll('video[data-moodboard], video[data-teaser]').forEach(v => {
+                if (v !== videoEl && !v.paused) v.pause();
+            });
+
             videoEl.muted = false;
             if (videoEl.paused) {
                 videoEl.play();
