@@ -336,8 +336,8 @@
                                                             >
                                                                 <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
                                                                     @click.stop="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])">
-                                                                    <template x-if="!(teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false)">▶️</template>
-                                                                    <template x-if="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</template>
+                                                                    <span x-show="!(teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false)">▶️</span>
+                                                                    <span x-show="teaserPlayStates['board-' + item.id + '-' + currentIndex] ?? false">⏸️</span>
                                                                 </span>
                                                             </button>
                                                         </div>
@@ -488,8 +488,8 @@
                                     >
                                         <span class="bg-black/60 rounded-full p-4 text-white text-3xl pointer-events-auto"
                                             @click.stop="togglePlay($refs['videoEl' + item.id])">
-                                            <template x-if="!isTeaserPlaying(item.id ?? '')">▶️</template>
-                                            <template x-if="isTeaserPlaying(item.id ?? '')">⏸️</template>
+                                            <span x-show="!isTeaserPlaying(item.id ?? '')">▶️</span>
+                                            <span x-show="isTeaserPlaying(item.id ?? '')">⏸️</span>
                                         </span>
                                     </button>
 
