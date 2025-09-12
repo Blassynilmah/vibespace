@@ -752,14 +752,6 @@ document.addEventListener('alpine:init', () => {
                         break;
                     }
                 }
-
-                console.log(
-                'Checking trigger: lastVisibleIndex:', lastVisibleIndex,
-                'tiles.length:', tiles.length,
-                'trigger at:', tiles.length - 15,
-                'loading:', this.loading,
-                'allLoaded:', this.allLoaded
-                );
                 
                 if (
                     lastVisibleIndex >= tiles.length - 15 &&
@@ -1106,42 +1098,42 @@ document.addEventListener('alpine:init', () => {
             window.location.href = `/space/${username}`;
         },
 
-toggleMood(mood) {
-    if (this.loading) return; // Prevent clicks while loading
+        toggleMood(mood) {
+            if (this.loading) return; // Prevent clicks while loading
 
-    const index = this.selectedMoods.indexOf(mood);
-    if (index > -1) {
-        this.selectedMoods.splice(index, 1);
-    } else {
-        this.selectedMoods.push(mood);
-    }
+            const index = this.selectedMoods.indexOf(mood);
+            if (index > -1) {
+                this.selectedMoods.splice(index, 1);
+            } else {
+                this.selectedMoods.push(mood);
+            }
 
-    this.page = 1;
-    this.items = [];
-    this.allLoaded = false;
-    this.fetchedBoardIds = [];
-    this.fetchedTeaserIds = [];
-    this.loadBoards();
-},
+            this.page = 1;
+            this.items = [];
+            this.allLoaded = false;
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
+            this.loadBoards();
+        },
 
-toggleMediaType(type) {
-    if (this.loading) return; // Prevent clicks while loading
+        toggleMediaType(type) {
+            if (this.loading) return; // Prevent clicks while loading
 
-    // If already selected, unselect it
-    if (this.selectedMediaTypes[0] === type) {
-        this.selectedMediaTypes = [];
-    } else {
-        this.selectedMediaTypes = [type];
-    }
+            // If already selected, unselect it
+            if (this.selectedMediaTypes[0] === type) {
+                this.selectedMediaTypes = [];
+            } else {
+                this.selectedMediaTypes = [type];
+            }
 
-    // Disable all filter buttons while loading
-    this.page = 1;
-    this.items = [];
-    this.allLoaded = false;
-    this.fetchedBoardIds = [];
-    this.fetchedTeaserIds = [];
-    this.loadBoards();
-},
+            // Disable all filter buttons while loading
+            this.page = 1;
+            this.items = [];
+            this.allLoaded = false;
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
+            this.loadBoards();
+        },
 
         renderMediaPreview(board) {
             const container = document.getElementById(`media-preview-${board.id}`);
