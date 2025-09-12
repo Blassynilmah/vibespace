@@ -323,12 +323,12 @@
                                                                 :src="item.files[currentIndex].path"
                                                                 playsinline
                                                                 preload="metadata"
+                                                                data-moodboard
                                                                 loop
                                                                 class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
-                                                                x-ref="'boardVideo' + item.id + '-' + currentIndex"
                                                                 @play="teaserPlayStates['board-' + item.id + '-' + currentIndex] = true"
                                                                 @pause="teaserPlayStates['board-' + item.id + '-' + currentIndex] = false"
-                                                                @click="togglePlay($refs['boardVideo' + item.id + '-' + currentIndex])"
+                                                                @click="togglePlay($event.target)"
                                                             ></video>
                                                             <button
                                                                 class="absolute inset-0 flex items-center justify-center z-20"
@@ -462,6 +462,7 @@
                                     x-show="!item.teaserError"
                                     :src="item.video"
                                     playsinline
+                                    data-teaser
                                     loop
                                     tabindex="0"
                                     class="w-full h-full object-cover bg-black rounded-2xl"
@@ -712,6 +713,39 @@ document.addEventListener('alpine:init', () => {
                             }
                         });
                     }
+                });
+            });
+            this.initializePlayStates();
+            this.setupVideoObservers();
+        },
+
+        setupVideoObservers() {
+            this.$nextTick(() => {
+                // Moodboard videos
+                document.querySelectorAll('video[data-moodboard]').forEach(video => {
+                    if (video._observer) return; // Prevent double-observing
+                    const observer = new IntersectionObserver(entries => {
+                        entries.forEach(entry => {
+                            if (!entry.isIntersecting && !video.paused) {
+                                video.pause();
+                            }
+                        });
+                    }, { threshold: 0.2 });
+                    observer.observe(video);
+                    video._observer = observer;
+                });
+                // Teaser videos
+                document.querySelectorAll('video[data-teaser]').forEach(video => {
+                    if (video._observer) return;
+                    const observer = new IntersectionObserver(entries => {
+                        entries.forEach(entry => {
+                            if (!entry.isIntersecting && !video.paused) {
+                                video.pause();
+                            }
+                        });
+                    }, { threshold: 0.2 });
+                    observer.observe(video);
+                    video._observer = observer;
                 });
             });
         },
