@@ -123,7 +123,7 @@ public function index(Request $request)
         'data' => $formatted,
         'sent_board_ids' => $sentBoardIds,
         'sent_teaser_ids' => $sentTeaserIds,
-        'all_loaded' => ($boards->count() < $moodboardCount) && ($teasers->count() < $teaserCount),
+        'all_loaded' => ($boards->count() < $moodboardCount) || ($teasers->count() < $teaserCount),
     ]);
 }
 
