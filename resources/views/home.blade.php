@@ -130,7 +130,7 @@
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
             <template x-for="item in filteredBoards" :key="item.id + '-' + item.created_at">
-                <div>
+                <div class="feed-tile">
                     <template x-if="item.type === 'board'">
                         <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
                             <div 
@@ -724,7 +724,7 @@ scrollHandler() {
     this.$nextTick(() => {
         const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
         if (!feed) return;
-        const tiles = feed.children;
+        const tiles = feed.querySelectorAll('.feed-tile');
         if (tiles.length === 0) return;
 
         let lastVisibleIndex = -1;
@@ -738,7 +738,6 @@ scrollHandler() {
 
         console.log('Scroll handler checked. Tiles:', tiles.length, 'Last visible index:', lastVisibleIndex);
 
-        // Trigger when last visible tile is among the last 15
         if (
             lastVisibleIndex >= tiles.length - 15 &&
             !this.loading &&
