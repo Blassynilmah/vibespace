@@ -720,37 +720,35 @@ document.addEventListener('alpine:init', () => {
             this.setupVideoObservers();
         },
 
-        scrollHandler() {
-            this.$nextTick(() => {
-                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-                if (!feed) return;
-                const tiles = feed.children;
-                if (tiles.length === 0) return;
+scrollHandler() {
+    this.$nextTick(() => {
+        const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+        if (!feed) return;
+        const tiles = feed.children;
+        if (tiles.length === 0) return;
 
-                // Find the last visible tile index
-                let lastVisibleIndex = -1;
-                for (let i = tiles.length - 1; i >= 0; i--) {
-                    const rect = tiles[i].getBoundingClientRect();
-                    if (rect.top < window.innerHeight) {
-                        lastVisibleIndex = i;
-                        break;
-                    }
-                }
+        let lastVisibleIndex = -1;
+        for (let i = tiles.length - 1; i >= 0; i--) {
+            const rect = tiles[i].getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+                lastVisibleIndex = i;
+                break;
+            }
+        }
 
-                // Log scroll check
-                console.log('Scroll handler checked. Tiles:', tiles.length, 'Last visible index:', lastVisibleIndex);
+        console.log('Scroll handler checked. Tiles:', tiles.length, 'Last visible index:', lastVisibleIndex);
 
-                // Trigger loadBoards when last visible tile is among the last 10
-                if (
-                    lastVisibleIndex >= tiles.length - 10 &&
-                    !this.loading &&
-                    !this.allLoaded
-                ) {
-                    console.log('Within 10 tiles of the end, loading more...');
-                    this.loadBoards();
-                }
-            });
-        },
+        // Trigger when last visible tile is among the last 15
+        if (
+            lastVisibleIndex >= tiles.length - 15 &&
+            !this.loading &&
+            !this.allLoaded
+        ) {
+            console.log('Within 15 tiles of the end, loading more...');
+            this.loadBoards();
+        }
+    });
+},
 
         setupVideoObservers() {
             this.$nextTick(() => {
