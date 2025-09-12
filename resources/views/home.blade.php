@@ -20,6 +20,7 @@
                         <template x-for="(emoji, mood) in moods" :key="mood">
                             <button
                                 @click="toggleMood(mood)"
+                                :disabled="loading"
                                 class="ml-0 mb-2 px-3 py-1.5 rounded-full text-sm font-medium transition text-left"
                                 :class="selectedMoods.includes(mood) 
                                     ? 'bg-pink-500 text-white' 
@@ -35,6 +36,7 @@
                 <template x-for="(label, type) in mediaTypes" :key="type">
                     <button
                         @click="toggleMediaType(type)"
+                        :disabled="loading"
                         class="px-4 py-1 rounded-lg text-sm font-semibold transition-all text-left"
                         :class="selectedMediaTypes.includes(type) 
                             ? 'bg-pink-600 text-white shadow-md' 
@@ -571,6 +573,7 @@
                         <template x-for="(emoji, mood) in moods" :key="mood">
                             <button
                                 @click="toggleMood(mood)"
+                                :disabled="loading"
                                 class="px-3 py-1 rounded-full text-xs font-medium transition"
                                 :class="selectedMoods.includes(mood) 
                                     ? 'bg-pink-500 text-white' 
@@ -588,6 +591,7 @@
                         <template x-for="(label, type) in mediaTypes" :key="type">
                             <button
                                 @click="toggleMediaType(type)"
+                                :disabled="loading" 
                                 class="px-3 py-1 rounded-full text-xs font-medium transition"
                                 :class="selectedMediaTypes.includes(type) 
                                     ? 'bg-pink-600 text-white' 
@@ -817,8 +821,10 @@ document.addEventListener('alpine:init', () => {
 
             const url = `/api/boards?moodboards=20&teasers=5`
                 + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
-                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`;
-
+                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
+                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
+                
             try {
                 const res = await fetch(url, {
                     credentials: 'include',
@@ -1088,33 +1094,42 @@ document.addEventListener('alpine:init', () => {
         },
 
         toggleMood(mood) {
+            if (this.loading) return; // Prevent clicks while loading
+
             const index = this.selectedMoods.indexOf(mood);
             if (index > -1) {
                 this.selectedMoods.splice(index, 1);
             } else {
                 this.selectedMoods.push(mood);
             }
+
+            this.loading = true;
             this.page = 1;
             this.items = [];
             this.allLoaded = false;
-            this.loadBoards();
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
+            this.loadBoards();
         },
 
         toggleMediaType(type) {
-            const index = this.selectedMediaTypes.indexOf(type);
-            if (index > -1) {
-                this.selectedMediaTypes.splice(index, 1);
+            if (this.loading) return; // Prevent clicks while loading
+
+            // If already selected, unselect it
+            if (this.selectedMediaTypes[0] === type) {
+                this.selectedMediaTypes = [];
             } else {
-                this.selectedMediaTypes.push(type);
+                this.selectedMediaTypes = [type];
             }
+
+            // Disable all filter buttons while loading
+            this.loading = true;
             this.page = 1;
             this.items = [];
             this.allLoaded = false;
-            this.loadBoards();
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
+            this.loadBoards();
         },
 
         renderMediaPreview(board) {
