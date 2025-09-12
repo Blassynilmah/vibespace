@@ -1116,7 +1116,6 @@ toggleMood(mood) {
         this.selectedMoods.push(mood);
     }
 
-    this.loading = true; // <-- REMOVE THIS LINE
     this.page = 1;
     this.items = [];
     this.allLoaded = false;
@@ -1136,7 +1135,6 @@ toggleMediaType(type) {
     }
 
     // Disable all filter buttons while loading
-    this.loading = true; // <-- REMOVE THIS LINE
     this.page = 1;
     this.items = [];
     this.allLoaded = false;
