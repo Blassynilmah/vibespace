@@ -60,12 +60,11 @@ public function index(Request $request)
             $boardsQuery->whereNotNull('video');
         } elseif ($mediaType === 'image') {
             $boardsQuery->where(function($q) {
-                $q->whereNotNull('image')->orWhereNotNull('images');
+                $q->whereNotNull('image');
             });
         } elseif ($mediaType === 'text') {
             $boardsQuery->whereNull('video')
                 ->whereNull('image')
-                ->whereNull('images')
                 ->whereNotNull('description');
         }
         // If 'teaser', don't fetch moodboards at all (handled below)
