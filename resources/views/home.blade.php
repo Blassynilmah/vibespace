@@ -685,6 +685,8 @@ document.addEventListener('alpine:init', () => {
         },
         currentPlayingTeaserId: null,
         teaserPlayStates: {},
+        fetchedBoardIds: [],
+        fetchedTeaserIds: [],
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -804,7 +806,9 @@ document.addEventListener('alpine:init', () => {
             if (this.loading || this.allLoaded) return;
             this.loading = true;
 
-            const url = `/api/boards?page=${this.page}&moodboards=25&teasers=10`;
+            const url = `/api/boards?moodboards=20&teasers=5`
+                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
+                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`;
 
             try {
                 const res = await fetch(url, {
@@ -825,6 +829,14 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 const json = await res.json();
+
+                // Update fetched IDs
+                if (json.sent_board_ids) {
+                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
+                }
+                if (json.sent_teaser_ids) {
+                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
+                }
 
                 // Log the number of tiles fetched from the backend
                 console.log(`Fetched ${json.data ? json.data.length : 0} tiles from backend (page ${this.page})`);
@@ -921,7 +933,7 @@ document.addEventListener('alpine:init', () => {
                 this.loading = false;
             }
         },
-        
+
         handlePlay(id) {
             this.currentPlayingTeaserId = id;
             this.teaserPlayStates[id] = true;
@@ -1079,6 +1091,8 @@ document.addEventListener('alpine:init', () => {
             this.items = [];
             this.allLoaded = false;
             this.loadBoards();
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
         },
 
         toggleMediaType(type) {
@@ -1092,6 +1106,8 @@ document.addEventListener('alpine:init', () => {
             this.items = [];
             this.allLoaded = false;
             this.loadBoards();
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
         },
 
         renderMediaPreview(board) {
