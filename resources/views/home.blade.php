@@ -875,6 +875,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         togglePlay(videoEl) {
+            console.log('togglePlay', videoEl);
             if (!videoEl) return;
             videoEl.muted = false;
             if (videoEl.paused) {
