@@ -28,8 +28,12 @@ public function index(Request $request)
     if (!is_array($excludeBoardIds)) $excludeBoardIds = explode(',', $excludeBoardIds);
     if (!is_array($excludeTeaserIds)) $excludeTeaserIds = explode(',', $excludeTeaserIds);
 
-    // Get media types filter
+    // Get media type filter (only one allowed at a time)
     $mediaTypes = array_filter(explode(',', $request->query('media_types', '')));
+    $mediaType = count($mediaTypes) === 1 ? $mediaTypes[0] : null;
+
+    // Get mood filter (can be multiple)
+    $moods = array_filter(explode(',', $request->query('moods', '')));
 
     // Build moodboard query
     $boardsQuery = MoodBoard::query()
@@ -45,38 +49,44 @@ public function index(Request $request)
             'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
         ]);
 
-    // Apply media type filters for moodboards
-    if (!empty($mediaTypes)) {
-        $boardsQuery->where(function($q) use ($mediaTypes) {
-            if (in_array('video', $mediaTypes)) {
-                $q->orWhereNotNull('video');
-            }
-            if (in_array('image', $mediaTypes)) {
-                $q->orWhereNotNull('image')->orWhereNotNull('images');
-            }
-            if (in_array('text', $mediaTypes)) {
-                $q->orWhere(function($sub) {
-                    $sub->whereNull('video')
-                        ->whereNull('image')
-                        ->whereNull('images')
-                        ->whereNotNull('description');
-                });
-            }
-        });
+    // Apply mood filter (multiple moods allowed)
+    if (!empty($moods)) {
+        $boardsQuery->whereIn('latest_mood', $moods);
     }
 
-    $boards = $boardsQuery
-        ->latest()
-        ->take($moodboardCount)
-        ->get()
-        ->map(function ($board) {
-            $board->type = 'board';
-            return $board;
-        });
+    // Apply media type filter (only one at a time)
+    if ($mediaType) {
+        if ($mediaType === 'video') {
+            $boardsQuery->whereNotNull('video');
+        } elseif ($mediaType === 'image') {
+            $boardsQuery->where(function($q) {
+                $q->whereNotNull('image')->orWhereNotNull('images');
+            });
+        } elseif ($mediaType === 'text') {
+            $boardsQuery->whereNull('video')
+                ->whereNull('image')
+                ->whereNull('images')
+                ->whereNotNull('description');
+        }
+        // If 'teaser', don't fetch moodboards at all (handled below)
+    }
 
-    // Build teasers query
+    // Only fetch moodboards if mediaType is not 'teaser'
+    $boards = collect();
+    if (!$mediaType || $mediaType !== 'teaser') {
+        $boards = $boardsQuery
+            ->latest()
+            ->take($moodboardCount)
+            ->get()
+            ->map(function ($board) {
+                $board->type = 'board';
+                return $board;
+            });
+    }
+
+    // Build teasers query (only if 'teaser' is selected or no mediaType is selected)
     $teasers = collect();
-    if (empty($mediaTypes) || in_array('teaser', $mediaTypes)) {
+    if (!$mediaType || $mediaType === 'teaser') {
         $teasers = Teaser::query()
             ->whereNotIn('id', $excludeTeaserIds)
             ->with('user.profilePicture')
