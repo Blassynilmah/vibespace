@@ -28,8 +28,11 @@ public function index(Request $request)
     if (!is_array($excludeBoardIds)) $excludeBoardIds = explode(',', $excludeBoardIds);
     if (!is_array($excludeTeaserIds)) $excludeTeaserIds = explode(',', $excludeTeaserIds);
 
-    // Fetch moodboards not already sent
-    $boards = MoodBoard::query()
+    // Get media types filter
+    $mediaTypes = array_filter(explode(',', $request->query('media_types', '')));
+
+    // Build moodboard query
+    $boardsQuery = MoodBoard::query()
         ->whereNotIn('id', $excludeBoardIds)
         ->with([
             'user',
@@ -40,7 +43,29 @@ public function index(Request $request)
             'posts',
             'comments',
             'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
-        ])
+        ]);
+
+    // Apply media type filters for moodboards
+    if (!empty($mediaTypes)) {
+        $boardsQuery->where(function($q) use ($mediaTypes) {
+            if (in_array('video', $mediaTypes)) {
+                $q->orWhereNotNull('video');
+            }
+            if (in_array('image', $mediaTypes)) {
+                $q->orWhereNotNull('image')->orWhereNotNull('images');
+            }
+            if (in_array('text', $mediaTypes)) {
+                $q->orWhere(function($sub) {
+                    $sub->whereNull('video')
+                        ->whereNull('image')
+                        ->whereNull('images')
+                        ->whereNotNull('description');
+                });
+            }
+        });
+    }
+
+    $boards = $boardsQuery
         ->latest()
         ->take($moodboardCount)
         ->get()
@@ -49,20 +74,23 @@ public function index(Request $request)
             return $board;
         });
 
-    // Fetch teasers not already sent
-    $teasers = Teaser::query()
-        ->whereNotIn('id', $excludeTeaserIds)
-        ->with('user.profilePicture')
-        ->latest()
-        ->take($teaserCount)
-        ->get()
-        ->map(function ($teaser) {
-            $teaser->type = 'teaser';
-            $teaser->video = $teaser->video
-                ? asset('storage/' . ltrim($teaser->video, '/'))
-                : null;
-            return $teaser;
-        });
+    // Build teasers query
+    $teasers = collect();
+    if (empty($mediaTypes) || in_array('teaser', $mediaTypes)) {
+        $teasers = Teaser::query()
+            ->whereNotIn('id', $excludeTeaserIds)
+            ->with('user.profilePicture')
+            ->latest()
+            ->take($teaserCount)
+            ->get()
+            ->map(function ($teaser) {
+                $teaser->type = 'teaser';
+                $teaser->video = $teaser->video
+                    ? asset('storage/' . ltrim($teaser->video, '/'))
+                    : null;
+                return $teaser;
+            });
+    }
 
     // Shuffle both arrays
     $boards = $boards->shuffle()->values();
