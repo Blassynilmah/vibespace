@@ -680,7 +680,8 @@ document.addEventListener('alpine:init', () => {
         mediaTypes: {
             image: "🖼️ Image",
             video: "🎥 Video",
-            text: "📝 Text"
+            text: "📝 Text",
+            teaser: "🎬 Teaser"
         },
         currentPlayingTeaserId: null,
         teaserPlayStates: {},
@@ -995,8 +996,12 @@ document.addEventListener('alpine:init', () => {
                     const typeMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(boardType);
                     return moodMatch && typeMatch;
                 }
-                // For teasers, you can add filter logic or just return true
-                return true;
+                // For teasers, add this:
+                if (item.type === 'teaser') {
+                    // Only show if 'teaser' is selected or no filter is applied
+                    return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
+                }
+                return false;
             });
         },
 
