@@ -318,14 +318,14 @@
                                                         />
                                                     </template>
                                                     <template x-if="item.files[currentIndex].type === 'video'">
-                                                        <div x-show="item && item.id" class="relative w-full h-full">
+                                                        <div x-show="item && item.id" class="relative w-full h-full flex items-center justify-center">
                                                             <video
                                                                 :src="item.files[currentIndex].path"
                                                                 playsinline
                                                                 preload="metadata"
                                                                 data-moodboard
                                                                 loop
-                                                                class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer"
+                                                                class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer mx-auto"
                                                                 @play="teaserPlayStates['board-' + item.id + '-' + currentIndex] = true"
                                                                 @pause="teaserPlayStates['board-' + item.id + '-' + currentIndex] = false"
                                                                 @click="togglePlay($event.target)"
