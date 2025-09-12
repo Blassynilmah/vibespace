@@ -2,6 +2,17 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed" x-init="init">
+    <!-- Global Loading Spinner Overlay -->
+<div 
+    x-show="loading"
+    style="position: fixed; inset: 0; z-index: 9999; background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center;"
+    x-transition.opacity
+>
+    <div class="flex flex-col items-center">
+        <span class="animate-spin text-6xl text-pink-500">⏳</span>
+        <span class="mt-4 text-lg font-semibold text-pink-600">Loading...</span>
+    </div>
+</div>
     {{-- Left Sidebar --}}
     <div class="hidden lg:block w-1/5">
         <div class="sticky top-24">
