@@ -985,21 +985,30 @@ document.addEventListener('alpine:init', () => {
 
         get filteredBoards() {
             return this.items.filter(item => {
-                if (item.type === 'board') {
-                    const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
-                    const hasImage = !!item.image;
-                    const hasVideo = !!item.video;
-                    const hasMedia = !!hasImage || !!hasVideo;
-                    let boardType = 'text';
-                    if (hasImage) boardType = 'image';
-                    if (hasVideo) boardType = 'video';
-                    const typeMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(boardType);
-                    return moodMatch && typeMatch;
-                }
-                // For teasers, add this:
                 if (item.type === 'teaser') {
                     // Only show if 'teaser' is selected or no filter is applied
                     return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
+                }
+                if (item.type === 'board') {
+                    const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
+
+                    // Check for files
+                    const files = item.files || [];
+                    const hasVideo = files.some(f => f.type === 'video');
+                    const hasImage = files.some(f => f.type === 'image');
+                    const hasText = !!item.description && !hasImage && !hasVideo;
+
+                    // Media type logic
+                    let typeMatch = false;
+                    if (this.selectedMediaTypes.length === 0) {
+                        typeMatch = true;
+                    } else {
+                        if (this.selectedMediaTypes.includes('video') && hasVideo) typeMatch = true;
+                        if (this.selectedMediaTypes.includes('image') && hasImage) typeMatch = true;
+                        if (this.selectedMediaTypes.includes('text') && hasText) typeMatch = true;
+                    }
+
+                    return moodMatch && typeMatch;
                 }
                 return false;
             });
