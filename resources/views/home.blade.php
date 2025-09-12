@@ -466,6 +466,7 @@
                                     tabindex="0"
                                     class="w-full h-full object-cover bg-black rounded-2xl"
                                     x-ref="'videoEl' + item.id"
+                                    @loadeddata="item.videoLoaded = true"
                                     @play="handlePlay(item.id)"
                                     @pause="handlePause(item.id)"
                                     @click="togglePlay($refs['videoEl' + item.id])"
@@ -474,6 +475,11 @@
                                     @touchstart="startFastForward($refs['videoEl' + item.id])"
                                     @touchend="stopFastForward($refs['videoEl' + item.id])"
                                 ></video>
+
+                                <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
+                                    <span class="animate-spin text-3xl text-white">⏳</span>
+                                </div>
+
                                 <template x-if="item.teaserError">
                                     <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
                                         teaser error
@@ -482,7 +488,7 @@
 
                                     <!-- Add inside the same div as the <video> -->
                                     <button
-                                        x-show="$refs['videoEl' + item.id]"
+                                        x-show="!item.teaserError"
                                         class="absolute inset-0 flex items-center justify-center z-20"
                                         style="pointer-events: none;"
                                     >
@@ -492,10 +498,6 @@
                                             <span x-show="isTeaserPlaying(item.id ?? '')">⏸️</span>
                                         </span>
                                     </button>
-
-                                    <div x-show="!$refs['videoEl' + item.id]" class="absolute inset-0 flex items-center justify-center z-20">
-                                        <span class="animate-spin text-3xl text-white">⏳</span>
-                                    </div>
 
                                     <!-- Mobile Overlay -->
                                     <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
@@ -825,6 +827,8 @@ document.addEventListener('alpine:init', () => {
                         return {
                             ...item,
                             files,
+                            teaserError: !item.video,
+                            videoLoaded: false,
                             newComment: '',
                             comment_count: item.comment_count ?? 0,
                             is_saved: !!item.is_saved,
