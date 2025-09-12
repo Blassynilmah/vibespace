@@ -692,6 +692,8 @@ document.addEventListener('alpine:init', () => {
             this.items = [];
             this.allLoaded = false;
             this.loadBoards();
+            window.addEventListener('scroll', this.scrollHandler.bind(this));
+
             // In your Alpine init() or after loading boards:
             this.$nextTick(() => {
                 this.items.forEach(item => {
@@ -714,6 +716,28 @@ document.addEventListener('alpine:init', () => {
             });
             this.initializePlayStates();
             this.setupVideoObservers();
+        },
+
+        scrollHandler() {
+            this.$nextTick(() => {
+                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+                if (!feed) return;
+                const tiles = feed.children;
+                if (tiles.length === 0) return;
+
+                let lastVisibleIndex = -1;
+                for (let i = tiles.length - 1; i >= 0; i--) {
+                    const rect = tiles[i].getBoundingClientRect();
+                    if (rect.top < window.innerHeight) {
+                        lastVisibleIndex = i;
+                        break;
+                    }
+                }
+
+                if (tiles.length - lastVisibleIndex <= 10 && !this.loading && !this.allLoaded) {
+                    this.loadBoards();
+                }
+            });
         },
 
         setupVideoObservers() {
@@ -777,7 +801,7 @@ document.addEventListener('alpine:init', () => {
             this.loading = true;
 
             const perPage = this.page === 1 ? 20 : 10;
-            const url = `/api/boards?page=${this.page}&per_page=${perPage}`;
+            const url = `/api/boards?page=${this.page}&moodboards=25&teasers=10`;
 
             try {
                 const res = await fetch(url, {
