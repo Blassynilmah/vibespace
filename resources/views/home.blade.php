@@ -1106,44 +1106,44 @@ document.addEventListener('alpine:init', () => {
             window.location.href = `/space/${username}`;
         },
 
-        toggleMood(mood) {
-            if (this.loading) return; // Prevent clicks while loading
+toggleMood(mood) {
+    if (this.loading) return; // Prevent clicks while loading
 
-            const index = this.selectedMoods.indexOf(mood);
-            if (index > -1) {
-                this.selectedMoods.splice(index, 1);
-            } else {
-                this.selectedMoods.push(mood);
-            }
+    const index = this.selectedMoods.indexOf(mood);
+    if (index > -1) {
+        this.selectedMoods.splice(index, 1);
+    } else {
+        this.selectedMoods.push(mood);
+    }
 
-            this.loading = true;
-            this.page = 1;
-            this.items = [];
-            this.allLoaded = false;
-            this.fetchedBoardIds = [];
-            this.fetchedTeaserIds = [];
-            this.loadBoards();
-        },
+    this.loading = true; // <-- REMOVE THIS LINE
+    this.page = 1;
+    this.items = [];
+    this.allLoaded = false;
+    this.fetchedBoardIds = [];
+    this.fetchedTeaserIds = [];
+    this.loadBoards();
+},
 
-        toggleMediaType(type) {
-            if (this.loading) return; // Prevent clicks while loading
+toggleMediaType(type) {
+    if (this.loading) return; // Prevent clicks while loading
 
-            // If already selected, unselect it
-            if (this.selectedMediaTypes[0] === type) {
-                this.selectedMediaTypes = [];
-            } else {
-                this.selectedMediaTypes = [type];
-            }
+    // If already selected, unselect it
+    if (this.selectedMediaTypes[0] === type) {
+        this.selectedMediaTypes = [];
+    } else {
+        this.selectedMediaTypes = [type];
+    }
 
-            // Disable all filter buttons while loading
-            this.loading = true;
-            this.page = 1;
-            this.items = [];
-            this.allLoaded = false;
-            this.fetchedBoardIds = [];
-            this.fetchedTeaserIds = [];
-            this.loadBoards();
-        },
+    // Disable all filter buttons while loading
+    this.loading = true; // <-- REMOVE THIS LINE
+    this.page = 1;
+    this.items = [];
+    this.allLoaded = false;
+    this.fetchedBoardIds = [];
+    this.fetchedTeaserIds = [];
+    this.loadBoards();
+},
 
         renderMediaPreview(board) {
             const container = document.getElementById(`media-preview-${board.id}`);
