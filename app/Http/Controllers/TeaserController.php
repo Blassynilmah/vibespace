@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use App\Models\TeaserSave;
 
 class TeaserController extends Controller
 {
@@ -196,4 +197,26 @@ public function getComments($teaserId)
         ->get();
     return response()->json($comments);
 }
+
+public function toggle(Request $request)
+    {
+        $request->validate([
+            'teaser_id' => 'required|exists:teasers,id',
+        ]);
+        $user = $request->user();
+        $teaserId = $request->teaser_id;
+
+        $existing = TeaserSave::where('teaser_id', $teaserId)->where('user_id', $user->id)->first();
+        if ($existing) {
+            $existing->delete();
+            $isSaved = false;
+        } else {
+            TeaserSave::create([
+                'teaser_id' => $teaserId,
+                'user_id' => $user->id,
+            ]);
+            $isSaved = true;
+        }
+        return response()->json(['is_saved' => $isSaved]);
+    }
 }
