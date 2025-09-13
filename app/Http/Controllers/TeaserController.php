@@ -169,4 +169,31 @@ public function react(Request $request)
         'user_reaction' => $userReaction,
     ]);
 }
+
+// Post a comment
+public function postComment(Request $request)
+{
+    $request->validate([
+        'teaser_id' => 'required|exists:teasers,id',
+        'body' => 'required|string|max:1000',
+    ]);
+    $comment = \App\Models\TeaserComment::create([
+        'teaser_id' => $request->teaser_id,
+        'user_id' => $request->user()->id,
+        'body' => $request->body,
+    ]);
+    $comment->load('user:id,username');
+    return response()->json($comment);
+}
+
+// Fetch comments for a teaser (latest first)
+public function getComments($teaserId)
+{
+    $comments = \App\Models\TeaserComment::with('user:id,username')
+        ->where('teaser_id', $teaserId)
+        ->orderByDesc('created_at')
+        ->take(50)
+        ->get();
+    return response()->json($comments);
+}
 }

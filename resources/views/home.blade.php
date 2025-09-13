@@ -1492,6 +1492,37 @@ document.addEventListener('alpine:init', () => {
             this.activeTeaserComments = null;
         },
 
+        async postTeaserComment(teaser) {
+            if (!teaser.newComment || !teaser.newComment.trim()) return;
+            if (teaser.commenting) return;
+            teaser.commenting = true;
+
+            try {
+                const res = await fetch('/teasers/comments', {
+                    method: 'POST',
+                    headers: this._headers(),
+                    body: JSON.stringify({
+                        teaser_id: teaser.id,
+                        body: teaser.newComment.trim(),
+                    }),
+                });
+                if (!res.ok) throw new Error('Failed to post comment');
+                const comment = await res.json();
+
+                // Ensure comments array exists
+                if (!teaser.comments) teaser.comments = [];
+                // Add new comment at the top
+                teaser.comments.unshift(comment);
+                teaser.comment_count = (teaser.comment_count || 0) + 1;
+                teaser.newComment = '';
+                this.showToast('Comment posted! 🎉');
+            } catch (e) {
+                this.showToast('Failed to post comment', 'error');
+            } finally {
+                teaser.commenting = false;
+            }
+        },
+
         isSendDisabled(board) {
             return !board.newComment || board.newComment.trim() === '';
         },
