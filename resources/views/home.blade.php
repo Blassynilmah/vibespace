@@ -1560,23 +1560,46 @@ document.addEventListener('alpine:init', () => {
         },
 
 async toggleSaveTeaser(teaser) {
-    console.log('toggleSaveTeaser fired for teaser:', teaser.id);
-    if (teaser.saving) return;
+    // Debug: Log when the function is called
+    console.log('[toggleSaveTeaser] Clicked for teaser:', teaser);
+
+    // Prevent double-clicks while saving
+    if (teaser.saving) {
+        console.log('[toggleSaveTeaser] Already saving, aborting.');
+        return;
+    }
     teaser.saving = true;
+
     try {
-        const res = await fetch('/teasers/toggle-save', {
+        // Send the save/unsave request
+        const response = await fetch('/teasers/toggle-save', {
             method: 'POST',
             headers: this._headers(),
             body: JSON.stringify({ teaser_id: teaser.id })
         });
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        teaser.is_saved = data.is_saved;
-        this.showToast(data.is_saved ? 'Teaser saved!' : 'Removed from saved');
-    } catch {
+
+        // Debug: Log the raw response
+        console.log('[toggleSaveTeaser] Response:', response);
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error('[toggleSaveTeaser] Error response:', text);
+            throw new Error('Failed to toggle save');
+        }
+
+        const data = await response.json();
+        console.log('[toggleSaveTeaser] Parsed response:', data);
+
+        // Update the teaser's saved state
+        teaser.is_saved = !!data.is_saved;
+        this.showToast(teaser.is_saved ? 'Teaser saved!' : 'Removed from saved');
+
+    } catch (error) {
+        console.error('[toggleSaveTeaser] Exception:', error);
         this.showToast('Failed to save teaser', 'error');
     } finally {
         teaser.saving = false;
+        console.log('[toggleSaveTeaser] Done for teaser:', teaser.id);
     }
 },
 
