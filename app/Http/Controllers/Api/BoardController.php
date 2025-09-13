@@ -57,12 +57,13 @@ public function index(Request $request)
     // Apply media type filter (only one at a time)
     if ($mediaType) {
         if ($mediaType === 'video') {
-            $boardsQuery->whereNotNull('video');
+            // Only rows with video, and image is null
+            $boardsQuery->whereNotNull('video')->whereNull('image');
         } elseif ($mediaType === 'image') {
-            $boardsQuery->where(function($q) {
-                $q->whereNotNull('image');
-            });
+            // Only rows with image, and video is null
+            $boardsQuery->whereNotNull('image')->whereNull('video');
         } elseif ($mediaType === 'text') {
+            // Only rows where both image and video are null, but description is present
             $boardsQuery->whereNull('video')
                 ->whereNull('image')
                 ->whereNotNull('description');
