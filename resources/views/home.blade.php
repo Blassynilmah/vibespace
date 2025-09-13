@@ -820,6 +820,64 @@ document.addEventListener('alpine:init', () => {
             return !!this.teaserPlayStates[id];
         },
 
+        get filteredBoards() {
+            return this.items.filter(item => {
+                if (item.type === 'teaser') {
+                    // Only show if 'teaser' is selected or no filter is applied
+                    return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
+                }
+                if (item.type === 'board') {
+                    // Mood filter (multiple moods allowed)
+                    const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
+                    // No need to check media type, backend already filtered
+                    return moodMatch;
+                }
+                return false;
+            });
+        },
+
+        
+        toggleMood(mood) {
+            if (this.loading) return; // Prevent clicks while loading
+
+            const index = this.selectedMoods.indexOf(mood);
+            if (index > -1) {
+                this.selectedMoods.splice(index, 1);
+            } else {
+                this.selectedMoods.push(mood);
+            }
+
+            this.page = 1;
+            this.items = [];
+            this.allLoaded = false;
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
+            this.loadBoards();
+            this.$nextTick(() => {
+                console.log('Filtered boards after filter change:', this.filteredBoards);
+            });
+        },
+
+toggleMediaType(type) {
+    if (this.loading) return;
+
+    if (this.selectedMediaTypes[0] === type) {
+        this.selectedMediaTypes = [];
+    } else {
+        this.selectedMediaTypes = [type];
+    }
+
+    // 🔥 Reset moods so they don’t conflict
+    this.selectedMoods = [];
+
+    this.page = 1;
+    this.items = [];
+    this.allLoaded = false;
+    this.fetchedBoardIds = [];
+    this.fetchedTeaserIds = [];
+    this.loadBoards();
+},
+
         async loadBoards() {
             if (this.loading || this.allLoaded) return;
             this.loading = true;
@@ -877,29 +935,30 @@ document.addEventListener('alpine:init', () => {
                 const newItems = json.data.map(item => {
                     if (item.type === 'board') {
                         let files = [];
-let imgs = item.images ?? item.image;
 
-if (Array.isArray(imgs)) {
-    files.push(...imgs.map(path => ({
-        path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-        type: 'image'
-    })));
-} else if (typeof imgs === 'string' && imgs) {
-    // Try to parse as JSON array
-    let parsed = null;
-    try { parsed = JSON.parse(imgs); } catch {}
-    if (Array.isArray(parsed)) {
-        files.push(...parsed.map(path => ({
-            path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-            type: 'image'
-        })));
-    } else {
-        files.push({
-            path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
-            type: 'image'
-        });
-    }
-}
+                        let imgs = item.images ?? item.image;
+
+                        if (Array.isArray(imgs)) {
+                            files.push(...imgs.map(path => ({
+                                path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                                type: 'image'
+                            })));
+                        } else if (typeof imgs === 'string' && imgs) {
+                            // Try to parse as JSON array
+                            let parsed = null;
+                            try { parsed = JSON.parse(imgs); } catch {}
+                            if (Array.isArray(parsed)) {
+                                files.push(...parsed.map(path => ({
+                                    path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                                    type: 'image'
+                                })));
+                            } else {
+                                files.push({
+                                    path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
+                                    type: 'image'
+                                });
+                            }
+                        }
 
                         // Remove duplicate files
                         const seen = new Set();
@@ -1054,22 +1113,6 @@ if (Array.isArray(imgs)) {
             });
         },
 
-        get filteredBoards() {
-            return this.items.filter(item => {
-                if (item.type === 'teaser') {
-                    // Only show if 'teaser' is selected or no filter is applied
-                    return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
-                }
-                if (item.type === 'board') {
-                    // Mood filter (multiple moods allowed)
-                    const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
-                    // No need to check media type, backend already filtered
-                    return moodMatch;
-                }
-                return false;
-            });
-        },
-
         searchUsers() {
             if (this.searchQuery.trim().length === 0) {
                 this.searchResults = [];
@@ -1088,49 +1131,6 @@ if (Array.isArray(imgs)) {
 
         goToProfile(username) {
             window.location.href = `/space/${username}`;
-        },
-
-        toggleMood(mood) {
-            if (this.loading) return; // Prevent clicks while loading
-
-            const index = this.selectedMoods.indexOf(mood);
-            if (index > -1) {
-                this.selectedMoods.splice(index, 1);
-            } else {
-                this.selectedMoods.push(mood);
-            }
-
-            this.page = 1;
-            this.items = [];
-            this.allLoaded = false;
-            this.fetchedBoardIds = [];
-            this.fetchedTeaserIds = [];
-            this.loadBoards();
-            this.$nextTick(() => {
-                console.log('Filtered boards after filter change:', this.filteredBoards);
-            });
-        },
-
-        toggleMediaType(type) {
-            if (this.loading) return; // Prevent clicks while loading
-
-            // If already selected, unselect it
-            if (this.selectedMediaTypes[0] === type) {
-                this.selectedMediaTypes = [];
-            } else {
-                this.selectedMediaTypes = [type];
-            }
-
-            // Disable all filter buttons while loading
-            this.page = 1;
-            this.items = [];
-            this.allLoaded = false;
-            this.fetchedBoardIds = [];
-            this.fetchedTeaserIds = [];
-            this.loadBoards();
-            this.$nextTick(() => {
-                console.log('Filtered boards after filter change:', this.filteredBoards);
-            });
         },
 
         renderMediaPreview(board) {
