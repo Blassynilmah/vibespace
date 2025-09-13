@@ -1481,10 +1481,17 @@ document.addEventListener('alpine:init', () => {
             .finally(() => { teaser.reacting = false; });
         },
 
-        openTeaserComments(teaser) {
+        async openTeaserComments(teaser) {
             this.activeTeaserComments = teaser;
             this.showTeaserComments = true;
-            // Optionally: fetch comments here if not already loaded
+            if (!teaser.comments) {
+                try {
+                    const res = await fetch(`/teasers/${teaser.id}/comments`);
+                    teaser.comments = res.ok ? await res.json() : [];
+                } catch {
+                    teaser.comments = [];
+                }
+            }
         },
 
         closeTeaserComments() {

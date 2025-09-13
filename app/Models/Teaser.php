@@ -37,4 +37,9 @@ public function reactions()
 {
     return $this->hasMany(\App\Models\TeaserReaction::class, 'teaser_id');
 }
+
+public function comments()
+{
+    return $this->hasMany(\App\Models\TeaserComment::class, 'teaser_id');
+}
 }
