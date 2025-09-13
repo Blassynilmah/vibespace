@@ -13,7 +13,6 @@ use App\Models\Teaser;
 
 class BoardController extends Controller
 {
-
 public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
@@ -34,6 +33,15 @@ public function index(Request $request)
 
     // Get mood filter (can be multiple)
     $moods = array_filter(explode(',', $request->query('moods', '')));
+
+    // Log incoming filter parameters
+    \Log::info('BoardController@index called', [
+        'viewer_id' => $viewerId,
+        'media_type' => $mediaType,
+        'moods' => $moods,
+        'exclude_board_ids' => $excludeBoardIds,
+        'exclude_teaser_ids' => $excludeTeaserIds,
+    ]);
 
     // Build moodboard query
     $boardsQuery = MoodBoard::query()
@@ -57,13 +65,10 @@ public function index(Request $request)
     // Apply media type filter (only one at a time)
     if ($mediaType) {
         if ($mediaType === 'video') {
-            // Only rows with video, and image is null
             $boardsQuery->whereNotNull('video')->whereNull('image');
         } elseif ($mediaType === 'image') {
-            // Only rows with image, and video is null
             $boardsQuery->whereNotNull('image')->whereNull('video');
         } elseif ($mediaType === 'text') {
-            // Only rows where both image and video are null, but description is present
             $boardsQuery->whereNull('video')
                 ->whereNull('image')
                 ->whereNotNull('description');
@@ -102,6 +107,18 @@ public function index(Request $request)
             });
     }
 
+    // Log the raw moodboards and teasers before formatting
+    \Log::info('BoardController@index moodboards', [
+        'count' => $boards->count(),
+        'ids' => $boards->pluck('id')->all(),
+        'sample' => $boards->take(3)->toArray(),
+    ]);
+    \Log::info('BoardController@index teasers', [
+        'count' => $teasers->count(),
+        'ids' => $teasers->pluck('id')->all(),
+        'sample' => $teasers->take(3)->toArray(),
+    ]);
+
     // Shuffle both arrays
     $boards = $boards->shuffle()->values();
     $teasers = $teasers->shuffle()->values();
@@ -113,13 +130,10 @@ public function index(Request $request)
 
     foreach ($boards as $i => $board) {
         $final[] = $board;
-        // Only insert a teaser after a board, and never two teasers in a row
         if ($teaserIndex < $totalTeasers && (empty($final) || $final[count($final) - 1]->type === 'board')) {
             $final[] = $teasers[$teaserIndex++];
         }
     }
-
-    // If any teasers remain, try to insert them after boards (but never two teasers in a row)
     while ($teaserIndex < $totalTeasers) {
         if (!empty($final) && $final[count($final) - 1]->type === 'board') {
             $final[] = $teasers[$teaserIndex++];
@@ -152,6 +166,15 @@ public function index(Request $request)
             ];
         }
     });
+
+    // Log the final formatted data sent to frontend
+    \Log::info('BoardController@index formatted response', [
+        'formatted_count' => $formatted->count(),
+        'formatted_sample' => $formatted->take(3)->toArray(),
+        'sent_board_ids' => $boards->pluck('id')->all(),
+        'sent_teaser_ids' => $teasers->pluck('id')->all(),
+        'all_loaded' => ($boards->count() < $moodboardCount) && ($teasers->count() < $teaserCount),
+    ]);
 
     // Return the IDs sent, so frontend can track and exclude next time
     $sentBoardIds = $boards->pluck('id')->all();
