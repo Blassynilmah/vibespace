@@ -1036,7 +1036,9 @@ document.addEventListener('alpine:init', () => {
             if (item.type === 'teaser') {
                 return {
                     ...item,
-                    teaserError: !item.video
+                    teaserError: !item.video,
+                    is_saved: !!item.is_saved,
+                    saving: false,
                 }
             }
 
