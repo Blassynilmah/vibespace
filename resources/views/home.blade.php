@@ -1559,25 +1559,26 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
-        async toggleSaveTeaser(teaser) {
-            if (teaser.saving) return;
-            teaser.saving = true;
-            try {
-                const res = await fetch('/teasers/toggle-save', {
-                    method: 'POST',
-                    headers: this._headers(),
-                    body: JSON.stringify({ teaser_id: teaser.id })
-                });
-                if (!res.ok) throw new Error();
-                const data = await res.json();
-                teaser.is_saved = data.is_saved;
-                this.showToast(data.is_saved ? 'Teaser saved!' : 'Removed from saved');
-            } catch {
-                this.showToast('Failed to save teaser', 'error');
-            } finally {
-                teaser.saving = false;
-            }
-        },
+async toggleSaveTeaser(teaser) {
+    console.log('toggleSaveTeaser fired for teaser:', teaser.id);
+    if (teaser.saving) return;
+    teaser.saving = true;
+    try {
+        const res = await fetch('/teasers/toggle-save', {
+            method: 'POST',
+            headers: this._headers(),
+            body: JSON.stringify({ teaser_id: teaser.id })
+        });
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        teaser.is_saved = data.is_saved;
+        this.showToast(data.is_saved ? 'Teaser saved!' : 'Removed from saved');
+    } catch {
+        this.showToast('Failed to save teaser', 'error');
+    } finally {
+        teaser.saving = false;
+    }
+},
 
         showToast(message = "Done!", type = 'success', delay = 3000) {
             const box = document.getElementById('toastBox');
