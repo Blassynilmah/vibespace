@@ -131,4 +131,33 @@ public function myTeasers()
             'total' => $teasers->total(),
         ]);
     }
+
+public function react(Request $request)
+{
+    $request->validate([
+        'teaser_id' => 'required|exists:teasers,id',
+        'reaction' => 'required|in:fire,love,boring',
+    ]);
+    $user = $request->user();
+
+    // Remove previous reaction if exists
+    \App\Models\TeaserReaction::updateOrCreate(
+        ['teaser_id' => $request->teaser_id, 'user_id' => $user->id],
+        ['reaction' => $request->reaction]
+    );
+
+    // Get updated counts
+    $counts = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
+        ->selectRaw("count(*) filter (where reaction = 'fire') as fire_count")
+        ->selectRaw("count(*) filter (where reaction = 'love') as love_count")
+        ->selectRaw("count(*) filter (where reaction = 'boring') as boring_count")
+        ->first();
+
+    return response()->json([
+        'fire_count' => $counts->fire_count,
+        'love_count' => $counts->love_count,
+        'boring_count' => $counts->boring_count,
+        'user_reaction' => $request->reaction,
+    ]);
+}
 }
