@@ -877,31 +877,29 @@ document.addEventListener('alpine:init', () => {
                 const newItems = json.data.map(item => {
                     if (item.type === 'board') {
                         let files = [];
-                        let imgs = item.images ?? item.image;
+let imgs = item.images ?? item.image;
 
-                        if (typeof imgs === 'string') {
-                            try { imgs = JSON.parse(imgs); } catch {}
-                        }
-
-                        if (Array.isArray(imgs)) {
-                            files.push(...imgs.map(path => ({
-                                path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-                                type: 'image'
-                            })));
-                        } else if (typeof imgs === 'string' && imgs) {
-                            files.push({
-                                path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
-                                type: 'image'
-                            });
-                        }
-
-                        if (item.video) {
-                            const v = item.video;
-                            files.push({
-                                path: v.startsWith('http') ? v : `/storage/${v.replace(/^\/?storage\//, '')}`,
-                                type: 'video'
-                            });
-                        }
+if (Array.isArray(imgs)) {
+    files.push(...imgs.map(path => ({
+        path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+        type: 'image'
+    })));
+} else if (typeof imgs === 'string' && imgs) {
+    // Try to parse as JSON array
+    let parsed = null;
+    try { parsed = JSON.parse(imgs); } catch {}
+    if (Array.isArray(parsed)) {
+        files.push(...parsed.map(path => ({
+            path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+            type: 'image'
+        })));
+    } else {
+        files.push({
+            path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
+            type: 'image'
+        });
+    }
+}
 
                         // Remove duplicate files
                         const seen = new Set();
