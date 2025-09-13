@@ -266,6 +266,7 @@
                                                 <button
                                                     @click.prevent="react(item.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
                                                     x-data="{ showName: false }"
+                                                    :disabled="item.reacting"
                                                     @mouseenter="showName = true" 
                                                     @mouseleave="showName = false"
                                                     class="w-full relative rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
@@ -305,6 +306,7 @@
                                                 >
                                                 <button
                                                     @click.prevent="postComment(item)"
+                                                    :disabled="item.commenting"
                                                     class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
                                                 >
                                                     Post
@@ -439,6 +441,7 @@
                                             >
                                             <button
                                                 @click.prevent="postComment(item)"
+                                                :disabled="item.commenting"
                                                 class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
                                             >
                                                 Post
