@@ -104,6 +104,7 @@ if (!$mediaType || $mediaType === 'teaser') {
                     'username' => $teaser->user->username,
                     'profile_picture' => $teaser->user->profilePicture->path ?? null,
                 ],
+                'is_saved' => $viewerId ? $teaser->saves()->where('user_id', $viewerId)->exists() : false,
                 'comment_count' => $teaser->comments_count ?? 0,
                 'expires_on' => $teaser->expires_on ?? null,
                 'expires_after' => $teaser->expires_after ?? null,

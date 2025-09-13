@@ -42,4 +42,9 @@ public function comments()
 {
     return $this->hasMany(\App\Models\TeaserComment::class, 'teaser_id');
 }
+
+public function saves()
+{
+    return $this->hasMany(\App\Models\TeaserSave::class, 'teaser_id');
+}
 }
