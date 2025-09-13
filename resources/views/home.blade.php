@@ -911,6 +911,8 @@ document.addEventListener('alpine:init', () => {
                             return true;
                         });
 
+                        console.log('Board', item.id, 'files:', files);
+
                         return {
                             ...item,
                             files,
