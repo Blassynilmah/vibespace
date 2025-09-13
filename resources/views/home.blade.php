@@ -712,6 +712,7 @@ document.addEventListener('alpine:init', () => {
             this.allLoaded = false;
             this.loadBoards();
             window.addEventListener('scroll', this.scrollHandler.bind(this));
+            window.fb = this.filteredBoards;
 
             // In your Alpine init() or after loading boards:
             this.$nextTick(() => {
