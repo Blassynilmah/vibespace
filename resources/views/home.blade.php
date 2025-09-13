@@ -1122,8 +1122,10 @@ toggleMediaType(type) {
 
             fetch(`/api/search-users?q=${encodeURIComponent(this.searchQuery)}`)
                 .then(res => res.json())
-                .then(data => {
-                    this.searchResults = data.users;
+                .then(res => {
+                    this.boards = res.data
+                    this.filteredBoards = this.boards
+                    console.log("Filtered now:", this.filteredBoards)
                 })
                 .catch(err => {
                     console.error('Search error:', err);
