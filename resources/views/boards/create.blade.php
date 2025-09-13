@@ -151,17 +151,31 @@
                     class="w-full rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none px-4 py-2 text-sm">
             </div>
 
-            <!-- Expiring After -->
-            <div>
-                <label class="block text-sm font-semibold mb-1 text-gray-700">Expires After</label>
-                <select x-model="videoForm.expires_after"
-                    class="w-full rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none px-4 py-2 text-sm">
-                    <option value="">No expiry</option>
-                    <option value="24">24 hours</option>
-                    <option value="48">48 hours</option>
-                    <option value="72">72 hours</option>
-                    <option value="168">One week</option>
-                </select>
+            <div class="flex gap-4">
+                <!-- Expires After -->
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold mb-1 text-gray-700">Expires After</label>
+                    <select x-model="videoForm.expires_after"
+                        class="w-full rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none px-4 py-2 text-sm">
+                        <option value="">No expiry</option>
+                        <option value="24">24 hours</option>
+                        <option value="48">48 hours</option>
+                        <option value="72">72 hours</option>
+                        <option value="168">One week</option>
+                    </select>
+                </div>
+                <!-- Teaser Mood Dropdown -->
+                <div class="flex-1">
+                    <label class="block text-sm font-semibold mb-1 text-gray-700">Teaser Mood <span class="text-red-500">*</span></label>
+                    <select x-model="videoForm.teaser_mood" required
+                        class="w-full rounded-xl border border-gray-300 focus:ring-2 focus:ring-pink-400 focus:outline-none px-4 py-2 text-sm">
+                        <option value="">Select mood</option>
+                        <option value="hype">🔥 Hype (energetic / exciting)</option>
+                        <option value="funny">😂 Funny</option>
+                        <option value="shock">😲 Shock</option>
+                        <option value="love">❤️ Cute/Love</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Video Upload -->
