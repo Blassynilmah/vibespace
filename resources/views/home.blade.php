@@ -879,6 +879,63 @@ document.addEventListener('alpine:init', () => {
             this.loadBoards();
         },
 
+        normalizeItem(item) {
+            if (item.type === 'board') {
+                let files = []
+                let imgs = item.images ?? item.image
+
+                if (Array.isArray(imgs)) {
+                    files.push(...imgs.map(path => ({
+                        path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                        type: 'image'
+                    })))
+                } else if (typeof imgs === 'string' && imgs) {
+                    let parsed = null
+                    try { parsed = JSON.parse(imgs) } catch {}
+                    if (Array.isArray(parsed)) {
+                        files.push(...parsed.map(path => ({
+                            path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                            type: 'image'
+                        })))
+                    } else {
+                        files.push({
+                            path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
+                            type: 'image'
+                        })
+                    }
+                }
+
+                // remove dupes
+                const seen = new Set()
+                files = files.filter(f => {
+                    if (seen.has(f.path)) return false
+                    seen.add(f.path)
+                    return true
+                })
+
+                return {
+                    ...item,
+                    files,
+                    teaserError: !item.video,
+                    videoLoaded: false,
+                    newComment: '',
+                    comment_count: item.comment_count ?? 0,
+                    is_saved: !!item.is_saved,
+                    expanded: false,
+                    saving: false
+                }
+            }
+
+            if (item.type === 'teaser') {
+                return {
+                    ...item,
+                    teaserError: !item.video
+                }
+            }
+
+            return item
+        },
+
         async loadBoards() {
             if (this.loading || this.allLoaded) return;
             this.loading = true;
@@ -932,64 +989,8 @@ document.addEventListener('alpine:init', () => {
                     return;
                 }
 
-                // Prepare new items (boards and teasers)
-                const newItems = json.data.map(item => {
-                    if (item.type === 'board') {
-                        let files = [];
+const newItems = json.data.map(this.normalizeItem)
 
-                        let imgs = item.images ?? item.image;
-
-                        if (Array.isArray(imgs)) {
-                            files.push(...imgs.map(path => ({
-                                path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-                                type: 'image'
-                            })));
-                        } else if (typeof imgs === 'string' && imgs) {
-                            // Try to parse as JSON array
-                            let parsed = null;
-                            try { parsed = JSON.parse(imgs); } catch {}
-                            if (Array.isArray(parsed)) {
-                                files.push(...parsed.map(path => ({
-                                    path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-                                    type: 'image'
-                                })));
-                            } else {
-                                files.push({
-                                    path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
-                                    type: 'image'
-                                });
-                            }
-                        }
-
-                        // Remove duplicate files
-                        const seen = new Set();
-                        files = files.filter(f => {
-                            if (seen.has(f.path)) return false;
-                            seen.add(f.path);
-                            return true;
-                        });
-
-                        console.log('Board', item.id, 'files:', files);
-
-                        return {
-                            ...item,
-                            files,
-                            teaserError: !item.video,
-                            videoLoaded: false,
-                            newComment: '',
-                            comment_count: item.comment_count ?? 0,
-                            is_saved: !!item.is_saved,
-                            expanded: false,
-                            saving: false
-                        };
-                    } else if (item.type === 'teaser') {
-                        return {
-                            ...item,
-                            teaserError: !item.video
-                        };
-                    }
-                    return item;
-                });
 
                 // Log details of loaded items
                 console.group(`Loaded ${newItems.length} items (page ${this.page})`);
