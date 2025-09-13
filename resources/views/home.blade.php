@@ -468,33 +468,46 @@
                                     'lg:h-[45vh]': window.innerWidth >= 1024
                                 }"
                             >
-                            <video
-                                x-show="!item.teaserError"
-                                :src="item.video"
-                                playsinline
-                                data-teaser
-                                loop
-                                tabindex="0"
-                                class="w-full h-full object-cover bg-black rounded-2xl"
-                                @loadeddata="item.videoLoaded = true"
-                                @play="handlePlay(item.id)"
-                                @pause="handlePause(item.id)"
-                                @click="togglePlay($event.target)"
-                                @mousedown="startFastForward($event.target)"
-                                @mouseup="stopFastForward($event.target)"
-                                @touchstart="startFastForward($event.target)"
-                                @touchend="stopFastForward($event.target)"
-                            ></video>
+                                <template x-if="item.teaser_mood">
+                                    <div class="absolute top-3 left-3 z-20">
+                                        <span
+                                            class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold shadow bg-pink-600 text-white"
+                                            x-text="{
+                                                hype: '🔥 Hype',
+                                                funny: '😂 Funny',
+                                                shock: '😲 Shock',
+                                                love: '❤️ Cute/Love'
+                                            }[item.teaser_mood] || item.teaser_mood"
+                                        ></span>
+                                    </div>
+                                </template>
+                                <video
+                                    x-show="!item.teaserError"
+                                    :src="item.video"
+                                    playsinline
+                                    data-teaser
+                                    loop
+                                    tabindex="0"
+                                    class="w-full h-full object-cover bg-black rounded-2xl"
+                                    @loadeddata="item.videoLoaded = true"
+                                    @play="handlePlay(item.id)"
+                                    @pause="handlePause(item.id)"
+                                    @click="togglePlay($event.target)"
+                                    @mousedown="startFastForward($event.target)"
+                                    @mouseup="stopFastForward($event.target)"
+                                    @touchstart="startFastForward($event.target)"
+                                    @touchend="stopFastForward($event.target)"
+                                ></video>
 
-                            <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
-                                <span class="animate-spin text-3xl text-white">⏳</span>
-                            </div>
-
-                            <template x-if="item.teaserError">
-                                <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
-                                    teaser error
+                                <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
+                                    <span class="animate-spin text-3xl text-white">⏳</span>
                                 </div>
-                            </template>
+
+                                <template x-if="item.teaserError">
+                                    <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
+                                        teaser error
+                                    </div>
+                                </template>
 
                                 <!-- Mobile Overlay -->
                                 <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
