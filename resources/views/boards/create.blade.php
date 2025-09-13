@@ -466,7 +466,8 @@ window.createBoardForm = function() {
     videoForm: {
   description: '',
   hashtags: '',
-  expires_after: '', // in hours
+  expires_after: '',
+  teaser_mood: '',
   video: null // { id, path }
 },
     toast: { 
@@ -530,6 +531,10 @@ window.createBoardForm = function() {
         console.log('⛔ No video selected');
         return this.showToast('Please select a video 🎥', true);
     }
+    // Validation: Ensure a mood is selected
+    if (!this.videoForm.teaser_mood) {
+        return this.showToast('Please select a teaser mood 😃', true);
+    }
 
     this.showToast('Uploading teaser...');
     console.log('Preparing FormData for teaser upload...');
@@ -562,6 +567,7 @@ window.createBoardForm = function() {
     formData.append('hashtags', this.videoForm.hashtags);
     formData.append('expires_after', expiresAfter !== null ? expiresAfter : '');
     formData.append('video_id', this.videoForm.video);
+    formData.append('teaser_mood', this.videoForm.teaser_mood);
 
     // Log FormData entries
     for (let [key, value] of formData.entries()) {
