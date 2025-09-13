@@ -137,14 +137,23 @@ public function react(Request $request)
     $request->validate([
         'teaser_id' => 'required|exists:teasers,id',
         'reaction' => 'required|in:fire,love,boring',
+        'remove' => 'sometimes|boolean',
     ]);
     $user = $request->user();
 
-    // Remove previous reaction if exists
-    \App\Models\TeaserReaction::updateOrCreate(
-        ['teaser_id' => $request->teaser_id, 'user_id' => $user->id],
-        ['reaction' => $request->reaction]
-    );
+    $query = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
+        ->where('user_id', $user->id);
+
+    if ($request->boolean('remove')) {
+        $query->delete();
+        $userReaction = null;
+    } else {
+        \App\Models\TeaserReaction::updateOrCreate(
+            ['teaser_id' => $request->teaser_id, 'user_id' => $user->id],
+            ['reaction' => $request->reaction]
+        );
+        $userReaction = $request->reaction;
+    }
 
     // Get updated counts
     $counts = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
@@ -157,7 +166,7 @@ public function react(Request $request)
         'fire_count' => $counts->fire_count,
         'love_count' => $counts->love_count,
         'boring_count' => $counts->boring_count,
-        'user_reaction' => $request->reaction,
+        'user_reaction' => $userReaction,
     ]);
 }
 }
