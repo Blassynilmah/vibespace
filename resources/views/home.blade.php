@@ -876,7 +876,6 @@ document.addEventListener('alpine:init', () => {
                 return false;
             });
         },
-
         
         toggleMood(mood) {
             if (this.loading) return; // Prevent clicks while loading
@@ -1316,11 +1315,11 @@ document.addEventListener('alpine:init', () => {
         },
 
         moodKey(m) {
-        return m.replace(/-/g, '_'); // 'mind-blown' -> 'mind_blown'
+            return m.replace(/-/g, '_'); // 'mind-blown' -> 'mind_blown'
         },
 
         getReactionCount(board, mood) {
-        return board[this.moodKey(mood) + '_count'] ?? 0;
+            return board[this.moodKey(mood) + '_count'] ?? 0;
         },
 
         react(boardId, mood) {
@@ -1381,6 +1380,32 @@ document.addEventListener('alpine:init', () => {
             .finally(() => {
                 board.commenting = false;
             });
+        },
+
+        reactToTeaser(teaserId, reaction) {
+            const teaser = this.items.find(t => t.id === teaserId && t.type === 'teaser');
+            if (!teaser) return;
+            if (teaser.user_teaser_reaction === reaction) return; // Already reacted
+
+            // Optional: prevent spamming
+            if (teaser.reacting) return;
+            teaser.reacting = true;
+
+            fetch('/teasers/react', {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({ teaser_id: teaserId, reaction }),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                // Update counts
+                ['fire','love','boring'].forEach(r => {
+                    teaser[r + '_count'] = data[r + '_count'] || 0;
+                });
+                teaser.user_teaser_reaction = data.user_reaction;
+            })
+            .catch(() => this.showToast("Failed to react", 'error'))
+            .finally(() => { teaser.reacting = false; });
         },
 
         isSendDisabled(board) {
