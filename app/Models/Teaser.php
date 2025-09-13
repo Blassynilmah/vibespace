@@ -18,7 +18,8 @@ class Teaser extends Model
         'expires_on',
         'created_at',
         'updated_at',
-        'description'
+        'description',
+        'teaser_mood'
     ];
 
     protected $dates = [
