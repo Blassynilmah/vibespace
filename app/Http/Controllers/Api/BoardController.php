@@ -76,6 +76,7 @@ if (!$mediaType || $mediaType === 'teaser') {
     $teasers = Teaser::query()
         ->whereNotIn('id', $excludeTeaserIds)
         ->with('user.profilePicture')
+        ->withCount('comments')
         ->latest()
         ->take($teaserCount)
         ->get()
@@ -103,6 +104,7 @@ if (!$mediaType || $mediaType === 'teaser') {
                     'username' => $teaser->user->username,
                     'profile_picture' => $teaser->user->profilePicture->path ?? null,
                 ],
+                'comment_count' => $teaser->comments_count ?? 0,
                 'expires_on' => $teaser->expires_on ?? null,
                 'expires_after' => $teaser->expires_after ?? null,
                 'teaser_mood' => $teaser->teaser_mood,
