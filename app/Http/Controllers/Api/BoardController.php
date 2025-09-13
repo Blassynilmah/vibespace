@@ -71,34 +71,35 @@ public function index(Request $request)
     }
 
     // 🔹 Build teasers
-    $teasers = collect();
-    if (!$mediaType || $mediaType === 'teaser') {
-        $teasers = Teaser::query()
-            ->whereNotIn('id', $excludeTeaserIds)
-            ->with('user.profilePicture')
-            ->latest()
-            ->take($teaserCount)
-            ->get()
-            ->map(function ($teaser) {
-                return [
-                    'id' => $teaser->id,
-                    'title' => $teaser->title ?? '',
-                    'description' => $teaser->description ?? '',
-                    'created_at' => $teaser->created_at,
-                    'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
-                    'hashtags' => $teaser->hashtags ?? '',
-                    'username' => $teaser->user->username ?? '',
-                    'user' => [
-                        'id' => $teaser->user->id,
-                        'username' => $teaser->user->username,
-                        'profile_picture' => $teaser->user->profilePicture->path ?? null,
-                    ],
-                    'expires_on' => $teaser->expires_on ?? null,
-                    'expires_after' => $teaser->expires_after ?? null,
-                    'type' => 'teaser',
-                ];
-            });
-    }
+$teasers = collect();
+if (!$mediaType || $mediaType === 'teaser') {
+    $teasers = Teaser::query()
+        ->whereNotIn('id', $excludeTeaserIds)
+        ->with('user.profilePicture')
+        ->latest()
+        ->take($teaserCount)
+        ->get()
+        ->map(function ($teaser) {
+            return [
+                'id' => $teaser->id,
+                'title' => $teaser->title ?? '',
+                'description' => $teaser->description ?? '',
+                'created_at' => $teaser->created_at,
+                'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
+                'hashtags' => $teaser->hashtags ?? '',
+                'username' => $teaser->user->username ?? '',
+                'user' => [
+                    'id' => $teaser->user->id,
+                    'username' => $teaser->user->username,
+                    'profile_picture' => $teaser->user->profilePicture->path ?? null,
+                ],
+                'expires_on' => $teaser->expires_on ?? null,
+                'expires_after' => $teaser->expires_after ?? null,
+                'teaser_mood' => $teaser->teaser_mood, // <-- Add this line
+                'type' => 'teaser',
+            ];
+        });
+}
 
     // 🔹 Shuffle and merge (boards + teasers)
     $boards = $boards->shuffle()->values();
