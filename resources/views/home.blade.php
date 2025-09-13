@@ -1054,25 +1054,10 @@ document.addEventListener('alpine:init', () => {
                     return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
                 }
                 if (item.type === 'board') {
+                    // Mood filter (multiple moods allowed)
                     const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
-
-                    // Check for files
-                    const files = item.files || [];
-                    const hasVideo = files.some(f => f.type === 'video');
-                    const hasImage = files.some(f => f.type === 'image');
-                    const hasText = !!item.description && !hasImage && !hasVideo;
-
-                    // Media type logic
-                    let typeMatch = false;
-                    if (this.selectedMediaTypes.length === 0) {
-                        typeMatch = true;
-                    } else {
-                        if (this.selectedMediaTypes.includes('video') && hasVideo) typeMatch = true;
-                        if (this.selectedMediaTypes.includes('image') && hasImage) typeMatch = true;
-                        if (this.selectedMediaTypes.includes('text') && hasText) typeMatch = true;
-                    }
-
-                    return moodMatch && typeMatch;
+                    // No need to check media type, backend already filtered
+                    return moodMatch;
                 }
                 return false;
             });
