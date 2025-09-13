@@ -23,6 +23,7 @@ public function store(Request $request)
             'hashtags'       => 'nullable|string|max:255',
             'expires_after'  => 'nullable|integer|in:24,48,72,168',
             'video_id'       => 'required|integer|exists:user_files,id',
+            'teaser_mood'    => 'required|string|in:hype,funny,shock,love', // <-- add this line
         ]);
 
         $user = Auth::user();
@@ -57,7 +58,8 @@ public function store(Request $request)
             'video'         => $targetPath,
             'expires_after' => $expiresAfter,
             'expires_on'    => $expiresOn,
-            'description'   => $request->description, // <-- Add this line
+            'description'   => $request->description,
+            'teaser_mood'   => $request->teaser_mood, // <-- add this line
             'created_at'    => now(),
             'updated_at'    => now(),
         ]);
