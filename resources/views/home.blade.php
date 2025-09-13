@@ -506,6 +506,26 @@
                                     @touchend="stopFastForward($event.target)"
                                 ></video>
 
+                                <!-- Teaser Reactions Vertical Bar -->
+                                <div class="absolute bottom-6 right-4 flex flex-col items-center gap-3 z-30">
+                                    <template x-for="reaction in ['fire','love','boring']" :key="reaction">
+                                        <button
+                                            @click.prevent="reactToTeaser(item.id, reaction)"
+                                            class="flex flex-col items-center justify-center bg-white/80 hover:bg-pink-100 rounded-full shadow p-2 transition"
+                                            :class="{
+                                                'ring-2 ring-pink-400': item.user_teaser_reaction === reaction
+                                            }"
+                                        >
+                                            <span x-text="{
+                                                fire: '🔥',
+                                                love: '❤️',
+                                                boring: '😐'
+                                            }[reaction]"></span>
+                                            <span class="text-xs font-semibold text-gray-700" x-text="item[reaction + '_count'] || 0"></span>
+                                        </button>
+                                    </template>
+                                </div>
+
                                 <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
                                     <span class="animate-spin text-3xl text-white">⏳</span>
                                 </div>
