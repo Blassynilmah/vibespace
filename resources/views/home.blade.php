@@ -549,13 +549,14 @@
                                             >
                                             <button
                                                 @click="postTeaserComment(activeTeaserComments)"
-                                                class="bg-pink-500 text-white px-4 right-6 py-2 rounded-lg font-semibold text-sm hover:bg-pink-600 transition"
+                                                class="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-pink-600 transition"
                                                 :disabled="!activeTeaserComments.newComment || activeTeaserComments.newComment.trim() === ''"
                                             >Send</button>
-                                      <!-- Close Button -->
-                                        <button @click="closeTeaserComments"
-                                            class="absolute top-2 right-3 text-gray-500 hover:text-pink-500 text-2xl font-bold z-50">×</button>
                                         </div>
+                                            <!-- Close Button -->
+                                            <button @click="closeTeaserComments"
+                                                class="absolute top-2 right-3 text-gray-500 hover:text-pink-500 text-2xl font-bold z-50">×
+                                            </button>
                                         <!-- Comments List -->
                                         <div class="flex-1 overflow-y-auto p-3 space-y-3">
                                             <template x-for="comment in (activeTeaserComments.comments || [])" :key="comment.id">
