@@ -851,6 +851,7 @@ document.addEventListener('alpine:init', () => {
                 const json = await res.json();
                 console.log('Backend response:', json);
 
+                console.log('Raw backend data:', json.data);
 
                 // Update fetched IDs
                 if (json.sent_board_ids) {
@@ -940,6 +941,9 @@ document.addEventListener('alpine:init', () => {
 
                 if (!this.items) this.items = [];
                 this.items.push(...newItems);
+
+                console.log('Items after push:', this.items);
+                console.log('Filtered boards:', this.filteredBoards);
 
                 this.setupVideoObservers();
                 this.page += 1;
@@ -1099,6 +1103,9 @@ document.addEventListener('alpine:init', () => {
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
             this.loadBoards();
+            this.$nextTick(() => {
+    console.log('Filtered boards after filter change:', this.filteredBoards);
+});
         },
 
         toggleMediaType(type) {
@@ -1118,6 +1125,9 @@ document.addEventListener('alpine:init', () => {
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
             this.loadBoards();
+            this.$nextTick(() => {
+                console.log('Filtered boards after filter change:', this.filteredBoards);
+            });
         },
 
         renderMediaPreview(board) {
