@@ -989,22 +989,20 @@ document.addEventListener('alpine:init', () => {
                     return;
                 }
 
-const newItems = json.data.map(this.normalizeItem)
+                const newItems = json.data.map(item => this.normalizeItem(item))
 
-
-                // Log details of loaded items
-                console.group(`Loaded ${newItems.length} items (page ${this.page})`);
+                console.group(`Loaded ${newItems.length} items (page ${this.page})`)
                 newItems.forEach(i => {
                     if (i.type === 'board') {
-                        console.log(`Board #${i.id}${i.title ? ` (${i.title})` : ''} → is_saved: ${i.is_saved}`);
+                        console.log(`Board #${i.id} → files:`, i.files)
                     } else if (i.type === 'teaser') {
-                        console.log(`Teaser #${i.id}${i.title ? ` (${i.title})` : ''}`);
+                        console.log(`Teaser #${i.id}`)
                     }
-                });
-                console.groupEnd();
+                })
+                console.groupEnd()
 
-                if (!this.items) this.items = [];
-                this.items.push(...newItems);
+                if (!this.items) this.items = []
+                this.items.push(...newItems)
 
                 this.setupVideoObservers();
                 this.page += 1;
