@@ -859,25 +859,25 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-toggleMediaType(type) {
-    if (this.loading) return;
+        toggleMediaType(type) {
+            if (this.loading) return;
 
-    if (this.selectedMediaTypes[0] === type) {
-        this.selectedMediaTypes = [];
-    } else {
-        this.selectedMediaTypes = [type];
-    }
+            if (this.selectedMediaTypes[0] === type) {
+                this.selectedMediaTypes = [];
+            } else {
+                this.selectedMediaTypes = [type];
+            }
 
-    // 🔥 Reset moods so they don’t conflict
-    this.selectedMoods = [];
+            // 🔥 Reset moods so they don’t conflict
+            this.selectedMoods = [];
 
-    this.page = 1;
-    this.items = [];
-    this.allLoaded = false;
-    this.fetchedBoardIds = [];
-    this.fetchedTeaserIds = [];
-    this.loadBoards();
-},
+            this.page = 1;
+            this.items = [];
+            this.allLoaded = false;
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
+            this.loadBoards();
+        },
 
         async loadBoards() {
             if (this.loading || this.allLoaded) return;
@@ -1002,11 +1002,12 @@ toggleMediaType(type) {
                 });
                 console.groupEnd();
 
-                if (!this.items) this.items = [];
-                this.items.push(...newItems);
+if (!this.items) this.items = [];
+this.items.push(...newItems);
 
-                console.log('Items after push:', this.items);
-                console.log('Filtered boards:', this.filteredBoards);
+// update filteredBoards here
+this.filteredBoards = this.items; 
+console.log('Filtered now:', this.filteredBoards);
 
                 this.setupVideoObservers();
                 this.page += 1;
