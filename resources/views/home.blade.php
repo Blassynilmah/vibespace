@@ -534,6 +534,44 @@
                                         </button>
                                 </div>
 
+                                <!-- Teaser Comments Modal -->
+                                <template x-if="showTeaserComments && activeTeaserComments && activeTeaserComments.id === item.id">
+                                    <div class="absolute left-0 bottom-0 w-full h-1/2 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
+                                        style="backdrop-filter: blur(8px);">
+                                        <!-- Close Button -->
+                                        <button @click="closeTeaserComments"
+                                            class="absolute top-2 right-3 text-gray-500 hover:text-pink-500 text-2xl font-bold z-50">×</button>
+                                        <!-- Input Field -->
+                                        <div class="p-3 border-b flex items-center gap-2">
+                                            <input
+                                                x-model="activeTeaserComments.newComment"
+                                                @keydown.enter.prevent="postTeaserComment(activeTeaserComments)"
+                                                type="text"
+                                                placeholder="Add a comment..."
+                                                class="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 text-sm"
+                                            >
+                                            <button
+                                                @click="postTeaserComment(activeTeaserComments)"
+                                                class="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-pink-600 transition"
+                                                :disabled="!activeTeaserComments.newComment || activeTeaserComments.newComment.trim() === ''"
+                                            >Send</button>
+                                        </div>
+                                        <!-- Comments List -->
+                                        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+                                            <template x-for="comment in (activeTeaserComments.comments || [])" :key="comment.id">
+                                                <div class="bg-gray-100 rounded-lg px-3 py-2 shadow text-sm">
+                                                    <div class="font-semibold text-pink-600 mb-1" x-text="comment.user.username"></div>
+                                                    <div x-text="comment.body"></div>
+                                                    <div class="text-xs text-gray-400 mt-1" x-text="timeSince(comment.created_at)"></div>
+                                                </div>
+                                            </template>
+                                            <template x-if="!activeTeaserComments.comments || activeTeaserComments.comments.length === 0">
+                                                <div class="text-gray-400 text-center mt-6">No comments yet. Be the first!</div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+
                                 <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
                                     <span class="animate-spin text-3xl text-white">⏳</span>
                                 </div>
@@ -754,6 +792,8 @@ document.addEventListener('alpine:init', () => {
         fetchedTeaserIds: [],
         teaserReactionClicks: {}, // { [teaserId]: [timestamps] }
         teaserReactionCooldowns: {}, // { [teaserId]: timestamp }
+        showTeaserComments: false,
+        activeTeaserComments: null,
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -1439,6 +1479,17 @@ document.addEventListener('alpine:init', () => {
             })
             .catch(() => this.showToast("Failed to react", 'error'))
             .finally(() => { teaser.reacting = false; });
+        },
+
+        openTeaserComments(teaser) {
+            this.activeTeaserComments = teaser;
+            this.showTeaserComments = true;
+            // Optionally: fetch comments here if not already loaded
+        },
+
+        closeTeaserComments() {
+            this.showTeaserComments = false;
+            this.activeTeaserComments = null;
         },
 
         isSendDisabled(board) {
