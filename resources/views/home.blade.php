@@ -534,6 +534,23 @@
                                         </button>
                                 </div>
 
+                                <!-- Save Button for Teaser -->
+                                <div class="absolute top-3 right-3 z-30">
+                                    <button
+                                        @click.prevent="toggleSaveTeaser(item)"
+                                        :disabled="item.saving"
+                                        :class="[
+                                            'px-3 py-1 rounded-full text-xs font-semibold transition-all',
+                                            item.is_saved
+                                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                                            item.saving ? 'opacity-50 cursor-not-allowed' : ''
+                                        ]"
+                                    >
+                                        <span x-text="item.is_saved ? '✔️ Saved' : '💾 Save'"></span>
+                                    </button>
+                                </div>
+
                                 <!-- Teaser Comments Modal -->
                                 <template x-if="showTeaserComments && activeTeaserComments && activeTeaserComments.id === item.id">
                                     <div class="absolute left-0 bottom-0 w-full h-1/2 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
@@ -1540,6 +1557,26 @@ document.addEventListener('alpine:init', () => {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
             };
+        },
+
+        async toggleSaveTeaser(teaser) {
+            if (teaser.saving) return;
+            teaser.saving = true;
+            try {
+                const res = await fetch('/teasers/toggle-save', {
+                    method: 'POST',
+                    headers: this._headers(),
+                    body: JSON.stringify({ teaser_id: teaser.id })
+                });
+                if (!res.ok) throw new Error();
+                const data = await res.json();
+                teaser.is_saved = data.is_saved;
+                this.showToast(data.is_saved ? 'Teaser saved!' : 'Removed from saved');
+            } catch {
+                this.showToast('Failed to save teaser', 'error');
+            } finally {
+                teaser.saving = false;
+            }
         },
 
         showToast(message = "Done!", type = 'success', delay = 3000) {
