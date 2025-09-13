@@ -830,6 +830,9 @@ document.addEventListener('alpine:init', () => {
                 + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
                 + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
                 
+                // Log the request URL
+                console.log('Request URL:', url);
+
             try {
                 const res = await fetch(url, {
                     credentials: 'include',
@@ -1104,8 +1107,8 @@ document.addEventListener('alpine:init', () => {
             this.fetchedTeaserIds = [];
             this.loadBoards();
             this.$nextTick(() => {
-    console.log('Filtered boards after filter change:', this.filteredBoards);
-});
+                console.log('Filtered boards after filter change:', this.filteredBoards);
+            });
         },
 
         toggleMediaType(type) {
