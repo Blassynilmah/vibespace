@@ -471,7 +471,13 @@
                                 <template x-if="item.teaser_mood">
                                     <div class="absolute top-3 left-3 z-20">
                                         <span
-                                            class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold shadow bg-pink-600 text-white"
+                                            class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold shadow text-white"
+                                            :class="{
+                                                'bg-orange-600': item.teaser_mood === 'hype',
+                                                'bg-yellow-500': item.teaser_mood === 'funny',
+                                                'bg-purple-600': item.teaser_mood === 'shock',
+                                                'bg-pink-600': item.teaser_mood === 'love'
+                                            }"
                                             x-text="{
                                                 hype: '🔥 Hype',
                                                 funny: '😂 Funny',
@@ -481,6 +487,7 @@
                                         ></span>
                                     </div>
                                 </template>
+
                                 <video
                                     x-show="!item.teaserError"
                                     :src="item.video"
