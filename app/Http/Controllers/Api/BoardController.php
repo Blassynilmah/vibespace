@@ -17,33 +17,20 @@ public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
 
-    // Get counts from query params
     $moodboardCount = 20;
     $teaserCount = 5;
 
-    // Get IDs to exclude (already sent to frontend)
     $excludeBoardIds = $request->query('exclude_board_ids', []);
     $excludeTeaserIds = $request->query('exclude_teaser_ids', []);
     if (!is_array($excludeBoardIds)) $excludeBoardIds = explode(',', $excludeBoardIds);
     if (!is_array($excludeTeaserIds)) $excludeTeaserIds = explode(',', $excludeTeaserIds);
 
-    // Get media type filter (only one allowed at a time)
     $mediaTypes = array_filter(explode(',', $request->query('media_types', '')));
     $mediaType = count($mediaTypes) === 1 ? $mediaTypes[0] : null;
 
-    // Get mood filter (can be multiple)
     $moods = array_filter(explode(',', $request->query('moods', '')));
 
-    // Log incoming filter parameters
-    \Log::info('BoardController@index called', [
-        'viewer_id' => $viewerId,
-        'media_type' => $mediaType,
-        'moods' => $moods,
-        'exclude_board_ids' => $excludeBoardIds,
-        'exclude_teaser_ids' => $excludeTeaserIds,
-    ]);
-
-    // Build moodboard query
+    // 🔹 Build moodboard query
     $boardsQuery = MoodBoard::query()
         ->whereNotIn('id', $excludeBoardIds)
         ->with([
@@ -57,12 +44,10 @@ public function index(Request $request)
             'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
         ]);
 
-    // Apply mood filter (multiple moods allowed)
     if (!empty($moods)) {
         $boardsQuery->whereIn('latest_mood', $moods);
     }
 
-    // Apply media type filter (only one at a time)
     if ($mediaType) {
         if ($mediaType === 'video') {
             $boardsQuery->whereNotNull('video')->whereNull('image');
@@ -73,23 +58,19 @@ public function index(Request $request)
                 ->whereNull('image')
                 ->whereNotNull('description');
         }
-        // If 'teaser', don't fetch moodboards at all (handled below)
+        // if teaser, we skip boards entirely
     }
 
-    // Only fetch moodboards if mediaType is not 'teaser'
     $boards = collect();
     if (!$mediaType || $mediaType !== 'teaser') {
         $boards = $boardsQuery
             ->latest()
             ->take($moodboardCount)
             ->get()
-            ->map(function ($board) {
-                $board->type = 'board';
-                return $board;
-            });
+            ->map(fn($board) => $this->formatBoard($board) + ['type' => 'board']);
     }
 
-    // Build teasers query (only if 'teaser' is selected or no mediaType is selected)
+    // 🔹 Build teasers
     $teasers = collect();
     if (!$mediaType || $mediaType === 'teaser') {
         $teasers = Teaser::query()
@@ -99,91 +80,51 @@ public function index(Request $request)
             ->take($teaserCount)
             ->get()
             ->map(function ($teaser) {
-                $teaser->type = 'teaser';
-                $teaser->video = $teaser->video
-                    ? asset('storage/' . ltrim($teaser->video, '/'))
-                    : null;
-                return $teaser;
+                return [
+                    'id' => $teaser->id,
+                    'title' => $teaser->title ?? '',
+                    'description' => $teaser->description ?? '',
+                    'created_at' => $teaser->created_at,
+                    'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
+                    'hashtags' => $teaser->hashtags ?? '',
+                    'username' => $teaser->user->username ?? '',
+                    'user' => [
+                        'id' => $teaser->user->id,
+                        'username' => $teaser->user->username,
+                        'profile_picture' => $teaser->user->profilePicture->path ?? null,
+                    ],
+                    'expires_on' => $teaser->expires_on ?? null,
+                    'expires_after' => $teaser->expires_after ?? null,
+                    'type' => 'teaser',
+                ];
             });
     }
 
-    // Log the raw moodboards and teasers before formatting
-    \Log::info('BoardController@index moodboards', [
-        'count' => $boards->count(),
-        'ids' => $boards->pluck('id')->all(),
-        'sample' => $boards->take(3)->toArray(),
-    ]);
-    \Log::info('BoardController@index teasers', [
-        'count' => $teasers->count(),
-        'ids' => $teasers->pluck('id')->all(),
-        'sample' => $teasers->take(3)->toArray(),
-    ]);
-
-    // Shuffle both arrays
+    // 🔹 Shuffle and merge (boards + teasers)
     $boards = $boards->shuffle()->values();
     $teasers = $teasers->shuffle()->values();
 
-    // Merge: never two teasers in a row, always start with a board if possible
     $final = [];
     $teaserIndex = 0;
-    $totalTeasers = $teasers->count();
-
-    foreach ($boards as $i => $board) {
+    foreach ($boards as $board) {
         $final[] = $board;
-        if ($teaserIndex < $totalTeasers && (empty($final) || $final[count($final) - 1]->type === 'board')) {
+        if ($teaserIndex < $teasers->count() && end($final)['type'] === 'board') {
             $final[] = $teasers[$teaserIndex++];
         }
     }
-    while ($teaserIndex < $totalTeasers) {
-        if (!empty($final) && $final[count($final) - 1]->type === 'board') {
+    while ($teaserIndex < $teasers->count()) {
+        if (!empty($final) && end($final)['type'] === 'board') {
             $final[] = $teasers[$teaserIndex++];
         } else {
             break;
         }
     }
 
-    // Format for API response
-    $formatted = collect($final)->map(function ($item) use ($viewerId) {
-        if ($item->type === 'board') {
-            return $this->formatBoard($item) + ['type' => 'board'];
-        } else {
-            return [
-                'id' => $item->id,
-                'title' => $item->title ?? '',
-                'description' => $item->description ?? '',
-                'created_at' => $item->created_at,
-                'video' => $item->video,
-                'hashtags' => $item->hashtags ?? '',
-                'username' => $item->user->username ?? '',
-                'user' => [
-                    'id' => $item->user->id,
-                    'username' => $item->user->username,
-                    'profile_picture' => $item->user->profilePicture->path ?? null,
-                ],
-                'expires_on' => $item->expires_on ?? null,
-                'expires_after' => $item->expires_after ?? null,
-                'type' => 'teaser',
-            ];
-        }
-    });
-
-    // Log the final formatted data sent to frontend
-    \Log::info('BoardController@index formatted response', [
-        'formatted_count' => $formatted->count(),
-        'formatted_sample' => $formatted->take(3)->toArray(),
+    // 🔹 Return response
+    return response()->json([
+        'data' => $final,
         'sent_board_ids' => $boards->pluck('id')->all(),
         'sent_teaser_ids' => $teasers->pluck('id')->all(),
-        'all_loaded' => ($boards->count() < $moodboardCount) && ($teasers->count() < $teaserCount),
-    ]);
-
-    // Return the IDs sent, so frontend can track and exclude next time
-    $sentBoardIds = $boards->pluck('id')->all();
-    $sentTeaserIds = $teasers->pluck('id')->all();
-
-    return response()->json([
-        'data' => $formatted,
-        'sent_board_ids' => $sentBoardIds,
-        'sent_teaser_ids' => $sentTeaserIds,
         'all_loaded' => ($boards->count() < $moodboardCount) && ($teasers->count() < $teaserCount),
     ]);
 }
