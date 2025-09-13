@@ -68,7 +68,6 @@ public function store(Request $request)
 
         return response()->json([
             'success'  => true,
-            'redirect' => route('teasers.show', $teaser->id),
         ]);
     } catch (\Exception $e) {
         \Log::error('Teaser upload failed', [
