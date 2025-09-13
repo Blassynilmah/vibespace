@@ -1002,12 +1002,8 @@ document.addEventListener('alpine:init', () => {
                 });
                 console.groupEnd();
 
-if (!this.items) this.items = [];
-this.items.push(...newItems);
-
-// update filteredBoards here
-this.filteredBoards = this.items; 
-console.log('Filtered now:', this.filteredBoards);
+                if (!this.items) this.items = [];
+                this.items.push(...newItems);
 
                 this.setupVideoObservers();
                 this.page += 1;
