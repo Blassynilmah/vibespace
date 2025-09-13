@@ -79,7 +79,17 @@ if (!$mediaType || $mediaType === 'teaser') {
         ->latest()
         ->take($teaserCount)
         ->get()
-        ->map(function ($teaser) {
+        ->map(function ($teaser) use ($viewerId) {
+            // Get counts for each reaction type
+            $fireCount   = $teaser->reactions()->where('reaction', 'fire')->count();
+            $loveCount   = $teaser->reactions()->where('reaction', 'love')->count();
+            $boringCount = $teaser->reactions()->where('reaction', 'boring')->count();
+
+            // Get current user's reaction (if logged in)
+            $userReaction = null;
+            if ($viewerId) {
+                $userReaction = $teaser->reactions()->where('user_id', $viewerId)->value('reaction');
+            }
             return [
                 'id' => $teaser->id,
                 'title' => $teaser->title ?? '',
@@ -95,7 +105,11 @@ if (!$mediaType || $mediaType === 'teaser') {
                 ],
                 'expires_on' => $teaser->expires_on ?? null,
                 'expires_after' => $teaser->expires_after ?? null,
-                'teaser_mood' => $teaser->teaser_mood, // <-- Add this line
+                'teaser_mood' => $teaser->teaser_mood,
+                'fire_count' => $fireCount,
+                'love_count' => $loveCount,
+                'boring_count' => $boringCount,
+                'user_teaser_reaction' => $userReaction,
                 'type' => 'teaser',
             ];
         });
