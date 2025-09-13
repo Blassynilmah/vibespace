@@ -394,6 +394,7 @@
                                             <button
                                                 @click.prevent="react(item.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
                                                 x-data="{ showName: false }"
+                                                :disabled="item.reacting"
                                                 @mouseenter="showName = true" 
                                                 @mouseleave="showName = false"
                                                 class="flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
@@ -1302,7 +1303,19 @@ document.addEventListener('alpine:init', () => {
             })
             .then(async res => res.ok ? res.json() : Promise.reject(await res.json()))
             .then(data => {
-                // ... update board state as before ...
+                const newMood = data.mood;
+                const prevMood = data.previous;
+
+                if (prevMood && prevMood !== newMood) {
+                    const kPrev = this.moodKey(prevMood) + '_count';
+                    board[kPrev] = Math.max(0, (board[kPrev] || 0) - 1);
+                }
+
+                const kNew = this.moodKey(newMood) + '_count';
+                board[kNew] = (board[kNew] || 0) + 1;
+
+                board.user_reacted_mood = newMood;
+
                 this.showToast("Mood updated! 💖");
             })
             .catch(err => this.showToast(err?.error || "Failed to react 💔", 'error'))
