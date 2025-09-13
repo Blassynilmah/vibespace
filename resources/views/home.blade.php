@@ -524,6 +524,14 @@
                                             <span class="text-xs font-semibold text-gray-700" x-text="item[reaction + '_count'] || 0"></span>
                                         </button>
                                     </template>
+                                        <button
+                                            @click="openTeaserComments(item)"
+                                            class="mt-2 flex flex-col items-center justify-center bg-white/80 hover:bg-pink-100 rounded-full shadow p-2 transition"
+                                            title="View Comments"
+                                        >
+                                            <span>💬</span>
+                                            <span class="text-xs font-semibold text-gray-700" x-text="item.comment_count || 0"></span>
+                                        </button>
                                 </div>
 
                                 <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
@@ -744,6 +752,8 @@ document.addEventListener('alpine:init', () => {
         teaserPlayStates: {},
         fetchedBoardIds: [],
         fetchedTeaserIds: [],
+        teaserReactionClicks: {}, // { [teaserId]: [timestamps] }
+        teaserReactionCooldowns: {}, // { [teaserId]: timestamp }
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -1383,22 +1393,45 @@ document.addEventListener('alpine:init', () => {
         },
 
         reactToTeaser(teaserId, reaction) {
+            const now = Date.now();
             const teaser = this.items.find(t => t.id === teaserId && t.type === 'teaser');
             if (!teaser) return;
-            if (teaser.user_teaser_reaction === reaction) return; // Already reacted
 
-            // Optional: prevent spamming
+            // Cooldown check
+            if (this.teaserReactionCooldowns[teaserId] && now < this.teaserReactionCooldowns[teaserId]) {
+                this.showToast("Too many reactions! Please wait a bit.", "error");
+                return;
+            }
+
+            // Track click timestamps
+            if (!this.teaserReactionClicks[teaserId]) this.teaserReactionClicks[teaserId] = [];
+            // Remove timestamps older than 1 minute
+            this.teaserReactionClicks[teaserId] = this.teaserReactionClicks[teaserId].filter(ts => now - ts < 60000);
+            this.teaserReactionClicks[teaserId].push(now);
+
+            if (this.teaserReactionClicks[teaserId].length > 4) {
+                // Set 30s cooldown
+                this.teaserReactionCooldowns[teaserId] = now + 30000;
+                this.showToast("Reaction limit reached! Try again in 30 seconds.", "error");
+                return;
+            }
+
             if (teaser.reacting) return;
             teaser.reacting = true;
 
+            // If already reacted, remove reaction
+            const isRemoving = teaser.user_teaser_reaction === reaction;
             fetch('/teasers/react', {
                 method: 'POST',
                 headers: this._headers(),
-                body: JSON.stringify({ teaser_id: teaserId, reaction }),
+                body: JSON.stringify({
+                    teaser_id: teaserId,
+                    reaction,
+                    remove: isRemoving ? 1 : 0
+                }),
             })
             .then(res => res.ok ? res.json() : Promise.reject())
             .then(data => {
-                // Update counts
                 ['fire','love','boring'].forEach(r => {
                     teaser[r + '_count'] = data[r + '_count'] || 0;
                 });
