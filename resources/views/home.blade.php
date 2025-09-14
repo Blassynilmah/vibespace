@@ -863,6 +863,12 @@ scrollHandler() {
             return;
         }
 
+        // Log the index and position of each tile
+        tiles.forEach((tile, idx) => {
+            const rect = tile.getBoundingClientRect();
+            console.log(`[scrollHandler] Tile index: ${idx}, top: ${rect.top}, bottom: ${rect.bottom}, inView: ${rect.top < window.innerHeight && rect.bottom > 0}`);
+        });
+
         let lastVisibleIndex = -1;
         for (let i = tiles.length - 1; i >= 0; i--) {
             const rect = tiles[i].getBoundingClientRect();
@@ -874,7 +880,6 @@ scrollHandler() {
 
         console.log(`[scrollHandler] lastVisibleIndex: ${lastVisibleIndex}, loading: ${this.loading}, allLoaded: ${this.allLoaded}`);
 
-        // Fetch when user scrolls to index 10 or beyond
         if (
             lastVisibleIndex >= 10 &&
             !this.loading &&
