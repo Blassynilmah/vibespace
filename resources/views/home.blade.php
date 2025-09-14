@@ -1049,6 +1049,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         async loadBoards() {
+            console.log('Calling loadBoards', { loading: this.loading, allLoaded: this.allLoaded, page: this.page });
             if (this.loading || this.allLoaded) return;
             if (this.page === 1) this.loading = true;
 
