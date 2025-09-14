@@ -849,32 +849,42 @@ document.addEventListener('alpine:init', () => {
             this.setupVideoObservers();
         },
 
-        scrollHandler() {
-            this.$nextTick(() => {
-                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-                if (!feed) return;
-                const tiles = feed.querySelectorAll('.feed-tile');
-                if (tiles.length === 0) return;
+scrollHandler() {
+    console.log('[scrollHandler] Scroll event triggered');
+    this.$nextTick(() => {
+        const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+        if (!feed) {
+            console.log('[scrollHandler] Feed container not found');
+            return;
+        }
+        const tiles = feed.querySelectorAll('.feed-tile');
+        if (tiles.length === 0) {
+            console.log('[scrollHandler] No feed tiles found');
+            return;
+        }
 
-                let lastVisibleIndex = -1;
-                for (let i = tiles.length - 1; i >= 0; i--) {
-                    const rect = tiles[i].getBoundingClientRect();
-                    if (rect.top < window.innerHeight) {
-                        lastVisibleIndex = i;
-                        break;
-                    }
-                }
+        let lastVisibleIndex = -1;
+        for (let i = tiles.length - 1; i >= 0; i--) {
+            const rect = tiles[i].getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+                lastVisibleIndex = i;
+                break;
+            }
+        }
 
-                // Fetch when user scrolls to index 10 or beyond
-                if (
-                    lastVisibleIndex >= 10 &&
-                    !this.loading &&
-                    !this.allLoaded
-                ) {
-                    this.loadBoards();
-                }
-            });
-        },
+        console.log(`[scrollHandler] lastVisibleIndex: ${lastVisibleIndex}, loading: ${this.loading}, allLoaded: ${this.allLoaded}`);
+
+        // Fetch when user scrolls to index 10 or beyond
+        if (
+            lastVisibleIndex >= 10 &&
+            !this.loading &&
+            !this.allLoaded
+        ) {
+            console.log('[scrollHandler] Triggering loadBoards()');
+            this.loadBoards();
+        }
+    });
+},
 
         setupVideoObservers() {
             this.$nextTick(() => {
