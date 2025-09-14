@@ -943,14 +943,15 @@ document.addEventListener('alpine:init', () => {
         get filteredBoards() {
             return this.items.filter(item => {
                 if (item.type === 'teaser') {
-                    // Only show if 'teaser' is selected or no filter is applied
+                    // Show teasers unless a media type filter is set and "teaser" is NOT included
                     return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
                 }
                 if (item.type === 'board') {
                     // Mood filter (multiple moods allowed)
                     const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
-                    // No need to check media type, backend already filtered
-                    return moodMatch;
+                    // Media type filter for boards
+                    const mediaMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(item.media_type);
+                    return moodMatch && mediaMatch;
                 }
                 return false;
             });
