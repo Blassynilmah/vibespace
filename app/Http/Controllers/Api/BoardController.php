@@ -17,8 +17,8 @@ public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
 
-    $moodboardCount = 20;
-    $teaserCount = 5;
+    $boardsPerPage = 20;
+    $teasersPerPage = 3;
 
     $excludeBoardIds = $request->query('exclude_board_ids', []);
     $excludeTeaserIds = $request->query('exclude_teaser_ids', []);
@@ -30,7 +30,7 @@ public function index(Request $request)
 
     $moods = array_filter(explode(',', $request->query('moods', '')));
 
-    // 🔹 Build moodboard query
+    // Boards query
     $boardsQuery = MoodBoard::query()
         ->whereNotIn('id', $excludeBoardIds)
         ->with([
@@ -58,92 +58,106 @@ public function index(Request $request)
                 ->whereNull('image')
                 ->whereNotNull('description');
         }
-        // if teaser, we skip boards entirely
     }
 
     $boards = collect();
     if (!$mediaType || $mediaType !== 'teaser') {
         $boards = $boardsQuery
             ->latest()
-            ->take($moodboardCount)
+            ->take($boardsPerPage)
             ->get()
             ->map(fn($board) => $this->formatBoard($board) + ['type' => 'board']);
     }
 
-    // 🔹 Build teasers
-$teasers = collect();
-if (!$mediaType || $mediaType === 'teaser') {
-    $teasers = Teaser::query()
-        ->whereNotIn('id', $excludeTeaserIds)
-        ->with('user.profilePicture')
-        ->withCount('comments')
-        ->latest()
-        ->take($teaserCount)
-        ->get()
-        ->map(function ($teaser) use ($viewerId) {
-            // Get counts for each reaction type
-            $fireCount   = $teaser->reactions()->where('reaction', 'fire')->count();
-            $loveCount   = $teaser->reactions()->where('reaction', 'love')->count();
-            $boringCount = $teaser->reactions()->where('reaction', 'boring')->count();
+    // Teasers query
+    $teasers = collect();
+    if (!$mediaType || $mediaType === 'teaser') {
+        $teasers = Teaser::query()
+            ->whereNotIn('id', $excludeTeaserIds)
+            ->with('user.profilePicture')
+            ->withCount('comments')
+            ->latest()
+            ->take($teasersPerPage)
+            ->get()
+            ->map(function ($teaser) use ($viewerId) {
+                $fireCount   = $teaser->reactions()->where('reaction', 'fire')->count();
+                $loveCount   = $teaser->reactions()->where('reaction', 'love')->count();
+                $boringCount = $teaser->reactions()->where('reaction', 'boring')->count();
+                $userReaction = null;
+                if ($viewerId) {
+                    $userReaction = $teaser->reactions()->where('user_id', $viewerId)->value('reaction');
+                }
+                return [
+                    'id' => $teaser->id,
+                    'title' => $teaser->title ?? '',
+                    'description' => $teaser->description ?? '',
+                    'created_at' => $teaser->created_at,
+                    'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
+                    'hashtags' => $teaser->hashtags ?? '',
+                    'username' => $teaser->user->username ?? '',
+                    'user' => [
+                        'id' => $teaser->user->id,
+                        'username' => $teaser->user->username,
+                        'profile_picture' => $teaser->user->profilePicture->path ?? null,
+                    ],
+                    'is_saved' => $viewerId ? $teaser->saves()->where('user_id', $viewerId)->exists() : false,
+                    'comment_count' => $teaser->comments_count ?? 0,
+                    'expires_on' => $teaser->expires_on ?? null,
+                    'expires_after' => $teaser->expires_after ?? null,
+                    'teaser_mood' => $teaser->teaser_mood,
+                    'fire_count' => $fireCount,
+                    'love_count' => $loveCount,
+                    'boring_count' => $boringCount,
+                    'user_teaser_reaction' => $userReaction,
+                    'type' => 'teaser',
+                ];
+            });
+    }
 
-            // Get current user's reaction (if logged in)
-            $userReaction = null;
-            if ($viewerId) {
-                $userReaction = $teaser->reactions()->where('user_id', $viewerId)->value('reaction');
-            }
-            return [
-                'id' => $teaser->id,
-                'title' => $teaser->title ?? '',
-                'description' => $teaser->description ?? '',
-                'created_at' => $teaser->created_at,
-                'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
-                'hashtags' => $teaser->hashtags ?? '',
-                'username' => $teaser->user->username ?? '',
-                'user' => [
-                    'id' => $teaser->user->id,
-                    'username' => $teaser->user->username,
-                    'profile_picture' => $teaser->user->profilePicture->path ?? null,
-                ],
-                'is_saved' => $viewerId ? $teaser->saves()->where('user_id', $viewerId)->exists() : false,
-                'comment_count' => $teaser->comments_count ?? 0,
-                'expires_on' => $teaser->expires_on ?? null,
-                'expires_after' => $teaser->expires_after ?? null,
-                'teaser_mood' => $teaser->teaser_mood,
-                'fire_count' => $fireCount,
-                'love_count' => $loveCount,
-                'boring_count' => $boringCount,
-                'user_teaser_reaction' => $userReaction,
-                'type' => 'teaser',
-            ];
-        });
-}
-
-    // 🔹 Shuffle and merge (boards + teasers)
-    $boards = $boards->shuffle()->values();
-    $teasers = $teasers->shuffle()->values();
-
+    // Merge logic
     $final = [];
     $teaserIndex = 0;
-    foreach ($boards as $board) {
-        $final[] = $board;
-        if ($teaserIndex < $teasers->count() && end($final)['type'] === 'board') {
-            $final[] = $teasers[$teaserIndex++];
-        }
-    }
-    while ($teaserIndex < $teasers->count()) {
-        if (!empty($final) && end($final)['type'] === 'board') {
-            $final[] = $teasers[$teaserIndex++];
-        } else {
-            break;
+    $boardIndex = 0;
+    $totalBoards = $boards->count();
+    $totalTeasers = $teasers->count();
+
+    // Placement positions for teasers (1-based index)
+    $teaserPositions = [2, 8, 16]; // for first page
+    $page = (int) $request->query('page', 1);
+
+    // For subsequent pages, teasers at 24, 32, etc.
+    if ($page > 1) {
+        $teaserPositions = [];
+        $start = 24 + ($page - 2) * $boardsPerPage;
+        for ($i = 0; $i < $teasersPerPage; $i++) {
+            $teaserPositions[] = $start + ($i * 8);
         }
     }
 
-    // 🔹 Return response
+    $currentPos = 1;
+    $teaserPosIndex = 0;
+
+    while ($boardIndex < $totalBoards || $teaserIndex < $totalTeasers) {
+        // Insert teaser if current position matches a teaser position and teasers remain
+        if ($teaserPosIndex < count($teaserPositions) && $currentPos === $teaserPositions[$teaserPosIndex] && $teaserIndex < $totalTeasers) {
+            $final[] = $teasers[$teaserIndex++];
+            $teaserPosIndex++;
+        } elseif ($boardIndex < $totalBoards) {
+            $final[] = $boards[$boardIndex++];
+        }
+        $currentPos++;
+    }
+
+    // If any teasers left, append them at the end
+    while ($teaserIndex < $totalTeasers) {
+        $final[] = $teasers[$teaserIndex++];
+    }
+
     return response()->json([
         'data' => $final,
         'sent_board_ids' => $boards->pluck('id')->all(),
         'sent_teaser_ids' => $teasers->pluck('id')->all(),
-        'all_loaded' => ($boards->count() < $moodboardCount) && ($teasers->count() < $teaserCount),
+        'all_loaded' => ($boards->count() < $boardsPerPage) && ($teasers->count() < $teasersPerPage),
     ]);
 }
 
