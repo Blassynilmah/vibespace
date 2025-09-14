@@ -865,13 +865,13 @@ document.addEventListener('alpine:init', () => {
                         break;
                     }
                 }
-                
+
+                // Fetch when user scrolls to index 10 or beyond
                 if (
-                    lastVisibleIndex >= tiles.length - 15 &&
+                    lastVisibleIndex >= 10 &&
                     !this.loading &&
                     !this.allLoaded
                 ) {
-                    console.log('Within 15 tiles of the end, loading more...');
                     this.loadBoards();
                 }
             });
@@ -1565,49 +1565,49 @@ document.addEventListener('alpine:init', () => {
             };
         },
 
-async toggleSaveTeaser(teaser) {
-    // Debug: Log when the function is called
-    console.log('[toggleSaveTeaser] Clicked for teaser:', teaser);
+        async toggleSaveTeaser(teaser) {
+            // Debug: Log when the function is called
+            console.log('[toggleSaveTeaser] Clicked for teaser:', teaser);
 
-    // Prevent double-clicks while saving
-    if (teaser.saving) {
-        console.log('[toggleSaveTeaser] Already saving, aborting.');
-        return;
-    }
-    teaser.saving = true;
+            // Prevent double-clicks while saving
+            if (teaser.saving) {
+                console.log('[toggleSaveTeaser] Already saving, aborting.');
+                return;
+            }
+            teaser.saving = true;
 
-    try {
-        // Send the save/unsave request
-        const response = await fetch('/teasers/toggle-save', {
-            method: 'POST',
-            headers: this._headers(),
-            body: JSON.stringify({ teaser_id: teaser.id })
-        });
+            try {
+                // Send the save/unsave request
+                const response = await fetch('/teasers/toggle-save', {
+                    method: 'POST',
+                    headers: this._headers(),
+                    body: JSON.stringify({ teaser_id: teaser.id })
+                });
 
-        // Debug: Log the raw response
-        console.log('[toggleSaveTeaser] Response:', response);
+                // Debug: Log the raw response
+                console.log('[toggleSaveTeaser] Response:', response);
 
-        if (!response.ok) {
-            const text = await response.text();
-            console.error('[toggleSaveTeaser] Error response:', text);
-            throw new Error('Failed to toggle save');
-        }
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('[toggleSaveTeaser] Error response:', text);
+                    throw new Error('Failed to toggle save');
+                }
 
-        const data = await response.json();
-        console.log('[toggleSaveTeaser] Parsed response:', data);
+                const data = await response.json();
+                console.log('[toggleSaveTeaser] Parsed response:', data);
 
-        // Update the teaser's saved state
-        teaser.is_saved = !!data.is_saved;
-        this.showToast(teaser.is_saved ? 'Teaser saved!' : 'Removed from saved');
+                // Update the teaser's saved state
+                teaser.is_saved = !!data.is_saved;
+                this.showToast(teaser.is_saved ? 'Teaser saved!' : 'Removed from saved');
 
-    } catch (error) {
-        console.error('[toggleSaveTeaser] Exception:', error);
-        this.showToast('Failed to save teaser', 'error');
-    } finally {
-        teaser.saving = false;
-        console.log('[toggleSaveTeaser] Done for teaser:', teaser.id);
-    }
-},
+            } catch (error) {
+                console.error('[toggleSaveTeaser] Exception:', error);
+                this.showToast('Failed to save teaser', 'error');
+            } finally {
+                teaser.saving = false;
+                console.log('[toggleSaveTeaser] Done for teaser:', teaser.id);
+            }
+        },
 
         showToast(message = "Done!", type = 'success', delay = 3000) {
             const box = document.getElementById('toastBox');
