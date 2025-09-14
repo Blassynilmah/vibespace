@@ -4,7 +4,7 @@
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed" x-init="init">
     <!-- Global Loading Spinner Overlay -->
 <div 
-    x-show="loading"
+    x-show="initialLoading"
     style="position: fixed; inset: 0; z-index: 9999; background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center;"
     x-transition.opacity
 >
@@ -767,6 +767,7 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('vibeFeed', () => ({
         items: [],
         loading: false,
+        initialLoading: true,
         boards: [],
         page: 1,
         allLoaded: false,
@@ -815,10 +816,13 @@ document.addEventListener('alpine:init', () => {
 
         init() {
             console.log("Alpine vibeFeed initialized");
+            this.initialLoading = true;
             this.page = 1;
             this.items = [];
             this.allLoaded = false;
-            this.loadBoards();
+            this.loadBoards().finally(() => {
+                this.initialLoading = false;
+            });
             window.addEventListener('scroll', this.scrollHandler.bind(this));
             window.fb = this.filteredBoards;
 
@@ -1047,7 +1051,7 @@ document.addEventListener('alpine:init', () => {
 
         async loadBoards() {
             if (this.loading || this.allLoaded) return;
-            this.loading = true;
+            if (this.page === 1) this.loading = true;
 
             const url = `/api/boards?moodboards=20&teasers=5`
                 + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
