@@ -1054,76 +1054,77 @@ document.addEventListener('alpine:init', () => {
             return item
         },
 
-async loadBoards() {
-    if (this.loading || this.allLoaded) return;
-    if (this.page === 1) this.loading = true;
+        async loadBoards() {
+            if (this.loading || this.allLoaded) return;
+            if (this.page === 1) this.loading = true;
 
-    const url = `/api/boards?moodboards=20&teasers=5`
-        + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
-        + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
-        + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
-        + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
+            const url = `/api/boards?moodboards=20&teasers=5`
+                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
+                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
+                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
 
-    try {
-        const res = await fetch(url, {
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-        });
+            try {
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
 
-        const contentType = res.headers.get('content-type') || '';
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`Request failed: ${res.status}`);
-        }
-        if (!contentType.includes('application/json')) {
-            const text = await res.text();
-            throw new Error('Non-JSON response received');
-        }
+                const contentType = res.headers.get('content-type') || '';
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Request failed: ${res.status}`);
+                }
+                if (!contentType.includes('application/json')) {
+                    const text = await res.text();
+                    throw new Error('Non-JSON response received');
+                }
 
-        const json = await res.json();
+                const json = await res.json();
 
-        // Update fetched IDs
-        if (json.sent_board_ids) {
-            this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
-        }
-        if (json.sent_teaser_ids) {
-            this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
-        }
+                // Update fetched IDs
+                if (json.sent_board_ids) {
+                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
+                }
+                if (json.sent_teaser_ids) {
+                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
+                }
 
-        if (!json.data || json.data.length === 0 || json.all_loaded) {
-            this.allLoaded = true;
-            return;
-        }
+                // 🛑 Fix: Return immediately if no data or all_loaded
+                if (!json.data || json.data.length === 0 || json.all_loaded) {
+                    this.allLoaded = true;
+                    return; // <--- This prevents further processing and logging
+                }
 
-        const newItems = json.data.map(item => this.normalizeItem(item))
-            .filter(newItem => !this.items.some(existing =>
-                existing.type === newItem.type &&
-                existing.id === newItem.id &&
-                existing.created_at === newItem.created_at
-            ));
+                const newItems = json.data.map(item => this.normalizeItem(item))
+                    .filter(newItem => !this.items.some(existing =>
+                        existing.type === newItem.type &&
+                        existing.id === newItem.id &&
+                        existing.created_at === newItem.created_at
+                    ));
 
-        console.group(`Loaded ${newItems.length} items (page ${this.page})`)
-        newItems.forEach(i => {
-            if (i.type === 'board') {
-                console.log(`Board #${i.id} → files:`, i.files)
-            } else if (i.type === 'teaser') {
-                console.log(`Teaser #${i.id}`)
+                console.group(`Loaded ${newItems.length} items (page ${this.page})`)
+                newItems.forEach(i => {
+                    if (i.type === 'board') {
+                        console.log(`Board #${i.id} → files:`, i.files)
+                    } else if (i.type === 'teaser') {
+                        console.log(`Teaser #${i.id}`)
+                    }
+                })
+                console.groupEnd()
+
+                if (!this.items) this.items = []
+                this.items.push(...newItems)
+
+                this.setupVideoObservers();
+                this.page += 1;
+                this.initializePlayStates();
+
+            } catch (error) {
+            } finally {
+                this.loading = false;
             }
-        })
-        console.groupEnd()
-
-        if (!this.items) this.items = []
-        this.items.push(...newItems)
-
-        this.setupVideoObservers();
-        this.page += 1;
-        this.initializePlayStates();
-
-    } catch (error) {
-    } finally {
-        this.loading = false;
-    }
-},
+        },
 
         handlePlay(id) {
             this.currentPlayingTeaserId = id;
