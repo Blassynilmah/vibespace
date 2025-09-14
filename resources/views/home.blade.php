@@ -849,6 +849,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         scrollHandler() {
+            if (this.loading || this.allLoaded) return;
             this.$nextTick(() => {
                 const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
                 if (!feed) {
@@ -1090,10 +1091,11 @@ document.addEventListener('alpine:init', () => {
                     this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
                 }
 
-                // 🛑 Fix: Return immediately if no data or all_loaded
+                // 🛑 Fix: Set loading to false before returning
                 if (!json.data || json.data.length === 0 || json.all_loaded) {
                     this.allLoaded = true;
-                    return; // <--- This prevents further processing and logging
+                    this.loading = false; // <--- Add this line
+                    return;
                 }
 
                 const newItems = json.data.map(item => this.normalizeItem(item))
