@@ -972,7 +972,6 @@ document.addEventListener('alpine:init', () => {
             this.fetchedTeaserIds = [];
             this.loadBoards();
             this.$nextTick(() => {
-                console.log('Filtered boards after filter change:', this.filteredBoards);
             });
         },
 
@@ -1074,12 +1073,10 @@ document.addEventListener('alpine:init', () => {
                 const contentType = res.headers.get('content-type') || '';
                 if (!res.ok) {
                     const text = await res.text();
-                    console.error(`HTTP ${res.status} on ${url}`, text.slice(0, 500));
                     throw new Error(`Request failed: ${res.status}`);
                 }
                 if (!contentType.includes('application/json')) {
                     const text = await res.text();
-                    console.error('Expected JSON, got HTML/text:', text.slice(0, 500));
                     throw new Error('Non-JSON response received');
                 }
 
@@ -1093,7 +1090,6 @@ document.addEventListener('alpine:init', () => {
                     this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
                 }
 
-                // In your loadBoards method, after fetching json:
                 if (!json.data || json.data.length === 0 || json.all_loaded) {
                     this.allLoaded = true;
                     return;
