@@ -882,6 +882,7 @@ document.addEventListener('alpine:init', () => {
         allUnseenExhausted: false,
         showOlderPrompt: false,
         showOlderContent: false,
+        trackSeenContent: true,
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -1167,10 +1168,9 @@ document.addEventListener('alpine:init', () => {
                     return;
                 }
 
-                // 🛑 Fix: Set loading to false BEFORE returning
                 if (!json.data || json.data.length === 0 || json.all_loaded) {
                     this.allLoaded = true;
-                    this.loading = false; // <--- Move this line here
+                    this.loading = false;
                     return;
                 }
 
@@ -1181,78 +1181,77 @@ document.addEventListener('alpine:init', () => {
                         existing.created_at === newItem.created_at
                     ));
 
-                console.group(`Loaded ${newItems.length} items (page ${this.page})`)
-                newItems.forEach(i => {
-                    if (i.type === 'board') {
-                        console.log(`Board #${i.id} → files:`, i.files)
-                    } else if (i.type === 'teaser') {
-                        console.log(`Teaser #${i.id}`)
-                    }
-                })
-                console.groupEnd()
-
-                if (!this.items) this.items = []
-                this.items.push(...newItems)
+                if (!this.items) this.items = [];
+                this.items.push(...newItems);
 
                 this.setupVideoObservers();
                 this.page += 1;
                 this.initializePlayStates();
-                this.setupSeenContentObserver();
+
+                // Only track seen content if flag is true
+                if (this.trackSeenContent) {
+                    this.setupSeenContentObserver();
+                }
 
             } catch (error) {
+                console.error('[loadBoards] Exception:', error);
             } finally {
                 this.loading = false;
             }
         },
 
-async loadOlderContent() {
-    this.loading = true;
-    const url = `/api/boards?show_seen=1`
-        + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
-        + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
-        + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
-        + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
+        async loadOlderContent() {
+            this.loading = true;
+            this.trackSeenContent = false; // Disable tracking for older content
 
-    try {
-        const res = await fetch(url, {
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-        });
-        const json = await res.json();
+            const url = `/api/boards?show_seen=1`
+                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
+                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
+                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
 
-        if (json.sent_board_ids) {
-            this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
-        }
-        if (json.sent_teaser_ids) {
-            this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
-        }
+            try {
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                const json = await res.json();
 
-        if (!json.data || json.data.length === 0 || json.all_loaded) {
-            this.allLoaded = true;
-            this.loading = false;
-            return;
-        }
+                if (json.sent_board_ids) {
+                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
+                }
+                if (json.sent_teaser_ids) {
+                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
+                }
 
-        const newItems = json.data.map(item => this.normalizeItem(item))
-            .filter(newItem => !this.items.some(existing =>
-                existing.type === newItem.type &&
-                existing.id === newItem.id &&
-                existing.created_at === newItem.created_at
-            ));
+                if (!json.data || json.data.length === 0 || json.all_loaded) {
+                    this.allLoaded = true;
+                    this.loading = false;
+                    return;
+                }
 
-        if (!this.items) this.items = [];
-        this.items.push(...newItems);
+                const newItems = json.data.map(item => this.normalizeItem(item))
+                    .filter(newItem => !this.items.some(existing =>
+                        existing.type === newItem.type &&
+                        existing.id === newItem.id &&
+                        existing.created_at === newItem.created_at
+                    ));
 
-        this.setupVideoObservers();
-        this.page += 1;
-        this.initializePlayStates();
-        this.setupSeenContentObserver();
+                if (!this.items) this.items = [];
+                this.items.push(...newItems);
 
-    } catch (error) {
-    } finally {
-        this.loading = false;
-    }
-},
+                this.setupVideoObservers();
+                this.page += 1;
+                this.initializePlayStates();
+
+                // Do NOT call setupSeenContentObserver here
+
+            } catch (error) {
+                console.error('[loadOlderContent] Exception:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
 
         handlePlay(id) {
             this.currentPlayingTeaserId = id;
