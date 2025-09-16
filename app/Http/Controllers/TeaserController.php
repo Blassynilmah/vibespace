@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use App\Models\TeaserSave;
+use App\Models\TeaserComment;
+use App\Models\TeaserCommentReaction;
+use App\Models\TeaserCommentReply;
 
 class TeaserController extends Controller
 {
@@ -219,4 +222,50 @@ public function toggle(Request $request)
         }
         return response()->json(['is_saved' => $isSaved]);
     }
+
+public function reactComment(Request $request)
+{
+    $request->validate([
+        'comment_id' => 'required|exists:teaser_comments,id',
+        'reaction_type' => 'required|in:like,dislike',
+    ]);
+    $user = $request->user();
+
+    // Only one reaction per user per comment
+    \App\Models\TeaserCommentReaction::updateOrCreate(
+        ['comment_id' => $request->comment_id, 'user_id' => $user->id],
+        ['reaction_type' => $request->reaction_type]
+    );
+
+    // Get updated counts
+    $counts = \App\Models\TeaserCommentReaction::where('comment_id', $request->comment_id)
+        ->selectRaw("count(*) filter (where reaction_type = 'like') as like_count")
+        ->selectRaw("count(*) filter (where reaction_type = 'dislike') as dislike_count")
+        ->first();
+
+    return response()->json([
+        'like_count' => $counts->like_count,
+        'dislike_count' => $counts->dislike_count,
+    ]);
+}
+
+public function replyComment(Request $request)
+{
+    $request->validate([
+        'comment_id' => 'required|exists:teaser_comments,id',
+        'body' => 'required|string|max:1000',
+    ]);
+    $reply = \App\Models\TeaserCommentReply::create([
+        'comment_id' => $request->comment_id,
+        'user_id' => $request->user()->id,
+        'body' => $request->body,
+    ]);
+
+    // Get updated reply count
+    $reply_count = \App\Models\TeaserCommentReply::where('comment_id', $request->comment_id)->count();
+
+    return response()->json([
+        'reply_count' => $reply_count,
+    ]);
+}
 }

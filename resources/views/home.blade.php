@@ -577,10 +577,31 @@
                                         <!-- Comments List -->
                                         <div class="flex-1 overflow-y-auto p-3 space-y-3">
                                             <template x-for="comment in (activeTeaserComments.comments || [])" :key="comment.id">
-                                                <div class="bg-gray-100 rounded-lg px-3 py-2 shadow text-sm">
+                                                <div class="bg-gray-100 rounded-lg px-3 py-2 shadow text-sm relative">
                                                     <div class="font-semibold text-pink-600 mb-1" x-text="comment.user.username"></div>
                                                     <div x-text="comment.body"></div>
                                                     <div class="text-xs text-gray-400 mt-1" x-text="timeSince(comment.created_at)"></div>
+                                                    <!-- Like/Dislike/Reply Row -->
+                                                    <div class="flex items-center gap-4 absolute right-3 top-2">
+                                                        <button @click="likeComment(comment)" class="flex items-center gap-1 text-green-600 hover:text-green-800">
+                                                            <span>👍</span>
+                                                            <span x-text="comment.like_count || 0"></span>
+                                                        </button>
+                                                        <button @click="dislikeComment(comment)" class="flex items-center gap-1 text-red-600 hover:text-red-800">
+                                                            <span>👎</span>
+                                                            <span x-text="comment.dislike_count || 0"></span>
+                                                        </button>
+                                                    </div>
+                                                    <!-- Reply Button -->
+                                                    <div class="mt-2">
+                                                        <button @click="comment.showReply = !comment.showReply" class="text-blue-600 hover:underline text-xs font-medium">
+                                                            Reply (<span x-text="comment.reply_count || 0"></span>)
+                                                        </button>
+                                                        <div x-show="comment.showReply" class="mt-2 flex items-center gap-2">
+                                                            <input type="text" x-model="comment.replyText" class="flex-1 px-2 py-1 rounded border text-xs" placeholder="Type your reply...">
+                                                            <button @click="sendReply(comment)" class="bg-pink-500 text-white px-3 py-1 rounded text-xs font-semibold">Send</button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </template>
                                             <template x-if="!activeTeaserComments.comments || activeTeaserComments.comments.length === 0">
@@ -1548,6 +1569,55 @@ document.addEventListener('alpine:init', () => {
             } finally {
                 teaser.commenting = false;
             }
+        },
+
+        likeComment(comment) {
+            if (comment.liking) return;
+            comment.liking = true;
+            fetch(`/teasers/comments/${comment.id}/like`, {
+                method: 'POST',
+                headers: this._headers(),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                comment.like_count = data.like_count;
+                comment.dislike_count = data.dislike_count;
+            })
+            .catch(() => this.showToast('Failed to like', 'error'))
+            .finally(() => { comment.liking = false; });
+        },
+
+        dislikeComment(comment) {
+            if (comment.disliking) return;
+            comment.disliking = true;
+            fetch(`/teasers/comments/${comment.id}/dislike`, {
+                method: 'POST',
+                headers: this._headers(),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                comment.like_count = data.like_count;
+                comment.dislike_count = data.dislike_count;
+            })
+            .catch(() => this.showToast('Failed to dislike', 'error'))
+            .finally(() => { comment.disliking = false; });
+        },
+
+        sendReply(comment) {
+            if (!comment.replyText || !comment.replyText.trim()) return;
+            fetch(`/teasers/comments/${comment.id}/reply`, {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({ body: comment.replyText.trim() }),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                comment.reply_count = data.reply_count;
+                comment.replyText = '';
+                comment.showReply = false;
+                this.showToast('Reply sent!');
+            })
+            .catch(() => this.showToast('Failed to reply', 'error'));
         },
 
         isSendDisabled(board) {

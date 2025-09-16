@@ -12,4 +12,14 @@ class TeaserComment extends Model
     {
         return $this->belongsTo(User::class);
     }
+    
+public function reactions()
+{
+    return $this->hasMany(TeaserCommentReaction::class, 'comment_id');
+}
+
+public function replies()
+{
+    return $this->hasMany(TeaserCommentReply::class, 'comment_id');
+}
 }
