@@ -1173,6 +1173,7 @@ document.addEventListener('alpine:init', () => {
                 this.setupVideoObservers();
                 this.page += 1;
                 this.initializePlayStates();
+                this.setupSeenContentObserver();
 
             } catch (error) {
             } finally {
