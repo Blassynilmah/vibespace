@@ -1133,7 +1133,8 @@ document.addEventListener('alpine:init', () => {
                 + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
                 + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
                 + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
-                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '')
+                + `&page=${this.page}`;
 
             try {
                 const res = await fetch(url, {
@@ -1200,15 +1201,17 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        async loadOlderContent() {
-            this.loading = true;
+        async loadOlderContent(source = 'unknown') {
+            console.log(`[loadOlderContent] Called by: ${source}`);
+            if (this.loading || this.allLoaded) return;
             this.trackSeenContent = false; // Disable tracking for older content
 
             const url = `/api/boards?show_seen=1`
                 + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
                 + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
                 + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
-                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '')
+                + `&page=${this.page}`;
 
             try {
                 const res = await fetch(url, {
@@ -1251,6 +1254,40 @@ document.addEventListener('alpine:init', () => {
             } finally {
                 this.loading = false;
             }
+        },
+
+        scrollHandler() {
+            if (this.loading || this.allLoaded) return;
+            this.$nextTick(() => {
+                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+                if (!feed) return;
+                const tiles = feed.querySelectorAll('.feed-tile');
+                if (tiles.length === 0) return;
+
+                let lastVisibleIndex = -1;
+                for (let i = tiles.length - 1; i >= 0; i--) {
+                    const rect = tiles[i].getBoundingClientRect();
+                    if (rect.top < window.innerHeight) {
+                        lastVisibleIndex = i;
+                        break;
+                    }
+                }
+
+                if (
+                    lastVisibleIndex >= this.nextThreshold &&
+                    !this.loading &&
+                    !this.allLoaded
+                ) {
+                    console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${this.nextThreshold}`);
+                    this.lastLoadedIndex = this.nextThreshold;
+                    if (this.showOlderContent) {
+                        this.loadOlderContent('scrollHandler');
+                    } else {
+                        this.loadBoards('scrollHandler');
+                    }
+                    this.nextThreshold += 20;
+                }
+            });
         },
 
         handlePlay(id) {
