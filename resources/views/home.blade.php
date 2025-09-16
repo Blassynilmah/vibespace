@@ -1593,6 +1593,7 @@ document.addEventListener('alpine:init', () => {
             fetch(`/teasers/comments/${comment.id}/like`, {
                 method: 'POST',
                 headers: this._headers(),
+                credentials: 'include',
                 body: JSON.stringify({ reaction_type: 'like' }),
             })
             .then(res => res.ok ? res.json() : Promise.reject())
@@ -1609,6 +1610,7 @@ document.addEventListener('alpine:init', () => {
             fetch(`/teasers/comments/${comment.id}/reply`, {
                 method: 'POST',
                 headers: this._headers(),
+                credentials: 'include',
                 body: JSON.stringify({ body: comment.replyText.trim() }),
             })
             .then(res => res.ok ? res.json() : Promise.reject())
