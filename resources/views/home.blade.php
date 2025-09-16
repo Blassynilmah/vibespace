@@ -933,7 +933,7 @@ scrollHandler() {
             !this.allLoaded
         ) {
             this.lastLoadedIndex = nextThreshold;
-            this.loadBoards();
+            this.loadBoards('scrollHandler');
         }
     });
 },
@@ -1104,7 +1104,8 @@ scrollHandler() {
             return item
         },
 
-        async loadBoards() {
+        async loadBoards(source = 'unknown') {
+            console.log(`[loadBoards] Called by: ${source}`);
             if (this.loading || this.allLoaded) return;
             if (this.page === 1) this.loading = true;
 
