@@ -143,87 +143,18 @@
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
             <template x-for="item in filteredBoards" :key="item.type + '-' + item.id + '-' + item.created_at">  
-                <div x-show="item.type === 'teaser'" class="feed-tile">
-                    <div class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl" ...>
+                <div class="feed-tile">
+                    <template x-if="item.type === 'board'">
+                        <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
+                            <div 
+                            class="relative flex flex-col items-start p-3 sm:p-4 lg:p-6"
+                            :class="item.files?.length ? 'md:grid md:grid-cols-5 md:gap-6' : 'md:flex md:flex-col'"
+                            >
 
-                        <!-- Video Section -->
-                        <div x-show="item && item.id" class="relative w-full h-[70vh] lg:w-1/2"
-                            :class="{
-                                'h-[35vh]': window.innerWidth < 768,
-                                'md:h-[40vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
-                                'lg:h-[45vh]': window.innerWidth >= 1024
-                            }"
-                        >
-                            <template x-if="item.teaser_mood">
-                                <div class="absolute top-3 left-3 z-20">
-                                    <span
-                                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold shadow text-white"
-                                        :class="{
-                                            'bg-orange-600': item.teaser_mood === 'hype',
-                                            'bg-yellow-500': item.teaser_mood === 'funny',
-                                            'bg-purple-600': item.teaser_mood === 'shock',
-                                            'bg-pink-600': item.teaser_mood === 'love'
-                                        }"
-                                        x-text="{
-                                            hype: '🔥 Hype',
-                                            funny: '😂 Funny',
-                                            shock: '😲 Shock',
-                                            love: '❤️ Cute/Love'
-                                        }[item.teaser_mood] || item.teaser_mood"
-                                    ></span>
-                                </div>
-                            </template>
-
-                            <video
-                                x-show="!item.teaserError"
-                                :src="item.video"
-                                playsinline
-                                data-teaser
-                                loop
-                                tabindex="0"
-                                class="w-full h-full object-cover bg-black rounded-2xl"
-                                @loadeddata="item.videoLoaded = true"
-                                @play="handlePlay(item.id)"
-                                @pause="handlePause(item.id)"
-                                @click="togglePlay($event.target)"
-                                @mousedown="startFastForward($event.target)"
-                                @mouseup="stopFastForward($event.target)"
-                                @touchstart="startFastForward($event.target)"
-                                @touchend="stopFastForward($event.target)"
-                            ></video>
-
-                            <!-- Teaser Reactions Vertical Bar -->
-                            <div class="absolute bottom-6 right-4 flex flex-col items-center gap-3 z-30">
-                                <template x-for="reaction in ['fire','love','boring']" :key="reaction">
-                                    <button
-                                        @click.prevent="reactToTeaser(item.id, reaction)"
-                                        class="flex flex-col items-center justify-center bg-white/80 hover:bg-pink-100 rounded-full shadow p-2 transition"
-                                        :class="{
-                                            'ring-2 ring-pink-400': item.user_teaser_reaction === reaction
-                                        }"
-                                    >
-                                        <span x-text="{
-                                            fire: '🔥',
-                                            love: '❤️',
-                                            boring: '😐'
-                                        }[reaction]"></span>
-                                        <span class="text-xs font-semibold text-gray-700" x-text="item[reaction + '_count'] || 0"></span>
-                                    </button>
-                                </template>
-                                    <button
-                                        @click="openTeaserComments(item)"
-                                        class="mt-2 flex flex-col items-center justify-center bg-white/80 hover:bg-pink-100 rounded-full shadow p-2 transition"
-                                        title="View Comments"
-                                    >
-                                        <span>💬</span>
-                                        <span class="text-xs font-semibold text-gray-700" x-text="item.comment_count || 0"></span>
-                                    </button>
-                            </div>
-
-                            <!-- Save Button for Teaser -->
-                            <div class="absolute top-3 right-3 z-30">
+                            <!-- 💾 Save Button -->
+                            <div class="absolute top-3 right-3 z-10">
                                 <button
-                                    @click.prevent="toggleSaveTeaser(item)"
+                                    @click.prevent="toggleSaveById(item.id)"
                                     :disabled="item.saving"
                                     :class="[
                                         'px-3 py-1 rounded-full text-xs font-semibold transition-all',
@@ -236,224 +167,235 @@
                                     <span x-text="item.is_saved ? '✔️ Saved' : '💾 Save'"></span>
                                 </button>
                             </div>
-
-                            <!-- Teaser Comments Modal -->
-                            <template x-if="showTeaserComments && activeTeaserComments && activeTeaserComments.id === item.id">
-                                <div class="absolute left-0 bottom-0 w-full h-1/2 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
-                                    style="backdrop-filter: blur(8px);">
-                                    <!-- Input Field -->
-                                    <div class="p-3 border-b flex items-center gap-2">
-                                        <input
-                                            x-model="activeTeaserComments.newComment"
-                                            @keydown.enter.prevent="postTeaserComment(activeTeaserComments)"
-                                            type="text"
-                                            placeholder="Add a comment..."
-                                            class="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 text-sm"
+                                <!-- User Info, Title, Description (Top on mobile, right on desktop) -->
+                                <div class="order-1 md:order-2 md:col-span-2 flex flex-col w-full mb-3 md:mb-0">
+                                    <!-- User Info -->
+                                    <div class="flex items-start gap-3 mb-2 shrink-0">
+                                        <img
+                                            :src="item.user?.profile_picture
+                                                ? '/storage/' + item.user.profile_picture
+                                                : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
+                                            alt="User Avatar"
+                                            class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-pink-300 dark:border-pink-500 object-cover"
+                                            style="box-shadow: 0 2px 6px rgba(0,0,0,0.08);"
                                         >
-                                        <button
-                                            @click="postTeaserComment(activeTeaserComments)"
-                                            class="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-pink-600 transition"
-                                            :disabled="!activeTeaserComments.newComment || activeTeaserComments.newComment.trim() === ''"
-                                        >Send</button>
-                                    </div>
-                                        <!-- Close Button -->
-                                        <button @click="closeTeaserComments"
-                                            class="absolute top-2 right-3 text-gray-500 hover:text-pink-500 text-2xl font-bold z-50">×
-                                        </button>
-                                    <!-- Comments List -->
-                                    <div class="flex-1 overflow-y-auto p-3 space-y-3">
-                                        <template x-for="comment in (activeTeaserComments.comments || [])" :key="comment.id">
-                                            <div class="bg-gray-100 rounded-lg px-3 py-2 shadow text-sm">
-                                                <div class="font-semibold text-pink-600 mb-1" x-text="comment.user.username"></div>
-                                                <div x-text="comment.body"></div>
-                                                <div class="text-xs text-gray-400 mt-1" x-text="timeSince(comment.created_at)"></div>
-                                            </div>
-                                        </template>
-                                        <template x-if="!activeTeaserComments.comments || activeTeaserComments.comments.length === 0">
-                                            <div class="text-gray-400 text-center mt-6">No comments yet. Be the first!</div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-
-                            <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
-                                <span class="animate-spin text-3xl text-white">⏳</span>
-                            </div>
-
-                            <template x-if="item.teaserError">
-                                <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
-                                    teaser error
-                                </div>
-                            </template>
-
-                            <!-- Mobile Overlay -->
-                            <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
-                                <div class="text-sm font-semibold mb-1">@<span x-text="item.username"></span></div>
-                                <div class="text-xs text-pink-300 mb-1" x-text="item.hashtags"></div>
-                                <div class="text-xs mb-1" x-text="item.description"></div>
-                                <div class="flex items-center gap-2 text-xs text-gray-200">
-                                    <span x-text="timeSince(item.created_at)"></span>
-                                    <span>•</span>
-                                    <span x-text="getRemainingTime(item.expires_on)"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Info Section (Desktop) -->
-                        <div class="hidden lg:flex flex-1 flex-col justify-between p-8">
-                            <div>
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="font-semibold text-pink-600">@<span x-text="item.username"></span></span>
-                                    <span class="text-xs text-gray-400" x-text="timeSince(item.created_at)"></span>
-                                </div>
-                                <div class="mb-2">
-                                    <span class="inline-block bg-pink-100 text-pink-700 rounded-full px-2 py-0.5 text-xs font-medium" x-text="item.hashtags"></span>
-                                </div>
-                                <div class="text-sm text-gray-700 mb-2" x-text="item.description"></div>
-                            </div>
-                            <div class="flex flex-wrap gap-4 text-xs text-gray-500 mt-2">
-                                <div>
-                                    <span class="font-semibold">Time Remaining:</span>
-                                    <span x-text="getRemainingTime(item.expires_on)"></span>
-                                </div>
-                                <div>
-                                    <span class="font-semibold">Duration:</span>
-                                    <span x-text="item.expires_after ? item.expires_after + ' hrs' : '—'"></span>
-                                </div>
-                                <div>
-                                    <span class="font-semibold">Created:</span>
-                                    <span x-text="new Date(item.created_at).toLocaleString()"></span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div x-show="item.type === 'board'"  class="feed-tile">
-                    <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
-                        <div 
-                        class="relative flex flex-col items-start p-3 sm:p-4 lg:p-6"
-                        :class="item.files?.length ? 'md:grid md:grid-cols-5 md:gap-6' : 'md:flex md:flex-col'"
-                        >
-
-                        <!-- 💾 Save Button -->
-                        <div class="absolute top-3 right-3 z-10">
-                            <button
-                                @click.prevent="toggleSaveById(item.id)"
-                                :disabled="item.saving"
-                                :class="[
-                                    'px-3 py-1 rounded-full text-xs font-semibold transition-all',
-                                    item.is_saved
-                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-                                    item.saving ? 'opacity-50 cursor-not-allowed' : ''
-                                ]"
-                            >
-                                <span x-text="item.is_saved ? '✔️ Saved' : '💾 Save'"></span>
-                            </button>
-                        </div>
-                            <!-- User Info, Title, Description (Top on mobile, right on desktop) -->
-                            <div class="order-1 md:order-2 md:col-span-2 flex flex-col w-full mb-3 md:mb-0">
-                                <!-- User Info -->
-                                <div class="flex items-start gap-3 mb-2 shrink-0">
-                                    <img
-                                        :src="item.user?.profile_picture
-                                            ? '/storage/' + item.user.profile_picture
-                                            : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
-                                        alt="User Avatar"
-                                        class="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-pink-300 dark:border-pink-500 object-cover"
-                                        style="box-shadow: 0 2px 6px rgba(0,0,0,0.08);"
-                                    >
-                                    <div class="flex flex-wrap items-center text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                                        <template x-if="item.latest_mood">
-                                            <span
-                                                class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-                                                :class="{
-                                                    'bg-blue-100 text-blue-700': item.latest_mood === 'excited',
-                                                    'bg-orange-100 text-orange-700': item.latest_mood === 'happy',
-                                                    'bg-pink-100 text-pink-700': item.latest_mood === 'chill',
-                                                    'bg-purple-100 text-purple-700': item.latest_mood === 'thoughtful',
-                                                    'bg-teal-100 text-teal-700': item.latest_mood === 'sad',
-                                                    'bg-amber-100 text-amber-700': item.latest_mood === 'flirty',
-                                                    'bg-indigo-100 text-indigo-700': item.latest_mood === 'mindblown',
-                                                    'bg-yellow-100 text-yellow-700': item.latest_mood === 'love',
-                                                }"
-                                                style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 1px 0 rgba(0,0,0,0.05);"
-                                            >
-                                                <span x-text="moods[item.latest_mood]"></span>
-                                                <span x-text="item.latest_mood.charAt(0).toUpperCase() + item.latest_mood.slice(1)"></span>
-                                                <span>Vibes</span>
-                                            </span>
-                                        </template>
-
-                                        <div>
-                                            <template x-if="item.user">
-                                                <a 
-                                                    :href="`/space/${item.user.username}-${item.user.id}`" 
-                                                    class="hover:underline font-medium text-blue-600 text-xs sm:text-sm"
-                                                    :title="`View ${item.user.username}'s profile`"
-                                                    :aria-label="`View profile of ${item.user.username}`"
-                                                    x-text="'@' + item.user.username">
-                                                </a>
+                                        <div class="flex flex-wrap items-center text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                                            <template x-if="item.latest_mood">
+                                                <span
+                                                    class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
+                                                    :class="{
+                                                        'bg-blue-100 text-blue-700': item.latest_mood === 'excited',
+                                                        'bg-orange-100 text-orange-700': item.latest_mood === 'happy',
+                                                        'bg-pink-100 text-pink-700': item.latest_mood === 'chill',
+                                                        'bg-purple-100 text-purple-700': item.latest_mood === 'thoughtful',
+                                                        'bg-teal-100 text-teal-700': item.latest_mood === 'sad',
+                                                        'bg-amber-100 text-amber-700': item.latest_mood === 'flirty',
+                                                        'bg-indigo-100 text-indigo-700': item.latest_mood === 'mindblown',
+                                                        'bg-yellow-100 text-yellow-700': item.latest_mood === 'love',
+                                                    }"
+                                                    style="backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 1px 0 rgba(0,0,0,0.05);"
+                                                >
+                                                    <span x-text="moods[item.latest_mood]"></span>
+                                                    <span x-text="item.latest_mood.charAt(0).toUpperCase() + item.latest_mood.slice(1)"></span>
+                                                    <span>Vibes</span>
+                                                </span>
                                             </template>
 
+                                            <div>
+                                                <template x-if="item.user">
+                                                    <a 
+                                                        :href="`/space/${item.user.username}-${item.user.id}`" 
+                                                        class="hover:underline font-medium text-blue-600 text-xs sm:text-sm"
+                                                        :title="`View ${item.user.username}'s profile`"
+                                                        :aria-label="`View profile of ${item.user.username}`"
+                                                        x-text="'@' + item.user.username">
+                                                    </a>
+                                                </template>
 
-                                            <span class="mx-1">•</span>
 
-                                            <span x-text="timeSince(item.created_at)"></span>
+                                                <span class="mx-1">•</span>
+
+                                                <span x-text="timeSince(item.created_at)"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col">
+                                        <h3 class="text-base sm:text-lg font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-1"
+                                            x-text="item.title">
+                                        </h3>
+                                        <!-- Description -->
+                                        <div x-show="item.description" class="text-sm text-black-800 dark:text-black-200 leading-snug">
+                                            <p 
+                                                x-text="item.expanded 
+                                                    ? (item.description || '') 
+                                                    : (item.files && item.files.length 
+                                                        ? (item.description ? item.description.split(' ').slice(0, 20).join(' ') + (item.description.split(' ').length > 20 ? '...' : '') : '') 
+                                                        : (item.description ? item.description.split(' ').slice(0, 200).join(' ') + (item.description.split(' ').length > 200 ? '...' : '') : '')
+                                                    )"
+                                                class="whitespace-pre-line"
+                                            ></p>
+                                            <!-- More Button -->
+                                            <button 
+                                                x-show="!item.expanded && (
+                                                    (item.files && item.description && item.description.split(' ').length > 20) ||
+                                                    ((!item.files || !item.files.length) && item.description && item.description.split(' ').length > 200)
+                                                )"
+                                                @click="item.expanded = true"
+                                                class="mt-1 text-pink-500 hover:underline text-xs font-medium"
+                                            >
+                                                More
+                                            </button>
+                                            <!-- Less Button -->
+                                            <button 
+                                                x-show="item.expanded && (
+                                                    (item.files && item.description && item.description.split(' ').length > 20) ||
+                                                    ((!item.files || !item.files.length) && item.description && item.description.split(' ').length > 200)
+                                                )"
+                                                @click="item.expanded = false"
+                                                class="mt-1 text-pink-500 hover:underline text-xs font-medium"
+                                            >
+                                                Less
+                                            </button>
+                                        </div>
+                                    </div>
+                                                        <!-- Desktop/Tablet reactions/comments -->
+                                    <div class="hidden md:block">                     
+                                        <div class="hidden md:grid grid-cols-2 grid-rows-4 gap-3 mt-2 w-full p-2 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-inner">
+                                            <template x-for="(emoji, mood) in reactionMoods" :key="mood">
+                                                <button
+                                                    @click.prevent="react(item.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
+                                                    x-data="{ showName: false }"
+                                                    @mouseenter="showName = true" 
+                                                    @mouseleave="showName = false"
+                                                    class="w-full relative rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
+                                                        px-3 py-2 text-sm font-medium"
+                                                    :class="[
+                                                        item.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
+                                                        mood === 'fire' && 'bg-red-200 text-red-800',
+                                                        mood === 'love' && 'bg-rose-300 text-rose-900',
+                                                        mood === 'funny' && 'bg-yellow-200 text-yellow-800',
+                                                        mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
+                                                        mood === 'cool' && 'bg-teal-200 text-teal-800',
+                                                        mood === 'crying' && 'bg-sky-200 text-sky-800',
+                                                        mood === 'clap' && 'bg-emerald-200 text-emerald-800',
+                                                        mood === 'flirty' && 'bg-pink-200 text-pink-800'
+                                                    ]"
+                                                    style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
+                                                >
+                                                    <span class="capitalize text-xs font-semibold leading-tight" x-text="mood"></span>
+                                                    <div class="flex items-center gap-1">
+                                                        <span x-text="emoji" class="text-lg"></span>
+                                                        <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-xs" 
+                                                            x-text="getReactionCount(item, mood)">
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            </template>
+                                        </div>
+                                            <!-- Comments -->
+                                        <div class="mt-3 md:mt-4 hidden md:block">
+                                            <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
+                                                <input
+                                                    type="text"
+                                                    x-model="item.newComment"
+                                                    placeholder="Type a comment..."
+                                                    class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
+                                                    @keydown.enter.prevent="postComment(item)"
+                                                >
+                                                <button
+                                                    @click.prevent="postComment(item)"
+                                                    class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
+                                                >
+                                                    Post
+                                                </button>
+                                            </div>
+                                            <div class="text-xs text-gray-500 flex justify-between">
+                                                <span x-text="(item.comment_count ?? 0) + ' comments'"></span>
+                                                <a :href="'/boards/' + item.id" class="text-pink-600 hover:underline text-sm font-medium">
+                                                    → View Board
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="flex flex-col">
-                                    <h3 class="text-base sm:text-lg font-extrabold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent mb-1"
-                                        x-text="item.title">
-                                    </h3>
-                                    <!-- Description -->
-                                    <div x-show="item.description" class="text-sm text-black-800 dark:text-black-200 leading-snug">
-                                        <p 
-                                            x-text="item.expanded 
-                                                ? (item.description || '') 
-                                                : (item.files && item.files.length 
-                                                    ? (item.description ? item.description.split(' ').slice(0, 20).join(' ') + (item.description.split(' ').length > 20 ? '...' : '') : '') 
-                                                    : (item.description ? item.description.split(' ').slice(0, 200).join(' ') + (item.description.split(' ').length > 200 ? '...' : '') : '')
-                                                )"
-                                            class="whitespace-pre-line"
-                                        ></p>
-                                        <!-- More Button -->
-                                        <button 
-                                            x-show="!item.expanded && (
-                                                (item.files && item.description && item.description.split(' ').length > 20) ||
-                                                ((!item.files || !item.files.length) && item.description && item.description.split(' ').length > 200)
-                                            )"
-                                            @click="item.expanded = true"
-                                            class="mt-1 text-pink-500 hover:underline text-xs font-medium"
-                                        >
-                                            More
-                                        </button>
-                                        <!-- Less Button -->
-                                        <button 
-                                            x-show="item.expanded && (
-                                                (item.files && item.description && item.description.split(' ').length > 20) ||
-                                                ((!item.files || !item.files.length) && item.description && item.description.split(' ').length > 200)
-                                            )"
-                                            @click="item.expanded = false"
-                                            class="mt-1 text-pink-500 hover:underline text-xs font-medium"
-                                        >
-                                            Less
-                                        </button>
-                                    </div>
+                                <!-- Media (Middle on mobile, left on desktop) -->
+                                <div class="order-2 md:order-1 md:col-span-3 w-full">
+                                    <template x-if="item.files?.length">
+                                        <div class="md:col-span-3">
+                                            <div
+                                                class="mt-3 w-full mx-auto aspect-[9/12] min-h-[220px] rounded-xl overflow-hidden flex items-center justify-center relative z-0 bg-gray-50 dark:bg-gray-800 shadow-inner"
+                                                x-data="{ currentIndex: 0 }"
+                                            >
+                                                <!-- 🔢 File count -->
+                                                <template x-if="item.files.length > 1">
+                                                    <div class="absolute top-2 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full z-10">
+                                                        <span x-text="`${currentIndex + 1} / ${item.files.length}`"></span>
+                                                    </div>
+                                                </template>
+
+                                                <!-- 📸 Media Preview -->
+                                                <div class="flex items-center justify-center w-full h-full">
+                                                    <template x-if="item.files[currentIndex].type === 'image'">
+                                                        <img
+                                                            :src="item.files[currentIndex].path"
+                                                            alt="Preview"
+                                                            class="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.03] cursor-pointer"
+                                                            @click="previewBoardFile = item.files[currentIndex]; showBoardPreviewModal = true"
+                                                        />
+                                                    </template>
+                                                    <template x-if="item.files[currentIndex].type === 'video'">
+                                                        <div x-show="item && item.id" class="relative w-full h-full flex items-center justify-center">
+                                                            <video
+                                                                :src="item.files[currentIndex].path"
+                                                                playsinline
+                                                                preload="metadata"
+                                                                data-moodboard
+                                                                loop
+                                                                class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer mx-auto"
+                                                                @play="teaserPlayStates['board-' + item.id + '-' + currentIndex] = true"
+                                                                @pause="teaserPlayStates['board-' + item.id + '-' + currentIndex] = false"
+                                                                @click="togglePlay($event.target)"
+                                                            ></video>
+                                                        </div>
+                                                    </template>
+                                                </div>
+
+                                                <!-- ⬅ Prev Arrow -->
+                                                <button
+                                                    x-show="item.files.length > 1"
+                                                    @click="if (currentIndex > 0) currentIndex--"
+                                                    :disabled="currentIndex === 0"
+                                                    class="absolute left-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    style="top: 50%; transform: translateY(-50%);"
+                                                >◀</button>
+
+                                                <!-- ➡ Next Arrow -->
+                                                <button
+                                                    x-show="item.files.length > 1"
+                                                    @click="if (currentIndex < item.files.length - 1) currentIndex++"
+                                                    :disabled="currentIndex === item.files.length - 1"
+                                                    class="absolute right-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    style="top: 50%; transform: translateY(-50%);"
+                                                >▶</button>
+                                            </div>
+                                        </div>
+                                    </template>
                                 </div>
-                                                    <!-- Desktop/Tablet reactions/comments -->
-                                <div class="hidden md:block">                     
-                                    <div class="hidden md:grid grid-cols-2 grid-rows-4 gap-3 mt-2 w-full p-2 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-inner">
+
+                                <!-- Reactions & Comments (Bottom on mobile, right on desktop) -->
+                                <div class="order-3 md:order-2 md:col-span-2 flex flex-col mt-3 md:mt-0 w-full block md:hidden">
+                                    <!-- Reactions -->
+                                    <div class="flex flex-wrap gap-2 sm:grid sm:grid-cols-2 sm:gap-3 mt-2 w-full">
                                         <template x-for="(emoji, mood) in reactionMoods" :key="mood">
                                             <button
                                                 @click.prevent="react(item.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
                                                 x-data="{ showName: false }"
                                                 @mouseenter="showName = true" 
                                                 @mouseleave="showName = false"
-                                                class="w-full relative rounded-lg flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
-                                                    px-3 py-2 text-sm font-medium"
+                                                class="flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
+                                                    px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm font-medium rounded-lg"
                                                 :class="[
                                                     item.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
                                                     mood === 'fire' && 'bg-red-200 text-red-800',
@@ -467,18 +409,26 @@
                                                 ]"
                                                 style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
                                             >
-                                                <span class="capitalize text-xs font-semibold leading-tight" x-text="mood"></span>
+                                                <!-- Mood name (desktop only) -->
+                                                <span class="hidden sm:block capitalize text-[0.65rem] sm:text-[0.7rem] font-semibold leading-tight" x-text="mood"></span>
+                                                <!-- Emoji + Counter -->
                                                 <div class="flex items-center gap-1">
-                                                    <span x-text="emoji" class="text-lg"></span>
-                                                    <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-xs" 
+                                                    <span x-text="emoji" class="text-lg sm:text-xl"></span>
+                                                    <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-[0.6rem]" 
                                                         x-text="getReactionCount(item, mood)">
                                                     </span>
+                                                </div>
+                                                <!-- Tooltip for mobile -->
+                                                <div 
+                                                    x-show="showName && window.innerWidth < 640" 
+                                                    class="absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-white text-[0.6rem] rounded px-2 py-0.5 shadow opacity-90">
+                                                    <span x-text="mood"></span>
                                                 </div>
                                             </button>
                                         </template>
                                     </div>
-                                        <!-- Comments -->
-                                    <div class="mt-3 md:mt-4 hidden md:block">
+                                    <!-- Comments -->
+                                    <div class="mt-3 md:mt-4">
                                         <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
                                             <input
                                                 type="text"
@@ -494,152 +444,204 @@
                                                 Post
                                             </button>
                                         </div>
-                                        <div class="text-xs text-gray-500 flex justify-between">
-                                            <span x-text="(item.comment_count ?? 0) + ' comments'"></span>
-                                            <a :href="'/boards/' + item.id" class="text-pink-600 hover:underline text-sm font-medium">
-                                                → View Board
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Media (Middle on mobile, left on desktop) -->
-                            <div class="order-2 md:order-1 md:col-span-3 w-full">
-                                <template x-if="item.files?.length">
-                                    <div class="md:col-span-3">
-                                        <div
-                                            class="mt-3 w-full mx-auto aspect-[9/12] min-h-[220px] rounded-xl overflow-hidden flex items-center justify-center relative z-0 bg-gray-50 dark:bg-gray-800 shadow-inner"
-                                            x-data="{ currentIndex: 0 }"
-                                        >
-                                            <!-- 🔢 File count -->
-                                            <template x-if="item.files.length > 1">
-                                                <div class="absolute top-2 right-3 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full z-10">
-                                                    <span x-text="`${currentIndex + 1} / ${item.files.length}`"></span>
-                                                </div>
-                                            </template>
-
-                                            <!-- 📸 Media Preview -->
-                                            <div class="flex items-center justify-center w-full h-full">
-                                                <template x-if="item.files[currentIndex].type === 'image'">
-                                                    <img
-                                                        :src="item.files[currentIndex].path"
-                                                        alt="Preview"
-                                                        class="max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.03] cursor-pointer"
-                                                        @click="previewBoardFile = item.files[currentIndex]; showBoardPreviewModal = true"
-                                                    />
-                                                </template>
-                                                <template x-if="item.files[currentIndex].type === 'video'">
-                                                    <div x-show="item && item.id" class="relative w-full h-full flex items-center justify-center">
-                                                        <video
-                                                            :src="item.files[currentIndex].path"
-                                                            playsinline
-                                                            preload="metadata"
-                                                            data-moodboard
-                                                            loop
-                                                            class="max-h-full max-w-full object-contain rounded-xl transition-transform duration-300 group-hover:scale-[1.02] cursor-pointer mx-auto"
-                                                            @play="teaserPlayStates['board-' + item.id + '-' + currentIndex] = true"
-                                                            @pause="teaserPlayStates['board-' + item.id + '-' + currentIndex] = false"
-                                                            @click="togglePlay($event.target)"
-                                                        ></video>
-                                                    </div>
-                                                </template>
+                                        <div class="mt-2 space-y-2 max-h-32 overflow-y-auto pr-1">
+                                            <div class="text-xs text-gray-500 flex justify-between">
+                                                <span x-text="(item.comment_count ?? 0) + ' comments'"></span>
+                                                <a :href="'/boards/' + item.id" class="text-pink-600 hover:underline text-sm font-medium">
+                                                    → View Board
+                                                </a>
                                             </div>
-
-                                            <!-- ⬅ Prev Arrow -->
-                                            <button
-                                                x-show="item.files.length > 1"
-                                                @click="if (currentIndex > 0) currentIndex--"
-                                                :disabled="currentIndex === 0"
-                                                class="absolute left-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                                style="top: 50%; transform: translateY(-50%);"
-                                            >◀</button>
-
-                                            <!-- ➡ Next Arrow -->
-                                            <button
-                                                x-show="item.files.length > 1"
-                                                @click="if (currentIndex < item.files.length - 1) currentIndex++"
-                                                :disabled="currentIndex === item.files.length - 1"
-                                                class="absolute right-2 bg-white dark:bg-gray-700 bg-opacity-80 dark:bg-opacity-70 rounded-full p-1.5 shadow hover:bg-opacity-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                                style="top: 50%; transform: translateY(-50%);"
-                                            >▶</button>
-                                        </div>
-                                    </div>
-                                </template>
-                            </div>
-
-                            <!-- Reactions & Comments (Bottom on mobile, right on desktop) -->
-                            <div class="order-3 md:order-2 md:col-span-2 flex flex-col mt-3 md:mt-0 w-full block md:hidden">
-                                <!-- Reactions -->
-                                <div class="flex flex-wrap gap-2 sm:grid sm:grid-cols-2 sm:gap-3 mt-2 w-full">
-                                    <template x-for="(emoji, mood) in reactionMoods" :key="mood">
-                                        <button
-                                            @click.prevent="react(item.id, mood); $el.classList.add('animate-bounce'); setTimeout(()=>$el.classList.remove('animate-bounce'), 500)"
-                                            x-data="{ showName: false }"
-                                            @mouseenter="showName = true" 
-                                            @mouseleave="showName = false"
-                                            class="flex flex-col items-center justify-center transition-all duration-200 hover:scale-105
-                                                px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm font-medium rounded-lg"
-                                            :class="[
-                                                item.user_reacted_mood === mood ? 'ring-2 ring-offset-1 ring-pink-400 shadow' : 'shadow-sm',
-                                                mood === 'fire' && 'bg-red-200 text-red-800',
-                                                mood === 'love' && 'bg-rose-300 text-rose-900',
-                                                mood === 'funny' && 'bg-yellow-200 text-yellow-800',
-                                                mood === 'mind-blown' && 'bg-violet-300 text-violet-900',
-                                                mood === 'cool' && 'bg-teal-200 text-teal-800',
-                                                mood === 'crying' && 'bg-sky-200 text-sky-800',
-                                                mood === 'clap' && 'bg-emerald-200 text-emerald-800',
-                                                mood === 'flirty' && 'bg-pink-200 text-pink-800'
-                                            ]"
-                                            style="backdrop-filter: saturate(160%) blur(8px); -webkit-backdrop-filter: saturate(160%) blur(8px);"
-                                        >
-                                            <!-- Mood name (desktop only) -->
-                                            <span class="hidden sm:block capitalize text-[0.65rem] sm:text-[0.7rem] font-semibold leading-tight" x-text="mood"></span>
-                                            <!-- Emoji + Counter -->
-                                            <div class="flex items-center gap-1">
-                                                <span x-text="emoji" class="text-lg sm:text-xl"></span>
-                                                <span class="px-1 rounded-full bg-white/50 text-pink-500 font-semibold text-[0.6rem]" 
-                                                    x-text="getReactionCount(item, mood)">
-                                                </span>
-                                            </div>
-                                            <!-- Tooltip for mobile -->
-                                            <div 
-                                                x-show="showName && window.innerWidth < 640" 
-                                                class="absolute -top-6 left-1/2 -translate-x-1/2 bg-black text-white text-[0.6rem] rounded px-2 py-0.5 shadow opacity-90">
-                                                <span x-text="mood"></span>
-                                            </div>
-                                        </button>
-                                    </template>
-                                </div>
-                                <!-- Comments -->
-                                <div class="mt-3 md:mt-4">
-                                    <div class="flex items-center gap-2 mb-2 bg-gray-50 dark:bg-gray-800 rounded-lg px-2 py-1 border border-gray-100 dark:border-gray-700 shadow-inner">
-                                        <input
-                                            type="text"
-                                            x-model="item.newComment"
-                                            placeholder="Type a comment..."
-                                            class="flex-1 bg-transparent focus:outline-none text-xs sm:text-sm text-gray-700 dark:text-gray-200 placeholder-gray-400"
-                                            @keydown.enter.prevent="postComment(item)"
-                                        >
-                                        <button
-                                            @click.prevent="postComment(item)"
-                                            class="text-pink-500 hover:text-pink-600 transition-colors text-xs sm:text-sm font-medium"
-                                        >
-                                            Post
-                                        </button>
-                                    </div>
-                                    <div class="mt-2 space-y-2 max-h-32 overflow-y-auto pr-1">
-                                        <div class="text-xs text-gray-500 flex justify-between">
-                                            <span x-text="(item.comment_count ?? 0) + ' comments'"></span>
-                                            <a :href="'/boards/' + item.id" class="text-pink-600 hover:underline text-sm font-medium">
-                                                → View Board
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </template>
+                    <template x-if="item.type === 'teaser'">
+                        <div class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl" ...>
+
+                            <!-- Video Section -->
+                            <div x-show="item && item.id" class="relative w-full h-[70vh] lg:w-1/2"
+                                :class="{
+                                    'h-[35vh]': window.innerWidth < 768,
+                                    'md:h-[40vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
+                                    'lg:h-[45vh]': window.innerWidth >= 1024
+                                }"
+                            >
+                                <template x-if="item.teaser_mood">
+                                    <div class="absolute top-3 left-3 z-20">
+                                        <span
+                                            class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold shadow text-white"
+                                            :class="{
+                                                'bg-orange-600': item.teaser_mood === 'hype',
+                                                'bg-yellow-500': item.teaser_mood === 'funny',
+                                                'bg-purple-600': item.teaser_mood === 'shock',
+                                                'bg-pink-600': item.teaser_mood === 'love'
+                                            }"
+                                            x-text="{
+                                                hype: '🔥 Hype',
+                                                funny: '😂 Funny',
+                                                shock: '😲 Shock',
+                                                love: '❤️ Cute/Love'
+                                            }[item.teaser_mood] || item.teaser_mood"
+                                        ></span>
+                                    </div>
+                                </template>
+
+                                <video
+                                    x-show="!item.teaserError"
+                                    :src="item.video"
+                                    playsinline
+                                    data-teaser
+                                    loop
+                                    tabindex="0"
+                                    class="w-full h-full object-cover bg-black rounded-2xl"
+                                    @loadeddata="item.videoLoaded = true"
+                                    @play="handlePlay(item.id)"
+                                    @pause="handlePause(item.id)"
+                                    @click="togglePlay($event.target)"
+                                    @mousedown="startFastForward($event.target)"
+                                    @mouseup="stopFastForward($event.target)"
+                                    @touchstart="startFastForward($event.target)"
+                                    @touchend="stopFastForward($event.target)"
+                                ></video>
+
+                                <!-- Teaser Reactions Vertical Bar -->
+                                <div class="absolute bottom-6 right-4 flex flex-col items-center gap-3 z-30">
+                                    <template x-for="reaction in ['fire','love','boring']" :key="reaction">
+                                        <button
+                                            @click.prevent="reactToTeaser(item.id, reaction)"
+                                            class="flex flex-col items-center justify-center bg-white/80 hover:bg-pink-100 rounded-full shadow p-2 transition"
+                                            :class="{
+                                                'ring-2 ring-pink-400': item.user_teaser_reaction === reaction
+                                            }"
+                                        >
+                                            <span x-text="{
+                                                fire: '🔥',
+                                                love: '❤️',
+                                                boring: '😐'
+                                            }[reaction]"></span>
+                                            <span class="text-xs font-semibold text-gray-700" x-text="item[reaction + '_count'] || 0"></span>
+                                        </button>
+                                    </template>
+                                        <button
+                                            @click="openTeaserComments(item)"
+                                            class="mt-2 flex flex-col items-center justify-center bg-white/80 hover:bg-pink-100 rounded-full shadow p-2 transition"
+                                            title="View Comments"
+                                        >
+                                            <span>💬</span>
+                                            <span class="text-xs font-semibold text-gray-700" x-text="item.comment_count || 0"></span>
+                                        </button>
+                                </div>
+
+                                <!-- Save Button for Teaser -->
+                                <div class="absolute top-3 right-3 z-30">
+                                    <button
+                                        @click.prevent="toggleSaveTeaser(item)"
+                                        :disabled="item.saving"
+                                        :class="[
+                                            'px-3 py-1 rounded-full text-xs font-semibold transition-all',
+                                            item.is_saved
+                                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                                            item.saving ? 'opacity-50 cursor-not-allowed' : ''
+                                        ]"
+                                    >
+                                        <span x-text="item.is_saved ? '✔️ Saved' : '💾 Save'"></span>
+                                    </button>
+                                </div>
+
+                                <!-- Teaser Comments Modal -->
+                                <template x-if="showTeaserComments && activeTeaserComments && activeTeaserComments.id === item.id">
+                                    <div class="absolute left-0 bottom-0 w-full h-1/2 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
+                                        style="backdrop-filter: blur(8px);">
+                                        <!-- Input Field -->
+                                        <div class="p-3 border-b flex items-center gap-2">
+                                            <input
+                                                x-model="activeTeaserComments.newComment"
+                                                @keydown.enter.prevent="postTeaserComment(activeTeaserComments)"
+                                                type="text"
+                                                placeholder="Add a comment..."
+                                                class="flex-1 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-pink-400 text-sm"
+                                            >
+                                            <button
+                                                @click="postTeaserComment(activeTeaserComments)"
+                                                class="bg-pink-500 text-white px-4 py-2 rounded-lg font-semibold text-sm hover:bg-pink-600 transition"
+                                                :disabled="!activeTeaserComments.newComment || activeTeaserComments.newComment.trim() === ''"
+                                            >Send</button>
+                                        </div>
+                                            <!-- Close Button -->
+                                            <button @click="closeTeaserComments"
+                                                class="absolute top-2 right-3 text-gray-500 hover:text-pink-500 text-2xl font-bold z-50">×
+                                            </button>
+                                        <!-- Comments List -->
+                                        <div class="flex-1 overflow-y-auto p-3 space-y-3">
+                                            <template x-for="comment in (activeTeaserComments.comments || [])" :key="comment.id">
+                                                <div class="bg-gray-100 rounded-lg px-3 py-2 shadow text-sm">
+                                                    <div class="font-semibold text-pink-600 mb-1" x-text="comment.user.username"></div>
+                                                    <div x-text="comment.body"></div>
+                                                    <div class="text-xs text-gray-400 mt-1" x-text="timeSince(comment.created_at)"></div>
+                                                </div>
+                                            </template>
+                                            <template x-if="!activeTeaserComments.comments || activeTeaserComments.comments.length === 0">
+                                                <div class="text-gray-400 text-center mt-6">No comments yet. Be the first!</div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
+                                    <span class="animate-spin text-3xl text-white">⏳</span>
+                                </div>
+
+                                <template x-if="item.teaserError">
+                                    <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
+                                        teaser error
+                                    </div>
+                                </template>
+
+                                <!-- Mobile Overlay -->
+                                <div class="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent text-white p-4 md:hidden rounded-b-2xl">
+                                    <div class="text-sm font-semibold mb-1">@<span x-text="item.username"></span></div>
+                                    <div class="text-xs text-pink-300 mb-1" x-text="item.hashtags"></div>
+                                    <div class="text-xs mb-1" x-text="item.description"></div>
+                                    <div class="flex items-center gap-2 text-xs text-gray-200">
+                                        <span x-text="timeSince(item.created_at)"></span>
+                                        <span>•</span>
+                                        <span x-text="getRemainingTime(item.expires_on)"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Info Section (Desktop) -->
+                            <div class="hidden lg:flex flex-1 flex-col justify-between p-8">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="font-semibold text-pink-600">@<span x-text="item.username"></span></span>
+                                        <span class="text-xs text-gray-400" x-text="timeSince(item.created_at)"></span>
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="inline-block bg-pink-100 text-pink-700 rounded-full px-2 py-0.5 text-xs font-medium" x-text="item.hashtags"></span>
+                                    </div>
+                                    <div class="text-sm text-gray-700 mb-2" x-text="item.description"></div>
+                                </div>
+                                <div class="flex flex-wrap gap-4 text-xs text-gray-500 mt-2">
+                                    <div>
+                                        <span class="font-semibold">Time Remaining:</span>
+                                        <span x-text="getRemainingTime(item.expires_on)"></span>
+                                    </div>
+                                    <div>
+                                        <span class="font-semibold">Duration:</span>
+                                        <span x-text="item.expires_after ? item.expires_after + ' hrs' : '—'"></span>
+                                    </div>
+                                    <div>
+                                        <span class="font-semibold">Created:</span>
+                                        <span x-text="new Date(item.created_at).toLocaleString()"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </template>
         </div>
