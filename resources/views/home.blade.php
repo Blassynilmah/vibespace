@@ -595,19 +595,19 @@
                                                     <!-- Replies & Reply Input -->
                                                     <div class="mt-6 flex flex-col gap-2">
                                                         <div class="mt-6 flex flex-row gap-4 items-center">
-    <button 
-        @click="toggleReplies(comment)" 
-        class="text-blue-600 hover:underline text-xs font-medium"
-    >
-        View Replies (<span x-text="comment.reply_count || 0"></span>)
-    </button>
-    <button 
-        @click="comment.showReply = !comment.showReply" 
-        class="text-pink-600 hover:underline text-xs font-medium"
-    >
-        Reply
-    </button>
-</div>
+                                                            <button 
+                                                                @click="toggleReplies(comment)" 
+                                                                class="text-blue-600 hover:underline text-xs font-medium"
+                                                            >
+                                                                View Replies (<span x-text="comment.reply_count || 0"></span>)
+                                                            </button>
+                                                            <button 
+                                                                @click="comment.showReply = !comment.showReply" 
+                                                                class="text-pink-600 hover:underline text-xs font-medium"
+                                                            >
+                                                                Reply
+                                                            </button>
+                                                        </div>
                                                         <div x-show="comment.showReply" class="mt-2 flex items-center gap-2">
                                                             <input type="text" x-model="comment.replyText" class="flex-1 px-2 py-1 rounded border text-xs" placeholder="Type your reply...">
                                                             <button @click="sendReply(comment)" class="bg-pink-500 text-white px-3 py-1 rounded text-xs font-semibold">Send</button>
@@ -909,35 +909,38 @@ document.addEventListener('alpine:init', () => {
             this.setupVideoObservers();
         },
 
-        scrollHandler() {
-            if (this.loading || this.allLoaded) return;
-            this.$nextTick(() => {
-                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-                if (!feed) return;
-                const tiles = feed.querySelectorAll('.feed-tile');
-                if (tiles.length === 0) return;
+scrollHandler() {
+    if (this.loading || this.allLoaded) return;
+    this.$nextTick(() => {
+        const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+        if (!feed) return;
+        const tiles = feed.querySelectorAll('.feed-tile');
+        if (tiles.length === 0) return;
 
-                let lastVisibleIndex = -1;
-                for (let i = tiles.length - 1; i >= 0; i--) {
-                    const rect = tiles[i].getBoundingClientRect();
-                    if (rect.top < window.innerHeight) {
-                        lastVisibleIndex = i;
-                        break;
-                    }
-                }
+        let lastVisibleIndex = -1;
+        for (let i = tiles.length - 1; i >= 0; i--) {
+            const rect = tiles[i].getBoundingClientRect();
+            if (rect.top < window.innerHeight) {
+                lastVisibleIndex = i;
+                break;
+            }
+        }
 
-                // Only call loadBoards if we've crossed a new threshold
-                if (
-                    lastVisibleIndex >= 10 &&
-                    lastVisibleIndex > this.lastLoadedIndex &&
-                    !this.loading &&
-                    !this.allLoaded
-                ) {
-                    this.lastLoadedIndex = lastVisibleIndex;
-                    this.loadBoards();
-                }
-            });
-        },
+        // Calculate the next threshold (10, 20, 30, ...)
+        const nextThreshold = Math.floor((this.lastLoadedIndex + 10) / 10) * 10;
+
+        // Only call loadBoards if we've crossed the next threshold
+        if (
+            lastVisibleIndex >= nextThreshold &&
+            lastVisibleIndex > this.lastLoadedIndex &&
+            !this.loading &&
+            !this.allLoaded
+        ) {
+            this.lastLoadedIndex = nextThreshold;
+            this.loadBoards();
+        }
+    });
+},
 
         setupVideoObservers() {
             this.$nextTick(() => {
