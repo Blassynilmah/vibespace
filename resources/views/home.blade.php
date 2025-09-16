@@ -864,6 +864,7 @@ document.addEventListener('alpine:init', () => {
         showTeaserComments: false,
         activeTeaserComments: null,
         lastLoadedIndex: 0,
+        nextThreshold: 10,
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -905,39 +906,36 @@ document.addEventListener('alpine:init', () => {
             this.setupVideoObservers();
         },
 
-scrollHandler() {
-    if (this.loading || this.allLoaded) return;
-    this.$nextTick(() => {
-        const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-        if (!feed) return;
-        const tiles = feed.querySelectorAll('.feed-tile');
-        if (tiles.length === 0) return;
+        scrollHandler() {
+            if (this.loading || this.allLoaded) return;
+            this.$nextTick(() => {
+                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+                if (!feed) return;
+                const tiles = feed.querySelectorAll('.feed-tile');
+                if (tiles.length === 0) return;
 
-        let lastVisibleIndex = -1;
-        for (let i = tiles.length - 1; i >= 0; i--) {
-            const rect = tiles[i].getBoundingClientRect();
-            if (rect.top < window.innerHeight) {
-                lastVisibleIndex = i;
-                break;
-            }
-        }
+                let lastVisibleIndex = -1;
+                for (let i = tiles.length - 1; i >= 0; i--) {
+                    const rect = tiles[i].getBoundingClientRect();
+                    if (rect.top < window.innerHeight) {
+                        lastVisibleIndex = i;
+                        break;
+                    }
+                }
 
-        // Always start at 10, then 20, 30, etc.
-const nextThreshold = ((Math.floor(this.lastLoadedIndex / 10) + 1) * 10);
-
-        // Only call loadBoards if we've crossed the next threshold
-        if (
-            lastVisibleIndex >= nextThreshold &&
-            nextThreshold > this.lastLoadedIndex &&
-            !this.loading &&
-            !this.allLoaded
-        ) {
-            console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${nextThreshold}`);
-            this.lastLoadedIndex = nextThreshold;
-            this.loadBoards('scrollHandler');
-        }
-    });
-},
+                // Only call loadBoards if we've crossed the next threshold
+                if (
+                    lastVisibleIndex >= this.nextThreshold &&
+                    !this.loading &&
+                    !this.allLoaded
+                ) {
+                    console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${this.nextThreshold}`);
+                    this.lastLoadedIndex = this.nextThreshold;
+                    this.loadBoards('scrollHandler');
+                    this.nextThreshold += 20; // increment by 20 for the next call
+                }
+            });
+        },
 
         setupVideoObservers() {
             this.$nextTick(() => {
