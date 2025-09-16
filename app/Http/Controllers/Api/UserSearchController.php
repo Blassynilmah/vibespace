@@ -8,18 +8,23 @@ use App\Models\User;
 
 class UserSearchController extends Controller
 {
+
 public function search(Request $request)
 {
-    $query = $request->query('q');
-    $userId = auth()->id(); // exclude self
+    $q = $request->query('q', '');
+    $q = ltrim($q, '@');
+    $userId = $request->user()->id;
 
-    $users = User::where('id', '!=', $userId)
-        ->where('username', 'like', '%' . $query . '%')
-        ->orderBy('username')
+    $users = \DB::table('users')
+        ->leftJoin('profile_pictures', 'users.id', '=', 'profile_pictures.user_id')
+        ->where('users.id', '!=', $userId)
+        ->where('users.username', 'ilike', "%{$q}%")
+        ->orderBy('users.username')
         ->limit(20)
-        ->get(['id', 'username', 'profile_picture']);
+        ->select('users.id', 'users.username', 'profile_pictures.path as profile_picture')
+        ->get();
 
-    return response()->json(['users' => $users]);
+    return response()->json(['data' => $users]);
 }
 
 }
