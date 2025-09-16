@@ -340,6 +340,24 @@
     </div>
 </div>
 
+<div class="lg:hidden sticky top-[44px] z-[98] bg-white border-b flex justify-around items-center py-2">
+    <button
+        @click="activeTab = 'messages'"
+        :class="activeTab === 'messages' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+        class="flex-1 py-2 text-center transition"
+    >Messages</button>
+    <button
+        @click="activeTab = 'requests'"
+        :class="activeTab === 'requests' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+        class="flex-1 py-2 text-center transition"
+    >Requests</button>
+    <button
+        @click="activeTab = 'friends'"
+        :class="activeTab === 'friends' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+        class="flex-1 py-2 text-center transition"
+    >Friends</button>
+</div>
+
 
     <!-- Left Sidebar (Recent Chats) -->
     <div class="w-full lg:w-1/3 bg-white border-r flex flex-col">
@@ -752,6 +770,7 @@ Alpine.store('messaging', {
     autoScrollFailed: false,
     showRecentChats: window.innerWidth < 1024,
     unreadConversationsCount: 0,
+    activeTab: 'messages',
 
     async fetchUnreadConversationsCount() {
         try {
@@ -766,6 +785,28 @@ Alpine.store('messaging', {
         } catch (e) {
             this.unreadConversationsCount = 0;
         }
+    },
+
+    get tabbedContacts() {
+        if (this.activeTab === 'messages') {
+            // Friends: users who follow each other AND have messaged
+            return this.contacts.filter(c =>
+                c.is_friend && c.has_messaged
+            );
+        }
+        if (this.activeTab === 'requests') {
+            // Requests: users who follow the user, but user does NOT follow back
+            return this.contacts.filter(c =>
+                c.follows_user && !c.user_follows && !c.has_messaged
+            );
+        }
+        if (this.activeTab === 'friends') {
+            // Friends: users who follow each other, but have never messaged
+            return this.contacts.filter(c =>
+                c.is_friend && !c.has_messaged
+            );
+        }
+        return [];
     },
 
     init() {
