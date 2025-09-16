@@ -813,6 +813,7 @@ document.addEventListener('alpine:init', () => {
         teaserReactionCooldowns: {}, // { [teaserId]: timestamp }
         showTeaserComments: false,
         activeTeaserComments: null,
+        lastLoadedIndex: -1,
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -858,18 +859,9 @@ document.addEventListener('alpine:init', () => {
             if (this.loading || this.allLoaded) return;
             this.$nextTick(() => {
                 const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-                if (!feed) {
-                    return;
-                }
+                if (!feed) return;
                 const tiles = feed.querySelectorAll('.feed-tile');
-                if (tiles.length === 0) {
-                    return;
-                }
-
-                // Log the index and position of each tile
-                tiles.forEach((tile, idx) => {
-                    const rect = tile.getBoundingClientRect();
-                });
+                if (tiles.length === 0) return;
 
                 let lastVisibleIndex = -1;
                 for (let i = tiles.length - 1; i >= 0; i--) {
@@ -880,11 +872,14 @@ document.addEventListener('alpine:init', () => {
                     }
                 }
 
+                // Only call loadBoards if we've crossed a new threshold
                 if (
                     lastVisibleIndex >= 10 &&
+                    lastVisibleIndex > this.lastLoadedIndex &&
                     !this.loading &&
                     !this.allLoaded
                 ) {
+                    this.lastLoadedIndex = lastVisibleIndex;
                     this.loadBoards();
                 }
             });
@@ -964,42 +959,36 @@ document.addEventListener('alpine:init', () => {
         },
         
         toggleMood(mood) {
-            if (this.loading) return; // Prevent clicks while loading
-
+            if (this.loading) return;
             const index = this.selectedMoods.indexOf(mood);
             if (index > -1) {
                 this.selectedMoods.splice(index, 1);
             } else {
                 this.selectedMoods.push(mood);
             }
-
             this.page = 1;
             this.items = [];
             this.allLoaded = false;
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
+            this.lastLoadedIndex = -1; // <--- Reset here
             this.loadBoards();
-            this.$nextTick(() => {
-            });
         },
 
         toggleMediaType(type) {
             if (this.loading) return;
-
             if (this.selectedMediaTypes[0] === type) {
                 this.selectedMediaTypes = [];
             } else {
                 this.selectedMediaTypes = [type];
             }
-
-            // 🔥 Reset moods so they don’t conflict
             this.selectedMoods = [];
-
             this.page = 1;
             this.items = [];
             this.allLoaded = false;
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
+            this.lastLoadedIndex = -1; // <--- Reset here
             this.loadBoards();
         },
 
@@ -1062,79 +1051,78 @@ document.addEventListener('alpine:init', () => {
             return item
         },
 
-// ...inside Alpine data...
-async loadBoards() {
-    if (this.loading || this.allLoaded) return;
-    if (this.page === 1) this.loading = true;
+        async loadBoards() {
+            if (this.loading || this.allLoaded) return;
+            if (this.page === 1) this.loading = true;
 
-    const url = `/api/boards?moodboards=20&teasers=5`
-        + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
-        + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
-        + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
-        + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
+            const url = `/api/boards?moodboards=20&teasers=5`
+                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
+                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
+                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
 
-    try {
-        const res = await fetch(url, {
-            credentials: 'include',
-            headers: { 'Accept': 'application/json' }
-        });
+            try {
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
 
-        const contentType = res.headers.get('content-type') || '';
-        if (!res.ok) {
-            const text = await res.text();
-            throw new Error(`Request failed: ${res.status}`);
-        }
-        if (!contentType.includes('application/json')) {
-            const text = await res.text();
-            throw new Error('Non-JSON response received');
-        }
+                const contentType = res.headers.get('content-type') || '';
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Request failed: ${res.status}`);
+                }
+                if (!contentType.includes('application/json')) {
+                    const text = await res.text();
+                    throw new Error('Non-JSON response received');
+                }
 
-        const json = await res.json();
+                const json = await res.json();
 
-        // Update fetched IDs
-        if (json.sent_board_ids) {
-            this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
-        }
-        if (json.sent_teaser_ids) {
-            this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
-        }
+                // Update fetched IDs
+                if (json.sent_board_ids) {
+                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
+                }
+                if (json.sent_teaser_ids) {
+                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
+                }
 
-        // 🛑 Fix: Set loading to false BEFORE returning
-        if (!json.data || json.data.length === 0 || json.all_loaded) {
-            this.allLoaded = true;
-            this.loading = false; // <--- Move this line here
-            return;
-        }
+                // 🛑 Fix: Set loading to false BEFORE returning
+                if (!json.data || json.data.length === 0 || json.all_loaded) {
+                    this.allLoaded = true;
+                    this.loading = false; // <--- Move this line here
+                    return;
+                }
 
-        const newItems = json.data.map(item => this.normalizeItem(item))
-            .filter(newItem => !this.items.some(existing =>
-                existing.type === newItem.type &&
-                existing.id === newItem.id &&
-                existing.created_at === newItem.created_at
-            ));
+                const newItems = json.data.map(item => this.normalizeItem(item))
+                    .filter(newItem => !this.items.some(existing =>
+                        existing.type === newItem.type &&
+                        existing.id === newItem.id &&
+                        existing.created_at === newItem.created_at
+                    ));
 
-        console.group(`Loaded ${newItems.length} items (page ${this.page})`)
-        newItems.forEach(i => {
-            if (i.type === 'board') {
-                console.log(`Board #${i.id} → files:`, i.files)
-            } else if (i.type === 'teaser') {
-                console.log(`Teaser #${i.id}`)
+                console.group(`Loaded ${newItems.length} items (page ${this.page})`)
+                newItems.forEach(i => {
+                    if (i.type === 'board') {
+                        console.log(`Board #${i.id} → files:`, i.files)
+                    } else if (i.type === 'teaser') {
+                        console.log(`Teaser #${i.id}`)
+                    }
+                })
+                console.groupEnd()
+
+                if (!this.items) this.items = []
+                this.items.push(...newItems)
+
+                this.setupVideoObservers();
+                this.page += 1;
+                this.initializePlayStates();
+
+            } catch (error) {
+            } finally {
+                this.loading = false;
             }
-        })
-        console.groupEnd()
-
-        if (!this.items) this.items = []
-        this.items.push(...newItems)
-
-        this.setupVideoObservers();
-        this.page += 1;
-        this.initializePlayStates();
-
-    } catch (error) {
-    } finally {
-        this.loading = false;
-    }
-},
+        },
 
         handlePlay(id) {
             this.currentPlayingTeaserId = id;
