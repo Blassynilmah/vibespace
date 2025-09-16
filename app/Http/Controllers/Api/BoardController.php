@@ -29,6 +29,23 @@ public function index(Request $request)
 
     $moods = array_filter(explode(',', $request->query('moods', '')));
 
+    // Fetch seen board and teaser IDs for the current user
+    $seenBoardIds = \DB::table('seen_content')
+        ->where('user_id', $viewerId)
+        ->where('content_type', 'board')
+        ->pluck('content_id')
+        ->toArray();
+
+    $seenTeaserIds = \DB::table('seen_content')
+        ->where('user_id', $viewerId)
+        ->where('content_type', 'teaser')
+        ->pluck('content_id')
+        ->toArray();
+
+    // Merge with any exclude IDs from the request
+    $excludeBoardIds = array_merge($excludeBoardIds, $seenBoardIds);
+    $excludeTeaserIds = array_merge($excludeTeaserIds, $seenTeaserIds);
+
     // Boards query
     $boardsQuery = MoodBoard::query()
         ->whereNotIn('id', $excludeBoardIds)
@@ -75,9 +92,9 @@ public function index(Request $request)
             ->whereNotIn('id', $excludeTeaserIds)
             ->with([
                 'user.profilePicture',
-                'comments.user', // eager load comment user
-                'comments.replies.user', // eager load reply user
-                'comments.reactions', // eager load reactions
+                'comments.user',
+                'comments.replies.user',
+                'comments.reactions',
             ])
             ->withCount('comments')
             ->latest()
@@ -107,9 +124,7 @@ public function index(Request $request)
                     'boring_count' => $teaser->reactions()->where('reaction', 'boring')->count(),
                     'user_teaser_reaction' => $viewerId ? $teaser->reactions()->where('user_id', $viewerId)->value('reaction') : null,
                     'type' => 'teaser',
-                    // Add comments with reactions and replies
                     'comments' => $teaser->comments->map(function ($comment) {
-                        // Get only the latest 5 replies, descending by created_at
                         $latestReplies = $comment->replies
                             ->sortByDesc('created_at')
                             ->take(5);
@@ -123,7 +138,6 @@ public function index(Request $request)
                                 'username' => $comment->user->username,
                                 'profile_picture' => $comment->user->profilePicture->path ?? null,
                             ],
-                            // Reaction counts
                             'like_count' => $comment->reactions->where('reaction_type', 'like')->count(),
                             'dislike_count' => $comment->reactions->where('reaction_type', 'dislike')->count(),
                             'reply_count' => $comment->replies->count(),
@@ -133,18 +147,16 @@ public function index(Request $request)
             });
     }
 
-    // Merge logic
+    // Merge logic (unchanged)
     $final = [];
     $teaserIndex = 0;
     $boardIndex = 0;
     $totalBoards = $boards->count();
     $totalTeasers = $teasers->count();
 
-    // Placement positions for teasers (1-based index)
-    $teaserPositions = [2, 8, 16]; // for first page
+    $teaserPositions = [2, 8, 16];
     $page = (int) $request->query('page', 1);
 
-    // For subsequent pages, teasers at 24, 32, etc.
     if ($page > 1) {
         $teaserPositions = [];
         $start = 24 + ($page - 2) * $boardsPerPage;
@@ -157,7 +169,6 @@ public function index(Request $request)
     $teaserPosIndex = 0;
 
     while ($boardIndex < $totalBoards || $teaserIndex < $totalTeasers) {
-        // Insert teaser if current position matches a teaser position and teasers remain
         if ($teaserPosIndex < count($teaserPositions) && $currentPos === $teaserPositions[$teaserPosIndex] && $teaserIndex < $totalTeasers) {
             $final[] = $teasers[$teaserIndex++];
             $teaserPosIndex++;
@@ -167,7 +178,6 @@ public function index(Request $request)
         $currentPos++;
     }
 
-    // If any teasers left, append them at the end
     while ($teaserIndex < $totalTeasers) {
         $final[] = $teasers[$teaserIndex++];
     }
