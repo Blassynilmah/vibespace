@@ -11,6 +11,113 @@ use Illuminate\Support\Collection;
 
 class MessageController extends Controller
 {
+
+public function index(Request $request)
+{
+    $auth = Auth::user();
+
+    // Step 1: Get all contact IDs from messages
+    $recentMessages = Message::where('sender_id', $auth->id)
+        ->orWhere('receiver_id', $auth->id)
+        ->latest()
+        ->get();
+
+    $contactIds = collect();
+    foreach ($recentMessages as $msg) {
+        $contactIds->push($msg->sender_id === $auth->id ? $msg->receiver_id : $msg->sender_id);
+    }
+    $contactIds = $contactIds->unique()->take(20);
+
+    // Step 2: Fetch users
+    $contacts = User::whereIn('id', $contactIds)->get();
+
+    // Step 2b: Get follow relationships
+    $authFollowingIds = $auth->following()->pluck('users.id')->toArray(); // users the auth user follows
+    $authFollowerIds = $auth->followers()->pluck('users.id')->toArray(); // users who follow the auth user
+
+    // Step 3: Fetch latest messages in one go (N+1 fix)
+    $latestMessages = Message::where(function ($q) use ($auth) {
+            $q->whereIn('sender_id', [$auth->id])
+              ->orWhereIn('receiver_id', [$auth->id]);
+        })
+        ->orderByDesc('created_at')
+        ->get()
+        ->groupBy(function ($msg) use ($auth) {
+            return $msg->sender_id === $auth->id ? $msg->receiver_id : $msg->sender_id;
+        });
+
+    $contacts->transform(function ($u) use ($latestMessages, $auth, $authFollowingIds, $authFollowerIds) {
+        $lastMsg = optional($latestMessages[$u->id])->first();
+        $u->unread_count = 0;
+        $u->should_bold = false;
+        $u->has_attachment = false;
+
+        // Flags for tab logic
+        $userFollows = in_array($u->id, $authFollowingIds);
+        $followsUser = in_array($u->id, $authFollowerIds);
+        $isFriend = $userFollows && $followsUser;
+        $hasMessaged = $lastMsg !== null;
+
+        $u->user_follows = $userFollows;
+        $u->follows_user = $followsUser;
+        $u->is_friend = $isFriend;
+        $u->has_messaged = $hasMessaged;
+
+        if ($lastMsg) {
+            // Count unread messages where auth is receiver and contact is sender
+            if ($lastMsg->sender_id !== $auth->id) {
+                $u->unread_count = Message::where('sender_id', $u->id)
+                    ->where('receiver_id', $auth->id)
+                    ->where('is_read', false)
+                    ->count();
+                $u->should_bold = $u->unread_count > 0;
+            }
+            $hasAttachment = method_exists($lastMsg, 'attachments') && $lastMsg->attachments && $lastMsg->attachments->count() > 0;
+            $u->has_attachment = $hasAttachment;
+            if ((empty($lastMsg->body) || trim($lastMsg->body) === '') && $hasAttachment) {
+                $lastMsg->body = 'Attachment';
+            }
+        }
+        $u->last_message = $lastMsg;
+        return $u;
+    });
+
+    // Selected thread logic unchanged...
+    $receiver = null;
+    $messages = [];
+
+    if ($request->filled('receiver_id')) {
+        $receiverId = $request->receiver_id;
+        if (! $contactIds->contains($receiverId)) {
+            $allowed = User::find($receiverId);
+            if (! $allowed) {
+                abort(403, 'Unauthorized chat access');
+            }
+        }
+        $receiver = User::findOrFail($receiverId);
+
+        $messages = Message::where(function ($q) use ($auth, $receiver) {
+            $q->where('sender_id', $auth->id)
+              ->where('receiver_id', $receiver->id);
+        })->orWhere(function ($q) use ($auth, $receiver) {
+            $q->where('sender_id', $receiver->id)
+              ->where('receiver_id', $auth->id);
+        })->latest()
+          ->take(10)
+          ->get()
+          ->reverse()
+          ->values()
+          ->toArray();
+
+        Message::where('sender_id', $receiver->id)
+            ->where('receiver_id', $auth->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+    }
+
+    return view('messages.index', compact('contacts', 'receiver', 'messages'));
+}
+
     // API: Get count of unique users with unread messages for the logged-in user
     public function unreadConversationsCount()
     {
@@ -21,101 +128,6 @@ class MessageController extends Controller
             ->pluck('sender_id')
             ->unique();
         return response()->json(['count' => $unread->count()]);
-    }
-    // 📨 Show inbox + selected thread
-    public function index(Request $request)
-    {
-        $auth = Auth::user();
-
-        // 🧠 Step 1: Get all contact IDs from messages
-        $recentMessages = Message::where('sender_id', $auth->id)
-            ->orWhere('receiver_id', $auth->id)
-            ->latest()
-            ->get();
-
-        $contactIds = collect();
-        foreach ($recentMessages as $msg) {
-            $contactIds->push($msg->sender_id === $auth->id ? $msg->receiver_id : $msg->sender_id);
-        }
-        $contactIds = $contactIds->unique()->take(20);
-
-        // 🧠 Step 2: Fetch users
-        $contacts = User::whereIn('id', $contactIds)->get();
-
-        // 🧠 Step 3: Fetch latest messages in one go (N+1 fix)
-        $latestMessages = Message::where(function ($q) use ($auth) {
-                $q->whereIn('sender_id', [$auth->id])
-                  ->orWhereIn('receiver_id', [$auth->id]);
-            })
-            ->orderByDesc('created_at')
-            ->get()
-            ->groupBy(function ($msg) use ($auth) {
-                return $msg->sender_id === $auth->id ? $msg->receiver_id : $msg->sender_id;
-            });
-
-        $contacts->transform(function ($u) use ($latestMessages, $auth) {
-            $lastMsg = optional($latestMessages[$u->id])->first();
-            $u->unread_count = 0;
-            $u->should_bold = false;
-            $u->has_attachment = false;
-            if ($lastMsg) {
-                // Count unread messages where auth is receiver and contact is sender
-                if ($lastMsg->sender_id !== $auth->id) {
-                    $u->unread_count = Message::where('sender_id', $u->id)
-                        ->where('receiver_id', $auth->id)
-                        ->where('is_read', false)
-                        ->count();
-                    $u->should_bold = $u->unread_count > 0;
-                }
-                // If last message has no body but has attachment, set body to 'Attachment'
-                $hasAttachment = method_exists($lastMsg, 'attachments') && $lastMsg->attachments && $lastMsg->attachments->count() > 0;
-                $u->has_attachment = $hasAttachment;
-                if ((empty($lastMsg->body) || trim($lastMsg->body) === '') && $hasAttachment) {
-                    $lastMsg->body = 'Attachment';
-                }
-            }
-            $u->last_message = $lastMsg;
-            return $u;
-        });
-
-        // 💬 Step 4: Selected thread
-        $receiver = null;
-        $messages = [];
-
-        if ($request->filled('receiver_id')) {
-            $receiverId = $request->receiver_id;
-
-            // 🚨 Check if user is allowed to DM this person
-           if (! $contactIds->contains($receiverId)) {
-                $allowed = User::find($receiverId);
-                if (! $allowed) {
-                    abort(403, 'Unauthorized chat access');
-                }
-            }
-
-            $receiver = User::findOrFail($receiverId);
-
-            $messages = Message::where(function ($q) use ($auth, $receiver) {
-                $q->where('sender_id', $auth->id)
-                  ->where('receiver_id', $receiver->id);
-            })->orWhere(function ($q) use ($auth, $receiver) {
-                $q->where('sender_id', $receiver->id)
-                  ->where('receiver_id', $auth->id);
-            })->latest()
-              ->take(10)
-              ->get()
-              ->reverse()
-              ->values()
-              ->toArray();
-
-            // ✅ Mark all unread as read
-            Message::where('sender_id', $receiver->id)
-                ->where('receiver_id', $auth->id)
-                ->where('is_read', false)
-                ->update(['is_read' => true]);
-        }
-
-        return view('messages.index', compact('contacts', 'receiver', 'messages'));
     }
 
 public function store(Request $request)
