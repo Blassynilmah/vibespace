@@ -138,7 +138,7 @@
                 >
                     <template x-for="user in searchResults" :key="user.id">
                         <li
-                            @click="goToProfile(user.username)"
+                            @click="goToProfile(user.username, user.id)"
                             class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-pink-50 transition"
                         >
                             <img
@@ -1467,9 +1467,9 @@ document.addEventListener('alpine:init', () => {
                 });
         },
 
-        goToProfile(username) {
-            window.location.href = `/space/${username}`;
-        },
+        goToProfile(username, id) {
+            window.location.href = `/space/${username}-${id}`;
+        }
 
         renderMediaPreview(board) {
             const container = document.getElementById(`media-preview-${board.id}`);
