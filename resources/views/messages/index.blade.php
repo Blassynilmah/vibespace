@@ -863,27 +863,27 @@ Alpine.store('messaging', {
         }
     },
 
-    get tabbedContacts() {
-        if (this.activeTab === 'messages') {
-            // Friends: users who follow each other AND have messaged
-            return this.contacts.filter(c =>
-                c.is_friend && c.has_messaged
-            );
-        }
-        if (this.activeTab === 'requests') {
-            // Requests: users who follow the user, but user does NOT follow back
-            return this.contacts.filter(c =>
-                c.follows_user && !c.user_follows && !c.has_messaged
-            );
-        }
-        if (this.activeTab === 'friends') {
-            // Friends: users who follow each other, but have never messaged
-            return this.contacts.filter(c =>
-                c.is_friend && !c.has_messaged
-            );
-        }
-        return [];
-    },
+get tabbedContacts() {
+    if (this.activeTab === 'messages') {
+        // Mutual followers with messages
+        return this.contacts.filter(c =>
+            c.is_friend && c.has_messaged
+        );
+    }
+    if (this.activeTab === 'requests') {
+        // They follow user, user does NOT follow back, and there are messages
+        return this.contacts.filter(c =>
+            c.follows_user && !c.user_follows && c.has_messaged
+        );
+    }
+    if (this.activeTab === 'friends') {
+        // Mutual followers, but never messaged
+        return this.contacts.filter(c =>
+            c.is_friend && !c.has_messaged
+        );
+    }
+    return [];
+},
 
     init() {
         // Load recent chats list
