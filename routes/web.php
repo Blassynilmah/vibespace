@@ -136,6 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/teasers/comments/{comment}/like', [TeaserController::class, 'reactComment']);
     Route::post('/teasers/comments/{comment}/dislike', [TeaserController::class, 'reactComment']);
     Route::post('/teasers/comments/{comment}/reply', [TeaserController::class, 'replyComment']);
+    Route::get('/teasers/comments/{comment}/replies', [TeaserController::class, 'getCommentReplies']);
 });
 
 // Debug route to show current session ID and user ID

@@ -126,20 +126,6 @@ public function index(Request $request)
                             // Reaction counts
                             'like_count' => $comment->reactions->where('reaction_type', 'like')->count(),
                             'dislike_count' => $comment->reactions->where('reaction_type', 'dislike')->count(),
-                            // Only latest 5 replies
-                            'replies' => $latestReplies->map(function ($reply) {
-                                return [
-                                    'id' => $reply->id,
-                                    'body' => $reply->body,
-                                    'created_at' => $reply->created_at,
-                                    'user' => [
-                                        'id' => $reply->user->id,
-                                        'username' => $reply->user->username,
-                                        'profile_picture' => $reply->user->profilePicture->path ?? null,
-                                    ],
-                                ];
-                            })->values(),
-                            // Total reply count
                             'reply_count' => $comment->replies->count(),
                         ];
                     }),

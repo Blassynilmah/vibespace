@@ -263,4 +263,31 @@ public function replyComment(Request $request, $comment)
         'reply_count' => $reply_count,
     ]);
 }
+
+public function getCommentReplies(Request $request, $commentId)
+{
+    $offset = (int) $request->query('offset', 0);
+    $limit = (int) $request->query('limit', 5);
+
+    $replies = \App\Models\TeaserCommentReply::where('comment_id', $commentId)
+        ->orderBy('created_at', 'desc')
+        ->skip($offset)
+        ->take($limit)
+        ->with('user')
+        ->get()
+        ->map(function ($reply) {
+            return [
+                'id' => $reply->id,
+                'body' => $reply->body,
+                'created_at' => $reply->created_at,
+                'user' => [
+                    'id' => $reply->user->id,
+                    'username' => $reply->user->username,
+                    'profile_picture' => $reply->user->profilePicture->path ?? null,
+                ],
+            ];
+        });
+
+    return response()->json($replies);
+}
 }
