@@ -682,6 +682,20 @@
             </template>
         </div>
 
+        <template x-if="activeTab === 'friends'">
+            <div>
+                <template x-for="contact in $store.messaging.tabbedContacts" :key="contact.id">
+                    <a href="#" @click.prevent.stop="selectUser(contact)" class="flex items-center gap-3 px-4 py-2 mb-2 rounded-lg hover:bg-pink-50 transition">
+                        <img :src="contact.profile_picture ? '/storage/' + contact.profile_picture : '/storage/default.png'" class="w-8 h-8 rounded-full border border-pink-300 object-cover">
+                        <span class="font-semibold text-pink-600">@<span x-text="contact.username"></span></span>
+                    </a>
+                </template>
+                <template x-if="$store.messaging.tabbedContacts.length === 0">
+                    <div class="text-center text-gray-400 text-sm py-4">No friends found.</div>
+                </template>
+            </div>
+        </template>
+
 
         <!-- Right Sidebar - Desktop Navigation -->
         <div class="hidden lg:block w-1/5">
