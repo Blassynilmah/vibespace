@@ -143,10 +143,7 @@
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
             <template x-for="item in filteredBoards" :key="item.type + '-' + item.id + '-' + item.created_at">  
-                <div>
-                    <span x-text="item.type + ' ' + item.id"></span>
-                </div>
-                <template x-if="item.type === 'board'">
+                <div x-show="item.type === 'board'">
                     <div class="feed-tile relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
                         <div 
                         class="relative flex flex-col items-start p-3 sm:p-4 lg:p-6"
@@ -458,8 +455,8 @@
                             </div>
                         </div>
                     </div>
-                </template>
-                <template x-if="item.type === 'teaser'">
+                </div>
+                <div x-show="item.type === 'teaser'">
                     <div class="feed-tile snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl" ...>
 
                         <!-- Video Section -->
@@ -643,7 +640,7 @@
                             </div>
                         </div>
                     </div>
-                </template>
+                </div>
             </template>
         </div>
 
@@ -824,8 +821,8 @@ document.addEventListener('alpine:init', () => {
             this.loadBoards().finally(() => {
                 this.initialLoading = false;
                 this.$nextTick(() => {
-    console.log('filteredBoards after load:', JSON.parse(JSON.stringify(this.filteredBoards)));
-});
+                    console.log('filteredBoards after load:', JSON.parse(JSON.stringify(this.filteredBoards)));
+                });
             });
             window.addEventListener('scroll', this.scrollHandler.bind(this));
             window.fb = this.filteredBoards;
