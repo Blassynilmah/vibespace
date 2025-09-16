@@ -708,8 +708,22 @@
             </button>
         </div>
 
-        <div class="mt-6 flex justify-center text-gray-500" x-show="allLoaded && filteredBoards.length">
-            <span>🎉 You’ve reached the end of the feed</span>
+        <div x-show="showOlderPrompt" class="mt-8 flex flex-col items-center justify-center text-center">
+            <span class="text-lg font-semibold text-pink-600 mb-2">🎉 You are up to date with posts!</span>
+            <span class="mb-4 text-gray-600">Do you want to see older content?</span>
+            <div class="flex gap-4">
+                <button
+                    @click="showOlderPrompt = false; showOlderContent = true; allUnseenExhausted = false; items = []; page = 1; fetchedBoardIds = []; fetchedTeaserIds = []; loadOlderContent();"
+                    class="bg-pink-500 text-white px-6 py-2 rounded-full hover:bg-pink-600 font-semibold"
+                >Yes, show older content</button>
+                <button
+                    @click="showOlderPrompt = false; showOlderContent = false;"
+                    class="bg-gray-300 text-gray-700 px-6 py-2 rounded-full hover:bg-gray-400 font-semibold"
+                >No, I'll come back later</button>
+            </div>
+        </div>
+        <div x-show="!showOlderContent && allUnseenExhausted && !showOlderPrompt" class="mt-8 flex flex-col items-center justify-center text-center">
+            <span class="text-lg font-semibold text-gray-600 mb-2">Come back after some time to view newer posts.</span>
         </div>
         <!-- Mobile Filter Drawer -->
         <div 
@@ -865,6 +879,9 @@ document.addEventListener('alpine:init', () => {
         activeTeaserComments: null,
         lastLoadedIndex: 0,
         nextThreshold: 10,
+        allUnseenExhausted: false,
+        showOlderPrompt: false,
+        showOlderContent: false,
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -1143,6 +1160,13 @@ document.addEventListener('alpine:init', () => {
                     this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
                 }
 
+                if (json.all_unseen_exhausted) {
+                    this.allUnseenExhausted = true;
+                    this.showOlderPrompt = true;
+                    this.loading = false;
+                    return;
+                }
+
                 // 🛑 Fix: Set loading to false BEFORE returning
                 if (!json.data || json.data.length === 0 || json.all_loaded) {
                     this.allLoaded = true;
@@ -1180,6 +1204,55 @@ document.addEventListener('alpine:init', () => {
                 this.loading = false;
             }
         },
+
+async loadOlderContent() {
+    this.loading = true;
+    const url = `/api/boards?show_seen=1`
+        + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
+        + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
+        + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
+        + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '');
+
+    try {
+        const res = await fetch(url, {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        const json = await res.json();
+
+        if (json.sent_board_ids) {
+            this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
+        }
+        if (json.sent_teaser_ids) {
+            this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
+        }
+
+        if (!json.data || json.data.length === 0 || json.all_loaded) {
+            this.allLoaded = true;
+            this.loading = false;
+            return;
+        }
+
+        const newItems = json.data.map(item => this.normalizeItem(item))
+            .filter(newItem => !this.items.some(existing =>
+                existing.type === newItem.type &&
+                existing.id === newItem.id &&
+                existing.created_at === newItem.created_at
+            ));
+
+        if (!this.items) this.items = [];
+        this.items.push(...newItems);
+
+        this.setupVideoObservers();
+        this.page += 1;
+        this.initializePlayStates();
+        this.setupSeenContentObserver();
+
+    } catch (error) {
+    } finally {
+        this.loading = false;
+    }
+},
 
         handlePlay(id) {
             this.currentPlayingTeaserId = id;
@@ -1821,53 +1894,53 @@ document.addEventListener('alpine:init', () => {
             box.classList.remove('hidden');
         },
 
-setupSeenContentObserver() {
-    this.$nextTick(() => {
-        const seenIds = new Set();
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const el = entry.target;
-                    const type = el.getAttribute('data-type');
-                    const id = el.getAttribute('data-id');
-                    const key = type + '-' + id;
-                    console.log(`[SeenContent] Intersected: type=${type}, id=${id}, key=${key}`);
-                    if (type && id && !seenIds.has(key)) {
-                        seenIds.add(key);
-                        console.log(`[SeenContent] Sending to backend:`, { content_type: type, content_id: id });
-                        fetch('/seen-content', {
-                            method: 'POST',
-                            headers: {
-                                ...this._headers(),
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            },
-                            credentials: 'include',
-                            body: JSON.stringify({
-                                content_type: type,
-                                content_id: id
-                            })
-                        })
-                        .then(res => {
-                            console.log(`[SeenContent] Response status for ${key}:`, res.status);
-                            return res.json();
-                        })
-                        .then(data => {
-                            console.log(`[SeenContent] Backend response for ${key}:`, data);
-                        })
-                        .catch(err => {
-                            console.error(`[SeenContent] Error for ${key}:`, err);
-                        });
-                    }
-                }
-            });
-        }, { threshold: 0.5 }); // 50% visible
+        setupSeenContentObserver() {
+            this.$nextTick(() => {
+                const seenIds = new Set();
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const el = entry.target;
+                            const type = el.getAttribute('data-type');
+                            const id = el.getAttribute('data-id');
+                            const key = type + '-' + id;
+                            console.log(`[SeenContent] Intersected: type=${type}, id=${id}, key=${key}`);
+                            if (type && id && !seenIds.has(key)) {
+                                seenIds.add(key);
+                                console.log(`[SeenContent] Sending to backend:`, { content_type: type, content_id: id });
+                                fetch('/seen-content', {
+                                    method: 'POST',
+                                    headers: {
+                                        ...this._headers(),
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                    },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        content_type: type,
+                                        content_id: id
+                                    })
+                                })
+                                .then(res => {
+                                    console.log(`[SeenContent] Response status for ${key}:`, res.status);
+                                    return res.json();
+                                })
+                                .then(data => {
+                                    console.log(`[SeenContent] Backend response for ${key}:`, data);
+                                })
+                                .catch(err => {
+                                    console.error(`[SeenContent] Error for ${key}:`, err);
+                                });
+                            }
+                        }
+                    });
+                }, { threshold: 0.5 }); // 50% visible
 
-        document.querySelectorAll('.feed-tile').forEach(tile => {
-            observer.observe(tile);
-            console.log(`[SeenContent] Observing tile:`, tile);
-        });
-    });
-}
+                document.querySelectorAll('.feed-tile').forEach(tile => {
+                    observer.observe(tile);
+                    console.log(`[SeenContent] Observing tile:`, tile);
+                });
+            });
+        }
     }));
 });
 </script>
