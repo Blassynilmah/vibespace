@@ -107,16 +107,57 @@
         </div>
 
         <div class="flex items-center gap-3 mb-6">
-    <img
-        src="{{ Auth::user()->profile_picture ? '/storage/' . Auth::user()->profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png' }}"
-        alt="Profile Picture"
-        class="w-10 h-10 rounded-full border-2 border-pink-300 object-cover"
-    >
-    <div>
-        <span class="text-sm text-gray-700">You are logged in as</span>
-        <span class="font-semibold text-pink-600 ml-1">{{ '@' . Auth::user()->username }}</span>
-    </div>
-</div>
+            <img
+                src="{{ Auth::user()->profile_picture ? '/storage/' . Auth::user()->profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png' }}"
+                alt="Profile Picture"
+                class="w-10 h-10 rounded-full border-2 border-pink-300 object-cover"
+            >
+            <div>
+                <span class="text-sm text-gray-700">You are logged in as</span>
+                <span class="font-semibold text-pink-600 ml-1">{{ '@' . Auth::user()->username }}</span>
+            </div>
+        </div>
+
+        <div x-show="showSearch" class="mb-4 flex flex-col items-center w-full relative z-10">
+            <input
+                type="text"
+                x-model="searchQuery"
+                @input="searchUsers"
+                placeholder="Search users..."
+                class="w-full max-w-md px-4 py-2 rounded-full border border-pink-300 focus:ring-2 focus:ring-pink-400 text-sm"
+                style="margin-bottom: 0.5rem;"
+            >
+            <div
+                x-show="searchLoading"
+                class="absolute left-1/2 -translate-x-1/2 top-full mt-2 text-pink-500 text-sm"
+            >Searching...</div>
+            <template x-if="searchResults.length">
+                <ul
+                    class="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-full max-w-md bg-white rounded-xl shadow-lg border border-pink-200 z-20"
+                    style="max-height: 260px; overflow-y: auto;"
+                >
+                    <template x-for="user in searchResults" :key="user.id">
+                        <li
+                            @click="goToProfile(user.username)"
+                            class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-pink-50 transition"
+                        >
+                            <img
+                                :src="user.profile_picture ? '/storage/' + user.profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
+                                alt="Profile"
+                                class="w-8 h-8 rounded-full border border-pink-300 object-cover"
+                            >
+                            <span class="font-semibold text-pink-600">@<span x-text="user.username"></span></span>
+                        </li>
+                    </template>
+                </ul>
+            </template>
+            <template x-if="searchQuery && !searchLoading && searchResults.length === 0">
+                <div class="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-full max-w-md bg-white rounded-xl shadow-lg border border-pink-200 z-20 px-4 py-2 text-gray-500 text-sm">
+                    No users found.
+                </div>
+            </template>
+        </div>
+
         <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
             <!-- Title -->
             <h2
@@ -145,9 +186,8 @@
                 </button>
 
                 <!-- Search Button -->
-                <button @click="showSearch = true"
-                        class="flex items-center justify-center h-9 w-9 rounded-full bg-white text-pink-600 shadow transition duration-300 ease-in-out">
-                <span class="text-base">🔍</span>
+                <button @click="showSearch = !showSearch" ...>
+                    <span class="text-base">🔍</span>
                 </button>
             </div>
         </div>
@@ -856,8 +896,10 @@ document.addEventListener('alpine:init', () => {
         allLoaded: false,
         selectedMoods: [],
         selectedMediaTypes: [],
+        showSearch: false,
         searchQuery: '',
         searchResults: [],
+        searchLoading: false,
         showMobileFilters: false,
 
         moods: {
@@ -1405,20 +1447,23 @@ document.addEventListener('alpine:init', () => {
         },
 
         searchUsers() {
-            if (this.searchQuery.trim().length === 0) {
+            let q = this.searchQuery.trim();
+            if (q.startsWith('@')) q = q.slice(1);
+            if (q.length === 0) {
                 this.searchResults = [];
                 return;
             }
-
-            fetch(`/api/search-users?q=${encodeURIComponent(this.searchQuery)}`)
+            this.searchLoading = true;
+            fetch(`/api/search-users?q=${encodeURIComponent(q)}`)
                 .then(res => res.json())
                 .then(res => {
-                    this.boards = res.data
-                    this.filteredBoards = this.boards
-                    console.log("Filtered now:", this.filteredBoards)
+                    this.searchResults = res.data || [];
                 })
-                .catch(err => {
-                    console.error('Search error:', err);
+                .catch(() => {
+                    this.searchResults = [];
+                })
+                .finally(() => {
+                    this.searchLoading = false;
                 });
         },
 
