@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Log;
 use Throwable;
 use App\Models\Teaser;
 
-
 class BoardController extends Controller
 {
 public function index(Request $request)
@@ -74,19 +73,17 @@ public function index(Request $request)
     if (!$mediaType || $mediaType === 'teaser') {
         $teasers = Teaser::query()
             ->whereNotIn('id', $excludeTeaserIds)
-            ->with('user.profilePicture')
+            ->with([
+                'user.profilePicture',
+                'comments.user', // eager load comment user
+                'comments.replies.user', // eager load reply user
+                'comments.reactions', // eager load reactions
+            ])
             ->withCount('comments')
             ->latest()
             ->take($teasersPerPage)
             ->get()
             ->map(function ($teaser) use ($viewerId) {
-                $fireCount   = $teaser->reactions()->where('reaction', 'fire')->count();
-                $loveCount   = $teaser->reactions()->where('reaction', 'love')->count();
-                $boringCount = $teaser->reactions()->where('reaction', 'boring')->count();
-                $userReaction = null;
-                if ($viewerId) {
-                    $userReaction = $teaser->reactions()->where('user_id', $viewerId)->value('reaction');
-                }
                 return [
                     'id' => $teaser->id,
                     'title' => $teaser->title ?? '',
@@ -105,11 +102,41 @@ public function index(Request $request)
                     'expires_on' => $teaser->expires_on ?? null,
                     'expires_after' => $teaser->expires_after ?? null,
                     'teaser_mood' => $teaser->teaser_mood,
-                    'fire_count' => $fireCount,
-                    'love_count' => $loveCount,
-                    'boring_count' => $boringCount,
-                    'user_teaser_reaction' => $userReaction,
+                    'fire_count' => $teaser->reactions()->where('reaction', 'fire')->count(),
+                    'love_count' => $teaser->reactions()->where('reaction', 'love')->count(),
+                    'boring_count' => $teaser->reactions()->where('reaction', 'boring')->count(),
+                    'user_teaser_reaction' => $viewerId ? $teaser->reactions()->where('user_id', $viewerId)->value('reaction') : null,
                     'type' => 'teaser',
+                    // Add comments with reactions and replies
+                    'comments' => $teaser->comments->map(function ($comment) {
+                        return [
+                            'id' => $comment->id,
+                            'body' => $comment->body,
+                            'created_at' => $comment->created_at,
+                            'user' => [
+                                'id' => $comment->user->id,
+                                'username' => $comment->user->username,
+                                'profile_picture' => $comment->user->profilePicture->path ?? null,
+                            ],
+                            // Reaction counts
+                            'like_count' => $comment->reactions->where('reaction_type', 'like')->count(),
+                            'dislike_count' => $comment->reactions->where('reaction_type', 'dislike')->count(),
+                            // Replies and reply count
+                            'replies' => $comment->replies->map(function ($reply) {
+                                return [
+                                    'id' => $reply->id,
+                                    'body' => $reply->body,
+                                    'created_at' => $reply->created_at,
+                                    'user' => [
+                                        'id' => $reply->user->id,
+                                        'username' => $reply->user->username,
+                                        'profile_picture' => $reply->user->profilePicture->path ?? null,
+                                    ],
+                                ];
+                            }),
+                            'reply_count' => $comment->replies->count(),
+                        ];
+                    }),
                 ];
             });
     }
