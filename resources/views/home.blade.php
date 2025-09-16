@@ -106,6 +106,17 @@
             </div>
         </div>
 
+        <div class="flex items-center gap-3 mb-6">
+    <img
+        src="{{ Auth::user()->profile_picture ? '/storage/' . Auth::user()->profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png' }}"
+        alt="Profile Picture"
+        class="w-10 h-10 rounded-full border-2 border-pink-300 object-cover"
+    >
+    <div>
+        <span class="text-sm text-gray-700">You are logged in as</span>
+        <span class="font-semibold text-pink-600 ml-1">{{ '@' . Auth::user()->username }}</span>
+    </div>
+</div>
         <div class="flex items-center justify-between mb-6 flex-wrap gap-2">
             <!-- Title -->
             <h2
