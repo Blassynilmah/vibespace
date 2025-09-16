@@ -872,6 +872,7 @@ document.addEventListener('alpine:init', () => {
             this.page = 1;
             this.items = [];
             this.allLoaded = false;
+            this.nextThreshold = 10;
             this.loadBoards().finally(() => {
                 this.initialLoading = false;
                 this.$nextTick(() => {
@@ -1023,7 +1024,8 @@ document.addEventListener('alpine:init', () => {
             this.allLoaded = false;
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
-            this.lastLoadedIndex = -1; // <--- Reset here
+            this.lastLoadedIndex = -1;
+            this.nextThreshold = 10;
             this.loadBoards();
         },
 
@@ -1040,7 +1042,8 @@ document.addEventListener('alpine:init', () => {
             this.allLoaded = false;
             this.fetchedBoardIds = [];
             this.fetchedTeaserIds = [];
-            this.lastLoadedIndex = -1; // <--- Reset here
+            this.lastLoadedIndex = -1;
+            this.nextThreshold = 10;
             this.loadBoards();
         },
 
