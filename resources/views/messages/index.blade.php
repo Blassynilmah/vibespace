@@ -344,13 +344,23 @@
     <button
         @click="$store.messaging.activeTab = 'messages'"
         :class="$store.messaging.activeTab === 'messages' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-        class="flex-1 py-2 text-center transition"
-    >Messages</button>
+        class="flex-1 py-2 text-center transition relative"
+    >
+        Messages
+        <template x-if="$store.messaging.unreadMessagesCount() > 0">
+            <span class="absolute top-0 right-2 bg-pink-500 text-white text-xs rounded-full px-2 py-0.5" x-text="$store.messaging.unreadMessagesCount()"></span>
+        </template>
+    </button>
     <button
         @click="$store.messaging.activeTab = 'requests'"
         :class="$store.messaging.activeTab === 'requests' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-        class="flex-1 py-2 text-center transition"
-    >Requests</button>
+        class="flex-1 py-2 text-center transition relative"
+    >
+        Requests
+        <template x-if="$store.messaging.tabbedContacts.length > 0 && $store.messaging.activeTab === 'requests'">
+            <span class="absolute top-0 right-2 bg-pink-500 text-white text-xs rounded-full px-2 py-0.5" x-text="$store.messaging.tabbedContacts.length"></span>
+        </template>
+    </button>
     <button
         @click="$store.messaging.activeTab = 'friends'"
         :class="$store.messaging.activeTab === 'friends' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
@@ -431,16 +441,9 @@
         <template x-if="$store.messaging.activeTab === 'requests'">
             <div
                 x-show="showRecentChats || isDesktop"
-                x-transition:enter="transition ease-out duration-300"
-                x-transition:enter-start="opacity-0 transform translate-x-4"
-                x-transition:enter-end="opacity-100 transform translate-x-0"
-                x-transition:leave="transition ease-in duration-200"
-                x-transition:leave-start="opacity-100 transform translate-x-0"
-                x-transition:leave-end="opacity-0 transform translate-x-4"
                 class="flex-1 overflow-y-auto px-4 pt-4 transition-all"
                 id="recent-chats-scroll"
             >
-                <!-- 🔁 Recent Chats Loop -->
                 <template
                     x-for="contact in [...$store.messaging.tabbedContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
                     :key="contact.id"
@@ -470,7 +473,8 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                 <template x-if="$store.messaging.tabbedContacts.length === 0">
+                                <!-- Show unread count for each user -->
+                                <template x-if="contact.unread_count > 0">
                                     <span class="inline-block min-w-[22px] px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs font-bold text-center" x-text="contact.unread_count"></span>
                                 </template>
                                 <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-400'" class="text-[0.7rem] whitespace-nowrap"
@@ -482,7 +486,7 @@
                 </template>
 
                 <!-- 🚫 Fallback if no contacts -->
-                <template x-if="$store.messaging.filteredContacts.length === 0">
+                <template x-if="$store.messaging.tabbedContacts.length === 0">
                     <div class="text-center text-gray-400 text-sm py-4">No recent chats found.</div>
                 </template>
             </div>
@@ -863,27 +867,27 @@ Alpine.store('messaging', {
         }
     },
 
-get tabbedContacts() {
-    if (this.activeTab === 'messages') {
-        // Mutual followers with messages
-        return this.contacts.filter(c =>
-            c.is_friend && c.has_messaged
-        );
-    }
-    if (this.activeTab === 'requests') {
-        // They follow user, user does NOT follow back, and NOT mutual followers, and there are messages
-        return this.contacts.filter(c =>
-            c.follows_user && !c.user_follows && !c.is_friend && c.has_messaged
-        );
-    }
-    if (this.activeTab === 'friends') {
-        // Mutual followers, but never messaged
-        return this.contacts.filter(c =>
-            c.is_friend && !c.has_messaged
-        );
-    }
-    return [];
-},
+    get tabbedContacts() {
+        if (this.activeTab === 'messages') {
+            // Mutual followers with messages
+            return this.contacts.filter(c =>
+                c.is_friend && c.has_messaged
+            );
+        }
+        if (this.activeTab === 'requests') {
+            // They follow user, user does NOT follow back, and NOT mutual followers, and there are messages
+            return this.contacts.filter(c =>
+                c.follows_user && !c.user_follows && !c.is_friend && c.has_messaged
+            );
+        }
+        if (this.activeTab === 'friends') {
+            // Mutual followers, but never messaged
+            return this.contacts.filter(c =>
+                c.is_friend && !c.has_messaged
+            );
+        }
+        return [];
+    },
 
     init() {
         // Load recent chats list
@@ -922,6 +926,14 @@ get tabbedContacts() {
                 const bTime = new Date(b.last_message?.created_at || 0).getTime();
                 return bTime - aTime; // Newest first
             });
+    },
+
+    unreadMessagesCount() {
+        return this.contacts.filter(c => c.is_friend && c.has_messaged && c.unread_count > 0).length;
+    },
+
+    unreadRequestsCount() {
+        return this.contacts.filter(c => c.follows_user && !c.user_follows && !c.is_friend && c.has_messaged && c.unread_count > 0).length;
     },
 
     get filteredContacts() {
