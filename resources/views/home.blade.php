@@ -143,7 +143,7 @@
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
             <template x-for="item in filteredBoards" :key="item.type + '-' + item.id + '-' + item.created_at">  
-                <div class="feed-tile">
+                <div class="feed-tile" :data-type="item.type" :data-id="item.id">
                     <template x-if="item.type === 'board'">
                         <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
                             <div 
@@ -1818,6 +1818,38 @@ document.addEventListener('alpine:init', () => {
             msg.textContent = message;
             msg.className = `px-4 py-2 rounded shadow-lg text-white text-sm font-medium bg-gray-600`;
             box.classList.remove('hidden');
+        },
+
+        setupSeenContentObserver() {
+            this.$nextTick(() => {
+                const seenIds = new Set();
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const el = entry.target;
+                            const type = el.getAttribute('data-type');
+                            const id = el.getAttribute('data-id');
+                            if (type && id && !seenIds.has(type + '-' + id)) {
+                                seenIds.add(type + '-' + id);
+                                // Send to backend
+                                fetch('/api/seen-content', {
+                                    method: 'POST',
+                                    headers: this._headers(),
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        content_type: type,
+                                        content_id: id
+                                    })
+                                });
+                            }
+                        }
+                    });
+                }, { threshold: 0.5 }); // 50% visible
+
+                document.querySelectorAll('.feed-tile').forEach(tile => {
+                    observer.observe(tile);
+                });
+            });
         }
     }));
 });
