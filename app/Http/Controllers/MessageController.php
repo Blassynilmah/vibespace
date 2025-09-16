@@ -260,51 +260,67 @@ public function store(Request $request)
             return response()->json(['success' => true]);
         }
 
-        public function recentChats()
-        {
-            $user = Auth::user();
-            $recentMessages = Message::with('attachments')
-                ->where('sender_id', $user->id)
-                ->orWhere('receiver_id', $user->id)
-                ->latest()
-                ->get();
+public function recentChats()
+{
+    $user = Auth::user();
+    $recentMessages = Message::with('attachments')
+        ->where('sender_id', $user->id)
+        ->orWhere('receiver_id', $user->id)
+        ->latest()
+        ->get();
 
-            $contactIds = $recentMessages->map(function ($msg) use ($user) {
-                return $msg->sender_id === $user->id ? $msg->receiver_id : $msg->sender_id;
-            })->unique()->take(20);
+    $contactIds = $recentMessages->map(function ($msg) use ($user) {
+        return $msg->sender_id === $user->id ? $msg->receiver_id : $msg->sender_id;
+    })->unique()->take(20);
 
-            $contacts = User::whereIn('id', $contactIds)->get();
+    $contacts = User::whereIn('id', $contactIds)->get();
 
-            // Group messages by contact
-            $groupedMessages = $recentMessages->groupBy(function ($msg) use ($user) {
-                return $msg->sender_id === $user->id ? $msg->receiver_id : $msg->sender_id;
-            });
+    // Get follow relationships
+    $authFollowingIds = $user->following()->pluck('users.id')->toArray();
+    $authFollowerIds = $user->followers()->pluck('users.id')->toArray();
 
-            $contacts->transform(function ($u) use ($groupedMessages, $user) {
-                $msg = optional($groupedMessages[$u->id])->first();
-                $u->unread_count = 0;
-                $u->should_bold = false;
-                $u->has_attachment = false;
-                if ($msg) {
-                    if ($msg->sender_id !== $user->id) {
-                        $u->unread_count = Message::where('sender_id', $u->id)
-                            ->where('receiver_id', $user->id)
-                            ->where('is_read', false)
-                            ->count();
-                        $u->should_bold = $u->unread_count > 0;
-                    }
-                    $hasAttachment = method_exists($msg, 'attachments') && $msg->attachments && $msg->attachments->count() > 0;
-                    $u->has_attachment = $hasAttachment;
-                    if ((empty($msg->body) || trim($msg->body) === '') && $hasAttachment) {
-                        $msg->body = 'Attachment';
-                    }
-                }
-                $u->last_message = $msg;
-                return $u;
-            });
+    // Group messages by contact
+    $groupedMessages = $recentMessages->groupBy(function ($msg) use ($user) {
+        return $msg->sender_id === $user->id ? $msg->receiver_id : $msg->sender_id;
+    });
 
-            return response()->json($contacts);
+    $contacts->transform(function ($u) use ($groupedMessages, $user, $authFollowingIds, $authFollowerIds) {
+        $msg = optional($groupedMessages[$u->id])->first();
+        $u->unread_count = 0;
+        $u->should_bold = false;
+        $u->has_attachment = false;
+
+        // Flags for tab logic
+        $userFollows = in_array($u->id, $authFollowingIds);
+        $followsUser = in_array($u->id, $authFollowerIds);
+        $isFriend = $userFollows && $followsUser;
+        $hasMessaged = $msg !== null;
+
+        $u->user_follows = $userFollows;
+        $u->follows_user = $followsUser;
+        $u->is_friend = $isFriend;
+        $u->has_messaged = $hasMessaged;
+
+        if ($msg) {
+            if ($msg->sender_id !== $user->id) {
+                $u->unread_count = Message::where('sender_id', $u->id)
+                    ->where('receiver_id', $user->id)
+                    ->where('is_read', false)
+                    ->count();
+                $u->should_bold = $u->unread_count > 0;
+            }
+            $hasAttachment = method_exists($msg, 'attachments') && $msg->attachments && $msg->attachments->count() > 0;
+            $u->has_attachment = $hasAttachment;
+            if ((empty($msg->body) || trim($msg->body) === '') && $hasAttachment) {
+                $msg->body = 'Attachment';
+            }
         }
+        $u->last_message = $msg;
+        return $u;
+    });
+
+    return response()->json($contacts);
+}
 
 public function thread($receiverId)
 {
