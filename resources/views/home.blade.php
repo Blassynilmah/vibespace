@@ -863,7 +863,7 @@ document.addEventListener('alpine:init', () => {
         teaserReactionCooldowns: {}, // { [teaserId]: timestamp }
         showTeaserComments: false,
         activeTeaserComments: null,
-        lastLoadedIndex: -1,
+        lastLoadedIndex: 0,
 
         init() {
             console.log("Alpine vibeFeed initialized");
@@ -923,7 +923,7 @@ scrollHandler() {
         }
 
         // Always start at 10, then 20, 30, etc.
-        const nextThreshold = ((Math.floor(this.lastLoadedIndex / 10) + 1) * 10);
+const nextThreshold = ((Math.floor(this.lastLoadedIndex / 10) + 1) * 10);
 
         // Only call loadBoards if we've crossed the next threshold
         if (
