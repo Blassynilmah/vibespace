@@ -106,17 +106,19 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3 mb-6">
-            <img
-                src="{{ Auth::user()->profile_picture ? '/storage/' . Auth::user()->profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png' }}"
-                alt="Profile Picture"
-                class="w-10 h-10 rounded-full border-2 border-pink-300 object-cover"
-            >
-            <div>
-                <span class="text-sm text-gray-700">You are logged in as</span>
-                <span class="font-semibold text-pink-600 ml-1">{{ '@' . Auth::user()->username }}</span>
-            </div>
+<div class="flex items-center gap-3 mb-6">
+    <a href="/space/{{ Auth::user()->username }}-{{ Auth::user()->id }}" class="flex items-center gap-3 hover:bg-pink-50 rounded-full px-2 py-1 transition">
+        <img
+            src="{{ Auth::user()->profile_picture ? '/storage/' . Auth::user()->profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png' }}"
+            alt="Profile Picture"
+            class="w-10 h-10 rounded-full border-2 border-pink-300 object-cover"
+        >
+        <div>
+            <span class="text-sm text-gray-700">You are logged in as</span>
+            <span class="font-semibold text-pink-600 ml-1">{{ '@' . Auth::user()->username }}</span>
         </div>
+    </a>
+</div>
 
         <div x-show="showSearch" class="mb-4 flex flex-col items-center w-full relative z-10">
             <input
@@ -138,16 +140,16 @@
                 >
                     <template x-for="user in searchResults" :key="user.id">
                         <li
-    @click="goToProfile(user.username, user.id)"
-    class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-pink-50 transition"
->
-    <img
-        :src="user.profile_picture ? '/storage/' + user.profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
-        alt="Profile"
-        class="w-8 h-8 rounded-full border border-pink-300 object-cover"
-    >
-    <span class="font-semibold text-pink-600">@<span x-text="user.username"></span></span>
-</li>
+                            @click="goToProfile(user.username, user.id)"
+                            class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-pink-50 transition"
+                        >
+                            <img
+                                :src="user.profile_picture ? '/storage/' + user.profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
+                                alt="Profile"
+                                class="w-8 h-8 rounded-full border border-pink-300 object-cover"
+                            >
+                            <span class="font-semibold text-pink-600">@<span x-text="user.username"></span></span>
+                        </li>
                     </template>
                 </ul>
             </template>
