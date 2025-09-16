@@ -712,8 +712,16 @@
             <span class="text-lg font-semibold text-pink-600 mb-2">🎉 You are up to date with posts!</span>
             <span class="mb-4 text-gray-600">Do you want to see older content?</span>
             <div class="flex gap-4">
-                <button
-                    @click="showOlderPrompt = false; showOlderContent = true; allUnseenExhausted = false; items = []; page = 1; fetchedBoardIds = []; fetchedTeaserIds = []; loadOlderContent();"
+                <button @click="showOlderPrompt = false;
+                        showOlderContent = true;
+                        allUnseenExhausted = false;
+                        items = [];
+                        page = 1;
+                        allLoaded = false;
+                        fetchedBoardIds = [];
+                        fetchedTeaserIds = [];
+                        loadOlderContent('button');
+                    "
                     class="bg-pink-500 text-white px-6 py-2 rounded-full hover:bg-pink-600 font-semibold"
                 >Yes, show older content</button>
                 <button
