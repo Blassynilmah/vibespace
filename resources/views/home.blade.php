@@ -922,16 +922,17 @@ scrollHandler() {
             }
         }
 
-        // Calculate the next threshold (10, 20, 30, ...)
-        const nextThreshold = Math.floor((this.lastLoadedIndex + 10) / 10) * 10;
+        // Always start at 10, then 20, 30, etc.
+        const nextThreshold = ((Math.floor(this.lastLoadedIndex / 10) + 1) * 10);
 
         // Only call loadBoards if we've crossed the next threshold
         if (
             lastVisibleIndex >= nextThreshold &&
-            lastVisibleIndex > this.lastLoadedIndex &&
+            nextThreshold > this.lastLoadedIndex &&
             !this.loading &&
             !this.allLoaded
         ) {
+            console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${nextThreshold}`);
             this.lastLoadedIndex = nextThreshold;
             this.loadBoards('scrollHandler');
         }
