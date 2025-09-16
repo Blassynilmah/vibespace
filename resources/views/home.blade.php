@@ -577,12 +577,12 @@
                                         <!-- Comments List -->
                                         <div class="flex-1 overflow-y-auto p-3 space-y-3">
                                             <template x-for="comment in (activeTeaserComments.comments || [])" :key="comment.id">
-                                                <div class="bg-gray-100 rounded-lg px-3 py-2 shadow text-sm relative">
+                                                <div class="bg-gray-100 rounded-lg px-3 py-2 shadow text-sm relative flex flex-col">
                                                     <div class="font-semibold text-pink-600 mb-1" x-text="comment.user.username"></div>
                                                     <div x-text="comment.body"></div>
                                                     <div class="text-xs text-gray-400 mt-1" x-text="timeSince(comment.created_at)"></div>
-                                                    <!-- Like/Dislike/Reply Row -->
-                                                    <div class="flex items-center gap-4 absolute right-3 top-2">
+                                                    <!-- Vertical Like/Dislike -->
+                                                    <div class="flex flex-col gap-2 absolute right-3 top-2 items-center">
                                                         <button @click="likeComment(comment)" class="flex items-center gap-1 text-green-600 hover:text-green-800">
                                                             <span>👍</span>
                                                             <span x-text="comment.like_count || 0"></span>
@@ -592,14 +592,45 @@
                                                             <span x-text="comment.dislike_count || 0"></span>
                                                         </button>
                                                     </div>
-                                                    <!-- Reply Button -->
-                                                    <div class="mt-2">
-                                                        <button @click="comment.showReply = !comment.showReply" class="text-blue-600 hover:underline text-xs font-medium">
-                                                            Reply (<span x-text="comment.reply_count || 0"></span>)
+                                                    <!-- Replies & Reply Input -->
+                                                    <div class="mt-6 flex flex-col gap-2">
+                                                        <button 
+                                                            @click="toggleReplies(comment)" 
+                                                            class="text-blue-600 hover:underline text-xs font-medium w-fit"
+                                                        >
+                                                            View Replies (<span x-text="comment.reply_count || 0"></span>)
+                                                        </button>
+                                                        <button 
+                                                            @click="comment.showReply = !comment.showReply" 
+                                                            class="text-pink-600 hover:underline text-xs font-medium w-fit"
+                                                        >
+                                                            Reply
                                                         </button>
                                                         <div x-show="comment.showReply" class="mt-2 flex items-center gap-2">
                                                             <input type="text" x-model="comment.replyText" class="flex-1 px-2 py-1 rounded border text-xs" placeholder="Type your reply...">
                                                             <button @click="sendReply(comment)" class="bg-pink-500 text-white px-3 py-1 rounded text-xs font-semibold">Send</button>
+                                                        </div>
+                                                        <!-- Replies List -->
+                                                        <div x-show="comment.showReplies" class="mt-2">
+                                                            <template x-for="reply in comment.repliesToShow" :key="reply.id">
+                                                                <div class="bg-white rounded px-2 py-1 mb-1 text-xs shadow">
+                                                                    <span class="font-semibold text-blue-600" x-text="reply.user.username"></span>:
+                                                                    <span x-text="reply.body"></span>
+                                                                    <span class="text-gray-400 ml-2" x-text="timeSince(reply.created_at)"></span>
+                                                                </div>
+                                                            </template>
+                                                            <div class="flex gap-2 mt-1">
+                                                                <button 
+                                                                    x-show="comment.repliesToShow.length < comment.reply_count" 
+                                                                    @click="loadMoreReplies(comment)" 
+                                                                    class="text-blue-500 hover:underline text-xs font-medium"
+                                                                >More</button>
+                                                                <button 
+                                                                    x-show="comment.showReplies" 
+                                                                    @click="hideReplies(comment)" 
+                                                                    class="text-gray-500 hover:underline text-xs font-medium"
+                                                                >Less</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1671,6 +1702,41 @@ document.addEventListener('alpine:init', () => {
                 console.error('[sendReply] Exception:', err);
                 this.showToast('Failed to reply', 'error');
             });
+        },
+
+        toggleReplies(comment) {
+            if (comment.showReplies) {
+                this.hideReplies(comment);
+                return;
+            }
+            comment.showReplies = true;
+            if (!comment.repliesToShow) comment.repliesToShow = [];
+            if (comment.repliesToShow.length === 0) {
+                this.fetchReplies(comment, 0, 5);
+            }
+        },
+
+        hideReplies(comment) {
+            comment.showReplies = false;
+            comment.repliesToShow = [];
+        },
+
+        loadMoreReplies(comment) {
+            const current = comment.repliesToShow ? comment.repliesToShow.length : 0;
+            this.fetchReplies(comment, current, 5);
+        },
+
+        fetchReplies(comment, offset = 0, limit = 5) {
+            fetch(`/teasers/comments/${comment.id}/replies?offset=${offset}&limit=${limit}`, {
+                headers: this._headers(),
+                credentials: 'include'
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                if (!comment.repliesToShow) comment.repliesToShow = [];
+                comment.repliesToShow = comment.repliesToShow.concat(data);
+            })
+            .catch(() => this.showToast('Failed to load replies', 'error'));
         },
 
         isSendDisabled(board) {
