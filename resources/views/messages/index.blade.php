@@ -368,63 +368,139 @@
         </div>
 
         <!-- 💬 Recent Chats List -->
-        <div
-            x-show="showRecentChats || isDesktop"
-            x-transition:enter="transition ease-out duration-300"
-            x-transition:enter-start="opacity-0 transform translate-x-4"
-            x-transition:enter-end="opacity-100 transform translate-x-0"
-            x-transition:leave="transition ease-in duration-200"
-            x-transition:leave-start="opacity-100 transform translate-x-0"
-            x-transition:leave-end="opacity-0 transform translate-x-4"
-            class="flex-1 overflow-y-auto px-4 pt-4 transition-all"
-            id="recent-chats-scroll"
-        >
-            <!-- 🔁 Recent Chats Loop -->
-            <template
-                x-for="contact in [...$store.messaging.filteredContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
-                :key="contact.id"
+        <template x-if="activeTab === 'messages'">
+            <div
+                x-show="showRecentChats || isDesktop"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform translate-x-4"
+                x-transition:enter-end="opacity-100 transform translate-x-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 transform translate-x-0"
+                x-transition:leave-end="opacity-0 transform translate-x-4"
+                class="flex-1 overflow-y-auto px-4 pt-4 transition-all"
+                id="recent-chats-scroll"
             >
-                <a href="#"
-                    @click.prevent.stop="selectUser(contact)"
-                    class="block bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group px-4 py-3 mb-2"
+                <!-- 🔁 Recent Chats Loop -->
+                <template
+                    x-for="contact in [...$store.messaging.filteredContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
+                    :key="contact.id"
                 >
-                    <div class="flex justify-between items-center">
-                        <div class="min-w-0">
-                            <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'" class="text-base truncate group-hover:text-pink-600 transition-colors"
-                                x-text="'@' + contact.username"></div>
-                            <div class="text-xs truncate flex items-center space-x-1 mt-1 group-hover:text-pink-500 transition-colors"
-                                :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-500'">
-                                <template x-if="contact.has_attachment">
-                                    <span class="text-pink-500 font-bold">🖼️</span>
+                    <a href="#"
+                        @click.prevent.stop="selectUser(contact)"
+                        class="block bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group px-4 py-3 mb-2"
+                    >
+                        <div class="flex justify-between items-center">
+                            <div class="min-w-0">
+                                <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'" class="text-base truncate group-hover:text-pink-600 transition-colors"
+                                    x-text="'@' + contact.username"></div>
+                                <div class="text-xs truncate flex items-center space-x-1 mt-1 group-hover:text-pink-500 transition-colors"
+                                    :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-500'">
+                                    <template x-if="contact.has_attachment">
+                                        <span class="text-pink-500 font-bold">🖼️</span>
+                                    </template>
+                                    <template x-if="contact.last_message && contact.last_message.body === 'Attachment'">
+                                        <span class="font-bold">Attachment</span>
+                                    </template>
+                                    <template x-if="contact.last_message && contact.last_message.body && contact.last_message.body !== 'Attachment'">
+                                        <span x-text="contact.last_message.body"></span>
+                                    </template>
+                                    <template x-if="!contact.last_message">
+                                        <span>No messages yet</span>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <template x-if="contact.should_bold && contact.unread_count > 0">
+                                    <span class="inline-block min-w-[22px] px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs font-bold text-center" x-text="contact.unread_count"></span>
                                 </template>
-                                <template x-if="contact.last_message && contact.last_message.body === 'Attachment'">
-                                    <span class="font-bold">Attachment</span>
-                                </template>
-                                <template x-if="contact.last_message && contact.last_message.body && contact.last_message.body !== 'Attachment'">
-                                    <span x-text="contact.last_message.body"></span>
-                                </template>
-                                <template x-if="!contact.last_message">
-                                    <span>No messages yet</span>
-                                </template>
+                                <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-400'" class="text-[0.7rem] whitespace-nowrap"
+                                    x-text="contact.last_message?.created_at ? new Date(contact.last_message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''">
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2">
-                            <template x-if="contact.should_bold && contact.unread_count > 0">
-                                <span class="inline-block min-w-[22px] px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs font-bold text-center" x-text="contact.unread_count"></span>
-                            </template>
-                            <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-400'" class="text-[0.7rem] whitespace-nowrap"
-                                x-text="contact.last_message?.created_at ? new Date(contact.last_message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''">
-                            </div>
-                        </div>
-                    </div>
-                </a>
-            </template>
+                    </a>
+                </template>
 
-            <!-- 🚫 Fallback if no contacts -->
-            <template x-if="$store.messaging.filteredContacts.length === 0">
-                <div class="text-center text-gray-400 text-sm py-4">No recent chats found.</div>
-            </template>
-        </div>
+                <!-- 🚫 Fallback if no contacts -->
+                <template x-if="$store.messaging.filteredContacts.length === 0">
+                    <div class="text-center text-gray-400 text-sm py-4">No recent chats found.</div>
+                </template>
+            </div>
+        </template>
+
+        <template x-if="activeTab === 'messages'">
+            <div
+                x-show="showRecentChats || isDesktop"
+                x-transition:enter="transition ease-out duration-300"
+                x-transition:enter-start="opacity-0 transform translate-x-4"
+                x-transition:enter-end="opacity-100 transform translate-x-0"
+                x-transition:leave="transition ease-in duration-200"
+                x-transition:leave-start="opacity-100 transform translate-x-0"
+                x-transition:leave-end="opacity-0 transform translate-x-4"
+                class="flex-1 overflow-y-auto px-4 pt-4 transition-all"
+                id="recent-chats-scroll"
+            >
+                <!-- 🔁 Recent Chats Loop -->
+                <template
+                    x-for="contact in [...$store.messaging.filteredContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
+                    :key="contact.id"
+                >
+                    <a href="#"
+                        @click.prevent.stop="selectUser(contact)"
+                        class="block bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group px-4 py-3 mb-2"
+                    >
+                        <div class="flex justify-between items-center">
+                            <div class="min-w-0">
+                                <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'font-semibold text-gray-800'" class="text-base truncate group-hover:text-pink-600 transition-colors"
+                                    x-text="'@' + contact.username"></div>
+                                <div class="text-xs truncate flex items-center space-x-1 mt-1 group-hover:text-pink-500 transition-colors"
+                                    :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-500'">
+                                    <template x-if="contact.has_attachment">
+                                        <span class="text-pink-500 font-bold">🖼️</span>
+                                    </template>
+                                    <template x-if="contact.last_message && contact.last_message.body === 'Attachment'">
+                                        <span class="font-bold">Attachment</span>
+                                    </template>
+                                    <template x-if="contact.last_message && contact.last_message.body && contact.last_message.body !== 'Attachment'">
+                                        <span x-text="contact.last_message.body"></span>
+                                    </template>
+                                    <template x-if="!contact.last_message">
+                                        <span>No messages yet</span>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <template x-if="contact.should_bold && contact.unread_count > 0">
+                                    <span class="inline-block min-w-[22px] px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs font-bold text-center" x-text="contact.unread_count"></span>
+                                </template>
+                                <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-400'" class="text-[0.7rem] whitespace-nowrap"
+                                    x-text="contact.last_message?.created_at ? new Date(contact.last_message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''">
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </template>
+
+                <!-- 🚫 Fallback if no contacts -->
+                <template x-if="$store.messaging.filteredContacts.length === 0">
+                    <div class="text-center text-gray-400 text-sm py-4">No recent chats found.</div>
+                </template>
+            </div>
+        </template>
+
+        <template x-if="activeTab === 'friends'">
+            <div>
+                <template x-for="contact in $store.messaging.tabbedContacts" :key="contact.id">
+                    <a href="#" @click.prevent.stop="selectUser(contact)" class="flex items-center gap-3 px-4 py-2 mb-2 rounded-lg hover:bg-pink-50 transition">
+                        <img :src="contact.profile_picture ? '/storage/' + contact.profile_picture : '/storage/default.png'" class="w-8 h-8 rounded-full border border-pink-300 object-cover">
+                        <span class="font-semibold text-pink-600">@<span x-text="contact.username"></span></span>
+                    </a>
+                </template>
+                <template x-if="$store.messaging.tabbedContacts.length === 0">
+                    <div class="text-center text-gray-400 text-sm py-4">No friends found.</div>
+                </template>
+            </div>
+        </template>
     </div>
 
     <!-- Main Chat Area -->
@@ -681,20 +757,6 @@
                 </div>
             </template>
         </div>
-
-        <template x-if="activeTab === 'friends'">
-            <div>
-                <template x-for="contact in $store.messaging.tabbedContacts" :key="contact.id">
-                    <a href="#" @click.prevent.stop="selectUser(contact)" class="flex items-center gap-3 px-4 py-2 mb-2 rounded-lg hover:bg-pink-50 transition">
-                        <img :src="contact.profile_picture ? '/storage/' + contact.profile_picture : '/storage/default.png'" class="w-8 h-8 rounded-full border border-pink-300 object-cover">
-                        <span class="font-semibold text-pink-600">@<span x-text="contact.username"></span></span>
-                    </a>
-                </template>
-                <template x-if="$store.messaging.tabbedContacts.length === 0">
-                    <div class="text-center text-gray-400 text-sm py-4">No friends found.</div>
-                </template>
-            </div>
-        </template>
 
 
         <!-- Right Sidebar - Desktop Navigation -->
