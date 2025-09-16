@@ -824,8 +824,8 @@ document.addEventListener('alpine:init', () => {
             this.loadBoards().finally(() => {
                 this.initialLoading = false;
                 this.$nextTick(() => {
-                    console.log('filteredBoards after load:', this.filteredBoards);
-                });
+    console.log('filteredBoards after load:', JSON.parse(JSON.stringify(this.filteredBoards)));
+});
             });
             window.addEventListener('scroll', this.scrollHandler.bind(this));
             window.fb = this.filteredBoards;
