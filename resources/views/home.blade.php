@@ -1574,86 +1574,104 @@ document.addEventListener('alpine:init', () => {
         likeComment(comment) {
             if (comment.liking) return;
             comment.liking = true;
-            fetch(`/teasers/comments/${comment.id}/like`, {
+            const url = `/teasers/comments/${comment.id}/like`;
+            const payload = { reaction_type: 'like' };
+            console.log('[likeComment] Sending:', { url, payload });
+
+            fetch(url, {
                 method: 'POST',
                 headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
             })
-            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(async res => {
+                console.log('[likeComment] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[likeComment] Error response:', text);
+                    throw new Error(text || 'Failed to like');
+                }
+                return res.json();
+            })
             .then(data => {
+                console.log('[likeComment] Success data:', data);
                 comment.like_count = data.like_count;
                 comment.dislike_count = data.dislike_count;
             })
-            .catch(() => this.showToast('Failed to like', 'error'))
+            .catch(err => {
+                console.error('[likeComment] Exception:', err);
+                this.showToast('Failed to like', 'error');
+            })
             .finally(() => { comment.liking = false; });
         },
 
-dislikeComment(comment) {
-    if (comment.disliking) return;
-    comment.disliking = true;
-    const url = `/teasers/comments/${comment.id}/dislike`;
-    const payload = { reaction_type: 'dislike' };
-    console.log('[dislikeComment] Sending:', { url, payload });
+        dislikeComment(comment) {
+            if (comment.disliking) return;
+            comment.disliking = true;
+            const url = `/teasers/comments/${comment.id}/dislike`;
+            const payload = { reaction_type: 'dislike' };
+            console.log('[dislikeComment] Sending:', { url, payload });
 
-    fetch(url, {
-        method: 'POST',
-        headers: this._headers(),
-        credentials: 'include',
-        body: JSON.stringify(payload),
-    })
-    .then(async res => {
-        console.log('[dislikeComment] Response status:', res.status);
-        if (!res.ok) {
-            const text = await res.text();
-            console.error('[dislikeComment] Error response:', text);
-            throw new Error(text || 'Failed to dislike');
-        }
-        return res.json();
-    })
-    .then(data => {
-        console.log('[dislikeComment] Success data:', data);
-        comment.like_count = data.like_count;
-        comment.dislike_count = data.dislike_count;
-    })
-    .catch(err => {
-        console.error('[dislikeComment] Exception:', err);
-        this.showToast('Failed to dislike', 'error');
-    })
-    .finally(() => { comment.disliking = false; });
-},
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[dislikeComment] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[dislikeComment] Error response:', text);
+                    throw new Error(text || 'Failed to dislike');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[dislikeComment] Success data:', data);
+                comment.like_count = data.like_count;
+                comment.dislike_count = data.dislike_count;
+            })
+            .catch(err => {
+                console.error('[dislikeComment] Exception:', err);
+                this.showToast('Failed to dislike', 'error');
+            })
+            .finally(() => { comment.disliking = false; });
+        },
 
-sendReply(comment) {
-    if (!comment.replyText || !comment.replyText.trim()) return;
-    const url = `/teasers/comments/${comment.id}/reply`;
-    const payload = { body: comment.replyText.trim() };
-    console.log('[sendReply] Sending:', { url, payload });
+        sendReply(comment) {
+            if (!comment.replyText || !comment.replyText.trim()) return;
+            const url = `/teasers/comments/${comment.id}/reply`;
+            const payload = { body: comment.replyText.trim() };
+            console.log('[sendReply] Sending:', { url, payload });
 
-    fetch(url, {
-        method: 'POST',
-        headers: this._headers(),
-        credentials: 'include',
-        body: JSON.stringify(payload),
-    })
-    .then(async res => {
-        console.log('[sendReply] Response status:', res.status);
-        if (!res.ok) {
-            const text = await res.text();
-            console.error('[sendReply] Error response:', text);
-            throw new Error(text || 'Failed to reply');
-        }
-        return res.json();
-    })
-    .then(data => {
-        console.log('[sendReply] Success data:', data);
-        comment.reply_count = data.reply_count;
-        comment.replyText = '';
-        comment.showReply = false;
-        this.showToast('Reply sent!');
-    })
-    .catch(err => {
-        console.error('[sendReply] Exception:', err);
-        this.showToast('Failed to reply', 'error');
-    });
-},
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[sendReply] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[sendReply] Error response:', text);
+                    throw new Error(text || 'Failed to reply');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[sendReply] Success data:', data);
+                comment.reply_count = data.reply_count;
+                comment.replyText = '';
+                comment.showReply = false;
+                this.showToast('Reply sent!');
+            })
+            .catch(err => {
+                console.error('[sendReply] Exception:', err);
+                this.showToast('Failed to reply', 'error');
+            });
+        },
 
         isSendDisabled(board) {
             return !board.newComment || board.newComment.trim() === '';
