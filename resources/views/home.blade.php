@@ -1829,9 +1829,11 @@ document.addEventListener('alpine:init', () => {
                             const el = entry.target;
                             const type = el.getAttribute('data-type');
                             const id = el.getAttribute('data-id');
-                            if (type && id && !seenIds.has(type + '-' + id)) {
-                                seenIds.add(type + '-' + id);
-                                // Send to backend
+                            const key = type + '-' + id;
+                            console.log(`[SeenContent] Intersected: type=${type}, id=${id}, key=${key}`);
+                            if (type && id && !seenIds.has(key)) {
+                                seenIds.add(key);
+                                console.log(`[SeenContent] Sending to backend:`, { content_type: type, content_id: id });
                                 fetch('/api/seen-content', {
                                     method: 'POST',
                                     headers: this._headers(),
@@ -1840,6 +1842,16 @@ document.addEventListener('alpine:init', () => {
                                         content_type: type,
                                         content_id: id
                                     })
+                                })
+                                .then(res => {
+                                    console.log(`[SeenContent] Response status for ${key}:`, res.status);
+                                    return res.json();
+                                })
+                                .then(data => {
+                                    console.log(`[SeenContent] Backend response for ${key}:`, data);
+                                })
+                                .catch(err => {
+                                    console.error(`[SeenContent] Error for ${key}:`, err);
                                 });
                             }
                         }
@@ -1848,9 +1860,10 @@ document.addEventListener('alpine:init', () => {
 
                 document.querySelectorAll('.feed-tile').forEach(tile => {
                     observer.observe(tile);
+                    console.log(`[SeenContent] Observing tile:`, tile);
                 });
             });
-        }
+        },
     }));
 });
 </script>

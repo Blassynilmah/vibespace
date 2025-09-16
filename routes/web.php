@@ -58,6 +58,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard / Home
     Route::get('/dashboard', fn () => redirect()->route('home'))->name('dashboard');
     Route::get('/home', [BoardController::class, 'index'])->name('home');
+    Route::post('/seen-content', [SeenContentController::class, 'store']);
+
     // MoodBoards
     Route::resource('boards', BoardController::class);
     Route::get('/api/boards/me', [ApiBoardController::class, 'myBoards']);
