@@ -21,6 +21,7 @@ use App\Http\Controllers\FileListController;
 use App\Http\Controllers\SpaceController;
 use App\Http\Controllers\TeaserController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SeenContentController;
 
 /*
 |--------------------------------------------------------------------------
