@@ -824,6 +824,14 @@ document.addEventListener('alpine:init', () => {
             window.addEventListener('scroll', this.scrollHandler.bind(this));
             window.fb = this.filteredBoards;
 
+                // Watch for filter changes
+    this.$watch('selectedMediaTypes', (val) => {
+        console.log('[DEBUG] selectedMediaTypes changed:', val);
+    });
+    this.$watch('selectedMoods', (val) => {
+        console.log('[DEBUG] selectedMoods changed:', val);
+    });
+
             // In your Alpine init() or after loading boards:
             this.$nextTick(() => {
                 this.items.forEach(item => {
