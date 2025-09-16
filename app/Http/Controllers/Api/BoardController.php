@@ -12,6 +12,7 @@ use App\Models\Teaser;
 
 class BoardController extends Controller
 {
+
 public function index(Request $request)
 {
     $viewerId = optional($request->user())->id ?? 0;
@@ -26,8 +27,8 @@ public function index(Request $request)
 
     $mediaTypes = array_filter(explode(',', $request->query('media_types', '')));
     $mediaType = count($mediaTypes) === 1 ? $mediaTypes[0] : null;
-
     $moods = array_filter(explode(',', $request->query('moods', '')));
+    $showSeen = $request->boolean('show_seen', false);
 
     // Fetch seen board and teaser IDs for the current user
     $seenBoardIds = \DB::table('seen_content')
@@ -42,23 +43,35 @@ public function index(Request $request)
         ->pluck('content_id')
         ->toArray();
 
-    // Merge with any exclude IDs from the request
-    $excludeBoardIds = array_merge($excludeBoardIds, $seenBoardIds);
-    $excludeTeaserIds = array_merge($excludeTeaserIds, $seenTeaserIds);
-
-    // Boards query
-    $boardsQuery = MoodBoard::query()
-        ->whereNotIn('id', $excludeBoardIds)
-        ->with([
-            'user',
-            'favorites' => fn($q) => $q->where('user_id', $viewerId),
-            'reactions' => fn($q) => $q->where('user_id', $viewerId)
-        ])
-        ->withCount([
-            'posts',
-            'comments',
-            'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
-        ]);
+    // Determine which IDs to exclude/include based on show_seen
+    if ($showSeen) {
+        $boardsQuery = MoodBoard::query()
+            ->whereIn('id', $seenBoardIds)
+            ->with([
+                'user',
+                'favorites' => fn($q) => $q->where('user_id', $viewerId),
+                'reactions' => fn($q) => $q->where('user_id', $viewerId)
+            ])
+            ->withCount([
+                'posts',
+                'comments',
+                'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
+            ]);
+    } else {
+        $excludeBoardIds = array_merge($excludeBoardIds, $seenBoardIds);
+        $boardsQuery = MoodBoard::query()
+            ->whereNotIn('id', $excludeBoardIds)
+            ->with([
+                'user',
+                'favorites' => fn($q) => $q->where('user_id', $viewerId),
+                'reactions' => fn($q) => $q->where('user_id', $viewerId)
+            ])
+            ->withCount([
+                'posts',
+                'comments',
+                'saves as is_saved' => fn($q) => $q->where('user_id', $viewerId),
+            ]);
+    }
 
     if (!empty($moods)) {
         $boardsQuery->whereIn('latest_mood', $moods);
@@ -86,9 +99,19 @@ public function index(Request $request)
     }
 
     // Teasers query
-    $teasers = collect();
-    if (!$mediaType || $mediaType === 'teaser') {
-        $teasers = Teaser::query()
+    if ($showSeen) {
+        $teasersQuery = Teaser::query()
+            ->whereIn('id', $seenTeaserIds)
+            ->with([
+                'user.profilePicture',
+                'comments.user',
+                'comments.replies.user',
+                'comments.reactions',
+            ])
+            ->withCount('comments');
+    } else {
+        $excludeTeaserIds = array_merge($excludeTeaserIds, $seenTeaserIds);
+        $teasersQuery = Teaser::query()
             ->whereNotIn('id', $excludeTeaserIds)
             ->with([
                 'user.profilePicture',
@@ -96,7 +119,12 @@ public function index(Request $request)
                 'comments.replies.user',
                 'comments.reactions',
             ])
-            ->withCount('comments')
+            ->withCount('comments');
+    }
+
+    $teasers = collect();
+    if (!$mediaType || $mediaType === 'teaser') {
+        $teasers = $teasersQuery
             ->latest()
             ->take($teasersPerPage)
             ->get()
@@ -182,11 +210,15 @@ public function index(Request $request)
         $final[] = $teasers[$teaserIndex++];
     }
 
+    // Flag: all unseen content exhausted
+    $allUnseenExhausted = !$showSeen && $boards->isEmpty() && $teasers->isEmpty();
+
     return response()->json([
         'data' => $final,
         'sent_board_ids' => $boards->pluck('id')->all(),
         'sent_teaser_ids' => $teasers->pluck('id')->all(),
         'all_loaded' => ($boards->count() < $boardsPerPage) && ($teasers->count() < $teasersPerPage),
+        'all_unseen_exhausted' => $allUnseenExhausted,
     ]);
 }
 
