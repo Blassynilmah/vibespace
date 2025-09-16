@@ -1590,9 +1590,10 @@ document.addEventListener('alpine:init', () => {
         dislikeComment(comment) {
             if (comment.disliking) return;
             comment.disliking = true;
-            fetch(`/teasers/comments/${comment.id}/dislike`, {
+            fetch(`/teasers/comments/${comment.id}/like`, {
                 method: 'POST',
                 headers: this._headers(),
+                body: JSON.stringify({ reaction_type: 'like' }),
             })
             .then(res => res.ok ? res.json() : Promise.reject())
             .then(data => {

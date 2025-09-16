@@ -223,22 +223,19 @@ public function toggle(Request $request)
         return response()->json(['is_saved' => $isSaved]);
     }
 
-public function reactComment(Request $request)
+public function reactComment(Request $request, $comment)
 {
     $request->validate([
-        'comment_id' => 'required|exists:teaser_comments,id',
         'reaction_type' => 'required|in:like,dislike',
     ]);
     $user = $request->user();
 
-    // Only one reaction per user per comment
     \App\Models\TeaserCommentReaction::updateOrCreate(
-        ['comment_id' => $request->comment_id, 'user_id' => $user->id],
+        ['comment_id' => $comment, 'user_id' => $user->id],
         ['reaction_type' => $request->reaction_type]
     );
 
-    // Get updated counts
-    $counts = \App\Models\TeaserCommentReaction::where('comment_id', $request->comment_id)
+    $counts = \App\Models\TeaserCommentReaction::where('comment_id', $comment)
         ->selectRaw("count(*) filter (where reaction_type = 'like') as like_count")
         ->selectRaw("count(*) filter (where reaction_type = 'dislike') as dislike_count")
         ->first();
@@ -249,20 +246,18 @@ public function reactComment(Request $request)
     ]);
 }
 
-public function replyComment(Request $request)
+public function replyComment(Request $request, $comment)
 {
     $request->validate([
-        'comment_id' => 'required|exists:teaser_comments,id',
         'body' => 'required|string|max:1000',
     ]);
     $reply = \App\Models\TeaserCommentReply::create([
-        'comment_id' => $request->comment_id,
+        'comment_id' => $comment,
         'user_id' => $request->user()->id,
         'body' => $request->body,
     ]);
 
-    // Get updated reply count
-    $reply_count = \App\Models\TeaserCommentReply::where('comment_id', $request->comment_id)->count();
+    $reply_count = \App\Models\TeaserCommentReply::where('comment_id', $comment)->count();
 
     return response()->json([
         'reply_count' => $reply_count,
