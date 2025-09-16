@@ -1,1170 +1,6 @@
-
-
 @extends('layouts.app')
 
 @section('content')
-
-@push('scripts')
-<script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('vibeFeed', () => ({
-        items: [],
-        loading: false,
-        initialLoading: true,
-        boards: [],
-        page: 1,
-        allLoaded: false,
-        selectedMoods: [],
-        selectedMediaTypes: [],
-        showSearch: false,
-        searchQuery: '',
-        searchResults: [],
-        searchLoading: false,
-        showMobileFilters: false,
-
-        moods: {
-                excited: "🔥",
-                happy: "😊",
-                chill: "😎",
-                thoughtful: "🤔",
-                sad: "😭",
-                flirty: "😏",
-                mindblown: "🤯",
-                love: "💖"
-            },
-
-        reactionMoods: {
-            fire: '🔥',
-            love: '❤️',
-            funny: '😂',
-            'mind-blown': '🤯',
-            cool: '😎',
-            crying: '😭',
-            clap: '👏',
-            flirty: '😉'
-            },
-
-        mediaTypes: {
-            image: "🖼️ Image",
-            video: "🎥 Video",
-            text: "📝 Text",
-            teaser: "🎬 Teaser"
-        },
-        currentPlayingTeaserId: null,
-        teaserPlayStates: {},
-        fetchedBoardIds: [],
-        fetchedTeaserIds: [],
-        teaserReactionClicks: {}, // { [teaserId]: [timestamps] }
-        teaserReactionCooldowns: {}, // { [teaserId]: timestamp }
-        showTeaserComments: false,
-        activeTeaserComments: null,
-        lastLoadedIndex: 0,
-        nextThreshold: 10,
-        allUnseenExhausted: false,
-        showOlderPrompt: false,
-        showOlderContent: false,
-        trackSeenContent: true,
-
-        init() {
-            console.log("Alpine vibeFeed initialized");
-            this.initialLoading = true;
-            this.page = 1;
-            this.items = [];
-            this.allLoaded = false;
-            this.nextThreshold = 10;
-            this.loadBoards().finally(() => {
-                this.initialLoading = false;
-                this.$nextTick(() => {
-                    console.log('filteredBoards after load:', JSON.parse(JSON.stringify(this.filteredBoards)));
-                });
-            });
-            window.addEventListener('scroll', this.scrollHandler.bind(this));
-            window.fb = this.filteredBoards;
-
-
-            // In your Alpine init() or after loading boards:
-            this.$nextTick(() => {
-                this.items.forEach(item => {
-                    if (item.type === 'teaser') {
-                        if (this.teaserPlayStates[item.id] === undefined) {
-                            this.teaserPlayStates[item.id] = false;
-                        }
-                    }
-                    if (item.type === 'board' && Array.isArray(item.files)) {
-                        item.files.forEach((file, idx) => {
-                            if (file.type === 'video') {
-                                const key = 'board-' + item.id + '-' + idx;
-                                if (this.teaserPlayStates[key] === undefined) {
-                                    this.teaserPlayStates[key] = false;
-                                }
-                            }
-                        });
-                    }
-                });
-            });
-            this.initializePlayStates();
-            this.setupVideoObservers();
-        },
-
-        scrollHandler() {
-            if (this.loading || this.allLoaded) return;
-            this.$nextTick(() => {
-                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-                if (!feed) return;
-                const tiles = feed.querySelectorAll('.feed-tile');
-                if (tiles.length === 0) return;
-
-                let lastVisibleIndex = -1;
-                for (let i = tiles.length - 1; i >= 0; i--) {
-                    const rect = tiles[i].getBoundingClientRect();
-                    if (rect.top < window.innerHeight) {
-                        lastVisibleIndex = i;
-                        break;
-                    }
-                }
-
-                // Only call loadBoards if we've crossed the next threshold
-                if (
-                    lastVisibleIndex >= this.nextThreshold &&
-                    !this.loading &&
-                    !this.allLoaded
-                ) {
-                    console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${this.nextThreshold}`);
-                    this.lastLoadedIndex = this.nextThreshold;
-                    this.loadBoards('scrollHandler');
-                    this.nextThreshold += 20; // increment by 20 for the next call
-                }
-            });
-        },
-
-        setupVideoObservers() {
-            this.$nextTick(() => {
-                // Moodboard videos
-                document.querySelectorAll('video[data-moodboard]').forEach(video => {
-                    if (video._observer) return; // Prevent double-observing
-                    const observer = new IntersectionObserver(entries => {
-                        entries.forEach(entry => {
-                            if (!entry.isIntersecting && !video.paused) {
-                                video.pause();
-                            }
-                        });
-                    }, { threshold: 0.2 });
-                    observer.observe(video);
-                    video._observer = observer;
-                });
-                // Teaser videos
-                document.querySelectorAll('video[data-teaser]').forEach(video => {
-                    if (video._observer) return;
-                    const observer = new IntersectionObserver(entries => {
-                        entries.forEach(entry => {
-                            if (!entry.isIntersecting && !video.paused) {
-                                video.pause();
-                            }
-                        });
-                    }, { threshold: 0.2 });
-                    observer.observe(video);
-                    video._observer = observer;
-                });
-            });
-        },
-
-        initializePlayStates() {
-            this.items.forEach(item => {
-                if (item.type === 'teaser' && item.id) {
-                    if (this.teaserPlayStates[item.id] === undefined) {
-                        this.teaserPlayStates[item.id] = false;
-                    }
-                }
-                if (item.type === 'board' && Array.isArray(item.files)) {
-                    item.files.forEach((file, idx) => {
-                        if (file.type === 'video') {
-                            const key = 'board-' + item.id + '-' + idx;
-                            if (this.teaserPlayStates[key] === undefined) {
-                                this.teaserPlayStates[key] = false;
-                            }
-                        }
-                    });
-                }
-            });
-        },
-
-        isTeaserPlaying(id) {
-            if (!id) return false;
-            return !!this.teaserPlayStates[id];
-        },
-
-        get filteredBoards() {
-            return this.items.filter(item => {
-                if (item.type === 'teaser') {
-                    // Show teasers unless a media type filter is set and "teaser" is NOT included
-                    return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
-                }
-                if (item.type === 'board') {
-                    // Mood filter (multiple moods allowed)
-                    const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
-                    // Media type filter for boards
-                    const mediaMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(item.media_type);
-                    return moodMatch && mediaMatch;
-                }
-                return false;
-            });
-        },
-        
-        toggleMood(mood) {
-            if (this.loading) return;
-            const index = this.selectedMoods.indexOf(mood);
-            if (index > -1) {
-                this.selectedMoods.splice(index, 1);
-            } else {
-                this.selectedMoods.push(mood);
-            }
-            this.page = 1;
-            this.items = [];
-            this.allLoaded = false;
-            this.fetchedBoardIds = [];
-            this.fetchedTeaserIds = [];
-            this.lastLoadedIndex = -1;
-            this.nextThreshold = 10;
-            this.loadBoards();
-        },
-
-        toggleMediaType(type) {
-            if (this.loading) return;
-            if (this.selectedMediaTypes[0] === type) {
-                this.selectedMediaTypes = [];
-            } else {
-                this.selectedMediaTypes = [type];
-            }
-            this.selectedMoods = [];
-            this.page = 1;
-            this.items = [];
-            this.allLoaded = false;
-            this.fetchedBoardIds = [];
-            this.fetchedTeaserIds = [];
-            this.lastLoadedIndex = -1;
-            this.nextThreshold = 10;
-            this.loadBoards();
-        },
-
-        normalizeItem(item) {
-            if (item.type === 'board') {
-                let files = []
-                let imgs = item.images ?? item.image
-
-                if (Array.isArray(imgs)) {
-                    files.push(...imgs.map(path => ({
-                        path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-                        type: 'image'
-                    })))
-                } else if (typeof imgs === 'string' && imgs) {
-                    let parsed = null
-                    try { parsed = JSON.parse(imgs) } catch {}
-                    if (Array.isArray(parsed)) {
-                        files.push(...parsed.map(path => ({
-                            path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
-                            type: 'image'
-                        })))
-                    } else {
-                        files.push({
-                            path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
-                            type: 'image'
-                        })
-                    }
-                }
-
-                // remove dupes
-                const seen = new Set()
-                files = files.filter(f => {
-                    if (seen.has(f.path)) return false
-                    seen.add(f.path)
-                    return true
-                })
-
-                return {
-                    ...item,
-                    files,
-                    teaserError: !item.video,
-                    videoLoaded: false,
-                    newComment: '',
-                    comment_count: item.comment_count ?? 0,
-                    is_saved: !!item.is_saved,
-                    expanded: false,
-                    saving: false
-                }
-            }
-
-            if (item.type === 'teaser') {
-                return {
-                    ...item,
-                    teaserError: !item.video,
-                    is_saved: !!item.is_saved,
-                    saving: false,
-                }
-            }
-
-            return item
-        },
-
-        async loadBoards(source = 'unknown') {
-            console.log(`[loadBoards] Called by: ${source}`);
-            if (this.loading || this.allLoaded) return;
-            if (this.page === 1) this.loading = true;
-
-            const url = `/api/boards?moodboards=20&teasers=5`
-                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
-                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
-                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
-                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '')
-                + `&page=${this.page}`;
-
-            try {
-                const res = await fetch(url, {
-                    credentials: 'include',
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                const contentType = res.headers.get('content-type') || '';
-                if (!res.ok) {
-                    const text = await res.text();
-                    throw new Error(`Request failed: ${res.status}`);
-                }
-                if (!contentType.includes('application/json')) {
-                    const text = await res.text();
-                    throw new Error('Non-JSON response received');
-                }
-
-                const json = await res.json();
-
-                // Update fetched IDs
-                if (json.sent_board_ids) {
-                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
-                }
-                if (json.sent_teaser_ids) {
-                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
-                }
-
-                if (json.all_unseen_exhausted) {
-                    this.allUnseenExhausted = true;
-                    this.showOlderPrompt = true;
-                    this.loading = false;
-                    return;
-                }
-
-                if (!json.data || json.data.length === 0 || json.all_loaded) {
-                    this.allLoaded = true;
-                    this.loading = false;
-                    return;
-                }
-
-                const newItems = json.data.map(item => this.normalizeItem(item))
-                    .filter(newItem => !this.items.some(existing =>
-                        existing.type === newItem.type &&
-                        existing.id === newItem.id &&
-                        existing.created_at === newItem.created_at
-                    ));
-
-                if (!this.items) this.items = [];
-                this.items.push(...newItems);
-
-                this.setupVideoObservers();
-                this.page += 1;
-                this.initializePlayStates();
-
-                // Only track seen content if flag is true
-                if (this.trackSeenContent) {
-                    this.setupSeenContentObserver();
-                }
-
-            } catch (error) {
-                console.error('[loadBoards] Exception:', error);
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        async loadOlderContent(source = 'unknown') {
-            console.log(`[loadOlderContent] Called by: ${source}`);
-            if (this.loading || this.allLoaded) return;
-            this.trackSeenContent = false; // Disable tracking for older content
-
-            const url = `/api/boards?show_seen=1`
-                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
-                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
-                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
-                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '')
-                + `&page=${this.page}`;
-
-            try {
-                const res = await fetch(url, {
-                    credentials: 'include',
-                    headers: { 'Accept': 'application/json' }
-                });
-                const json = await res.json();
-
-                if (json.sent_board_ids) {
-                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
-                }
-                if (json.sent_teaser_ids) {
-                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
-                }
-
-                if (!json.data || json.data.length === 0 || json.all_loaded) {
-                    this.allLoaded = true;
-                    this.loading = false;
-                    return;
-                }
-
-                const newItems = json.data.map(item => this.normalizeItem(item))
-                    .filter(newItem => !this.items.some(existing =>
-                        existing.type === newItem.type &&
-                        existing.id === newItem.id &&
-                        existing.created_at === newItem.created_at
-                    ));
-
-                if (!this.items) this.items = [];
-                this.items.push(...newItems);
-
-                this.setupVideoObservers();
-                this.page += 1;
-                this.initializePlayStates();
-
-                // Do NOT call setupSeenContentObserver here
-
-            } catch (error) {
-                console.error('[loadOlderContent] Exception:', error);
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        scrollHandler() {
-            if (this.loading || this.allLoaded) return;
-            this.$nextTick(() => {
-                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
-                if (!feed) return;
-                const tiles = feed.querySelectorAll('.feed-tile');
-                if (tiles.length === 0) return;
-
-                let lastVisibleIndex = -1;
-                for (let i = tiles.length - 1; i >= 0; i--) {
-                    const rect = tiles[i].getBoundingClientRect();
-                    if (rect.top < window.innerHeight) {
-                        lastVisibleIndex = i;
-                        break;
-                    }
-                }
-
-                if (
-                    lastVisibleIndex >= this.nextThreshold &&
-                    !this.loading &&
-                    !this.allLoaded
-                ) {
-                    console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${this.nextThreshold}`);
-                    this.lastLoadedIndex = this.nextThreshold;
-                    if (this.showOlderContent) {
-                        this.loadOlderContent('scrollHandler');
-                    } else {
-                        this.loadBoards('scrollHandler');
-                    }
-                    this.nextThreshold += 20;
-                }
-            });
-        },
-
-        handlePlay(id) {
-            this.currentPlayingTeaserId = id;
-            this.teaserPlayStates[id] = true;
-        },
-
-        handlePause(id) {
-            if (this.currentPlayingTeaserId === id) {
-                this.currentPlayingTeaserId = null;
-            }
-            this.teaserPlayStates[id] = false;
-        },
-
-        togglePlay(videoEl) {
-            if (!videoEl) return;
-
-            // Pause all other videos
-            document.querySelectorAll('video[data-moodboard], video[data-teaser]').forEach(v => {
-                if (v !== videoEl && !v.paused) v.pause();
-            });
-
-            videoEl.muted = false;
-            if (videoEl.paused) {
-                videoEl.play();
-            } else {
-                videoEl.pause();
-            }
-        },
-
-        startFastForward(videoEl) {
-            if (!videoEl) return;
-            videoEl.playbackRate = 2.0;
-        },
-
-        stopFastForward(videoEl) {
-            if (!videoEl) return;
-            videoEl.playbackRate = 1.0;
-        },
-
-        getRemainingTime(expiresOn) {
-            if (!expiresOn) return '—';
-            const now = new Date();
-            const expires = new Date(expiresOn);
-            const diff = expires - now;
-            if (diff <= 0) return 'Expired';
-            const hours = Math.floor(diff / (1000 * 60 * 60));
-            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            return `${hours}h ${mins}m`;
-        },
-
-        toggleSaveById(boardId) {
-            // Find the board from existing state
-            const board =
-                this.items.find(b => b.id === boardId) ||
-                (this.filteredBoards && Array.isArray(this.filteredBoards)
-                    ? this.filteredBoards.find(b => b.id === boardId)
-                    : null);
-
-            if (!board) {
-                console.warn(`Board not found for toggleSave:`, boardId);
-                return;
-            }
-
-            board.saving = true;
-            console.log(`🔄 Toggling save state for board ${board.id}...`);
-
-            fetch('/moodboards/toggle-save', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ mood_board_id: board.id })
-            })
-            .then(response => {
-                console.log(`📡 Received response for board ${board.id}:`, response);
-                if (!response.ok) {
-                    throw new Error(`❌ Network response was not ok. Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log(`✅ Save toggle successful for board ${board.id}:`, data);
-                board.is_saved = data.is_saved;
-                this.showToast(data.is_saved ? '💾 Saved to your vibe vault!' : '❌ Removed from saved');
-            })
-            .catch(error => {
-                console.error(`🚨 Error toggling save for board ${board.id}:`, error);
-                this.showToast('⚠️ Something went wrong while saving', 'error');
-            })
-            .finally(() => {
-                board.saving = false;
-                console.log(`🧹 Save toggle complete for board ${board.id}`);
-            });
-        },
-
-        searchUsers() {
-            let q = this.searchQuery.trim();
-            if (q.startsWith('@')) q = q.slice(1);
-            if (q.length === 0) {
-                this.searchResults = [];
-                return;
-            }
-            this.searchLoading = true;
-            fetch(`/api/search-users?q=${encodeURIComponent(q)}`)
-                .then(res => res.json())
-                .then(res => {
-                    this.searchResults = res.data || [];
-                })
-                .catch(() => {
-                    this.searchResults = [];
-                })
-                .finally(() => {
-                    this.searchLoading = false;
-                });
-        },
-
-        goToProfile(username, id) {
-            window.location.href = `/space/${username}-${id}`;
-        }
-
-        renderMediaPreview(board) {
-            const container = document.getElementById(`media-preview-${board.id}`);
-            if (!container) return;
-
-            const mediaPath = board.image || board.video;
-            if (!mediaPath) return;
-
-            const fullPath = mediaPath.startsWith('http') ? mediaPath : `/storage/${mediaPath}`;
-            const ext = fullPath.split('.').pop().toLowerCase();
-
-            if (["mp4", "webm", "ogg"].includes(ext)) {
-                const wrapper = document.createElement('div');
-                wrapper.className = "relative w-full h-full rounded-lg overflow-hidden group";
-
-                if (Alpine.store('videoSettings') === undefined) {
-                    Alpine.store('videoSettings', Alpine.reactive({ muted: true }));
-                }
-
-                const video = document.createElement('video');
-                video.src = fullPath;
-                video.playsInline = true;
-                video.preload = "metadata";
-                video.className = "w-full h-full object-cover rounded-lg";
-
-                let lastTapTime = 0;
-                let tapTimeout = null;
-
-                video.addEventListener('click', (e) => {
-                    const currentTime = new Date().getTime();
-                    const tapX = e.offsetX;
-                    const width = video.offsetWidth;
-                    const isLeft = tapX < width / 2;
-                    const timeDiff = currentTime - lastTapTime;
-
-                    if (tapTimeout) {
-                        clearTimeout(tapTimeout);
-                        tapTimeout = null;
-                    }
-
-                    if (timeDiff < 300) {
-                        if (isLeft) {
-                            video.currentTime = Math.max(0, video.currentTime - 10);
-                            showSeekFlash('⏪ -10s', video);
-                        } else {
-                            video.currentTime = Math.min(video.duration, video.currentTime + 10);
-                            showSeekFlash('+10s ⏩', video);
-                        }
-                    } else {
-                        tapTimeout = setTimeout(() => {
-                            if (video.paused) {
-                                video.play();
-                            } else {
-                                video.pause();
-                            }
-                        }, 250);
-                    }
-
-                    lastTapTime = currentTime;
-                });
-
-                video.muted = Alpine.store('videoSettings').muted;
-
-                const muteBtn = document.createElement('button');
-                muteBtn.innerHTML = Alpine.store('videoSettings').muted ? muteIcon() : unmuteIcon();
-                muteBtn.className = "absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 z-10";
-                muteBtn.addEventListener('click', () => {
-                    const newMuted = !video.muted;
-                    Alpine.store('videoSettings').muted = newMuted;
-                    document.querySelectorAll('video').forEach(v => v.muted = newMuted);
-                    muteBtn.innerHTML = newMuted ? muteIcon() : unmuteIcon();
-                });
-
-                const progress = document.createElement('input');
-                progress.type = 'range';
-                progress.min = 0;
-                progress.max = 100;
-                progress.value = 0;
-                progress.step = 0.1;
-                progress.className = "absolute bottom-0 left-0 w-full h-1 bg-transparent appearance-none z-10 cursor-pointer";
-                progress.style.background = 'linear-gradient(to right, #ec4899 0%, #ec4899 0%, #ddd 0%, #ddd 100%)';
-                progress.style.height = '4px';
-
-                video.addEventListener('timeupdate', () => {
-                    const value = (video.currentTime / video.duration) * 100 || 0;
-                    progress.value = value;
-                    progress.style.background = `linear-gradient(to right, #ec4899 0%, #ec4899 ${value}%, #ddd ${value}%, #ddd 100%)`;
-                });
-
-                progress.addEventListener('input', () => {
-                    video.currentTime = (progress.value / 100) * video.duration;
-                });
-
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            video.play().catch(() => {});
-                            video.muted = Alpine.store('videoSettings').muted;
-                        } else {
-                            video.pause();
-                        }
-                    });
-                }, { threshold: 0.5 });
-                observer.observe(video);
-
-                wrapper.appendChild(video);
-                wrapper.appendChild(progress);
-                wrapper.appendChild(muteBtn);
-                container.appendChild(wrapper);
-            } else if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
-                const img = document.createElement('img');
-                img.src = fullPath;
-                img.alt = "Moodboard Image";
-                img.className = "w-full h-full rounded-lg border-2 border-blue-500 object-cover";
-                container.appendChild(img);
-            }
-
-            function muteIcon() {
-                return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4l-5 5H5z"/></svg>`;
-            }
-
-            function unmuteIcon() {
-                return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4l-5 5H5zm14.5 3c0-1.77-.77-3.36-2-4.47v8.94c1.23-1.11 2-2.7 2-4.47z"/></svg>`;
-            }
-
-            function showSeekFlash(text, parent) {
-                const flash = document.createElement('div');
-                flash.textContent = text;
-                flash.className = "absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50 animate-pulse z-20";
-                parent.parentElement.appendChild(flash);
-
-                setTimeout(() => flash.remove(), 500);
-            }
-        },
-
-        timeSince(date) {
-            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
-            const interval = seconds / 3600;
-            if (interval > 24) return `${Math.floor(interval / 24)} days ago`;
-            if (interval >= 1) return `${Math.floor(interval)} hrs ago`;
-            if (seconds > 60) return `${Math.floor(seconds / 60)} mins ago`;
-            return "just now";
-        },
-
-        moodKey(m) {
-            return m.replace(/-/g, '_'); // 'mind-blown' -> 'mind_blown'
-        },
-
-        getReactionCount(board, mood) {
-            return board[this.moodKey(mood) + '_count'] ?? 0;
-        },
-
-        react(boardId, mood) {
-            const board = this.items.find(b => b.id === boardId);
-            if (!board) { this.showToast("Board not found", 'error'); return; }
-            if (board.user_reacted_mood === mood) { this.showToast("You already picked this mood 💅", 'error'); return; }
-            if (board.reacting) return; // Prevent double-clicks
-
-            board.reacting = true;
-            this.showLoadingToast("Reacting...");
-
-            fetch('/reaction', {
-                method: 'POST',
-                headers: this._headers(),
-                body: JSON.stringify({ mood_board_id: boardId, mood }),
-            })
-            .then(async res => res.ok ? res.json() : Promise.reject(await res.json()))
-            .then(data => {
-                const newMood = data.mood;
-                const prevMood = data.previous;
-
-                if (prevMood && prevMood !== newMood) {
-                    const kPrev = this.moodKey(prevMood) + '_count';
-                    board[kPrev] = Math.max(0, (board[kPrev] || 0) - 1);
-                }
-
-                const kNew = this.moodKey(newMood) + '_count';
-                board[kNew] = (board[kNew] || 0) + 1;
-
-                board.user_reacted_mood = newMood;
-
-                this.showToast("Mood updated! 💖");
-            })
-            .catch(err => this.showToast(err?.error || "Failed to react 💔", 'error'))
-            .finally(() => {
-                board.reacting = false;
-            });
-        },
-
-        postComment(board) {
-            if (!board.newComment.trim() || board.commenting) return;
-
-            board.commenting = true;
-            this.showLoadingToast("Commenting...");
-
-            fetch(`/boards/${board.id}/comments`, {
-                method: 'POST',
-                headers: this._headers(),
-                body: JSON.stringify({ body: board.newComment.trim() }),
-            })
-            .then(res => res.ok ? res.json() : Promise.reject())
-            .then(data => {
-                board.comment_count = (board.comment_count ?? 0) + 1;
-                board.newComment = '';
-                this.showToast("Comment posted! 🎉");
-            })
-            .catch(() => this.showToast("Comment failed 😢", 'error'))
-            .finally(() => {
-                board.commenting = false;
-            });
-        },
-
-        reactToTeaser(teaserId, reaction) {
-            const now = Date.now();
-            const teaser = this.items.find(t => t.id === teaserId && t.type === 'teaser');
-            if (!teaser) return;
-
-            // Cooldown check
-            if (this.teaserReactionCooldowns[teaserId] && now < this.teaserReactionCooldowns[teaserId]) {
-                this.showToast("Too many reactions! Please wait a bit.", "error");
-                return;
-            }
-
-            // Track click timestamps
-            if (!this.teaserReactionClicks[teaserId]) this.teaserReactionClicks[teaserId] = [];
-            // Remove timestamps older than 1 minute
-            this.teaserReactionClicks[teaserId] = this.teaserReactionClicks[teaserId].filter(ts => now - ts < 60000);
-            this.teaserReactionClicks[teaserId].push(now);
-
-            if (this.teaserReactionClicks[teaserId].length > 4) {
-                // Set 30s cooldown
-                this.teaserReactionCooldowns[teaserId] = now + 30000;
-                this.showToast("Reaction limit reached! Try again in 30 seconds.", "error");
-                return;
-            }
-
-            if (teaser.reacting) return;
-            teaser.reacting = true;
-
-            // If already reacted, remove reaction
-            const isRemoving = teaser.user_teaser_reaction === reaction;
-            fetch('/teasers/react', {
-                method: 'POST',
-                headers: this._headers(),
-                body: JSON.stringify({
-                    teaser_id: teaserId,
-                    reaction,
-                    remove: isRemoving ? 1 : 0
-                }),
-            })
-            .then(res => res.ok ? res.json() : Promise.reject())
-            .then(data => {
-                ['fire','love','boring'].forEach(r => {
-                    teaser[r + '_count'] = data[r + '_count'] || 0;
-                });
-                teaser.user_teaser_reaction = data.user_reaction;
-            })
-            .catch(() => this.showToast("Failed to react", 'error'))
-            .finally(() => { teaser.reacting = false; });
-        },
-
-        async openTeaserComments(teaser) {
-            this.activeTeaserComments = teaser;
-            this.showTeaserComments = true;
-            if (!teaser.comments) {
-                try {
-                    const res = await fetch(`/teasers/${teaser.id}/comments`);
-                    teaser.comments = res.ok ? await res.json() : [];
-                } catch {
-                    teaser.comments = [];
-                }
-            }
-        },
-
-        closeTeaserComments() {
-            this.showTeaserComments = false;
-            this.activeTeaserComments = null;
-        },
-
-        async postTeaserComment(teaser) {
-            if (!teaser.newComment || !teaser.newComment.trim()) return;
-            if (teaser.commenting) return;
-            teaser.commenting = true;
-
-            try {
-                const res = await fetch('/teasers/comments', {
-                    method: 'POST',
-                    headers: this._headers(),
-                    body: JSON.stringify({
-                        teaser_id: teaser.id,
-                        body: teaser.newComment.trim(),
-                    }),
-                });
-                if (!res.ok) throw new Error('Failed to post comment');
-                const comment = await res.json();
-
-                // Ensure comments array exists
-                if (!teaser.comments) teaser.comments = [];
-                // Add new comment at the top
-                teaser.comments.unshift(comment);
-                teaser.comment_count = (teaser.comment_count || 0) + 1;
-                teaser.newComment = '';
-                this.showToast('Comment posted! 🎉');
-            } catch (e) {
-                this.showToast('Failed to post comment', 'error');
-            } finally {
-                teaser.commenting = false;
-            }
-        },
-
-        likeComment(comment) {
-            if (comment.liking) return;
-            comment.liking = true;
-            const url = `/teasers/comments/${comment.id}/like`;
-            const payload = { reaction_type: 'like' };
-            console.log('[likeComment] Sending:', { url, payload });
-
-            fetch(url, {
-                method: 'POST',
-                headers: this._headers(),
-                credentials: 'include',
-                body: JSON.stringify(payload),
-            })
-            .then(async res => {
-                console.log('[likeComment] Response status:', res.status);
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error('[likeComment] Error response:', text);
-                    throw new Error(text || 'Failed to like');
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log('[likeComment] Success data:', data);
-                comment.like_count = data.like_count;
-                comment.dislike_count = data.dislike_count;
-            })
-            .catch(err => {
-                console.error('[likeComment] Exception:', err);
-                this.showToast('Failed to like', 'error');
-            })
-            .finally(() => { comment.liking = false; });
-        },
-
-        dislikeComment(comment) {
-            if (comment.disliking) return;
-            comment.disliking = true;
-            const url = `/teasers/comments/${comment.id}/dislike`;
-            const payload = { reaction_type: 'dislike' };
-            console.log('[dislikeComment] Sending:', { url, payload });
-
-            fetch(url, {
-                method: 'POST',
-                headers: this._headers(),
-                credentials: 'include',
-                body: JSON.stringify(payload),
-            })
-            .then(async res => {
-                console.log('[dislikeComment] Response status:', res.status);
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error('[dislikeComment] Error response:', text);
-                    throw new Error(text || 'Failed to dislike');
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log('[dislikeComment] Success data:', data);
-                comment.like_count = data.like_count;
-                comment.dislike_count = data.dislike_count;
-            })
-            .catch(err => {
-                console.error('[dislikeComment] Exception:', err);
-                this.showToast('Failed to dislike', 'error');
-            })
-            .finally(() => { comment.disliking = false; });
-        },
-
-        sendReply(comment) {
-            if (!comment.replyText || !comment.replyText.trim()) return;
-            const url = `/teasers/comments/${comment.id}/reply`;
-            const payload = { body: comment.replyText.trim() };
-            console.log('[sendReply] Sending:', { url, payload });
-
-            fetch(url, {
-                method: 'POST',
-                headers: this._headers(),
-                credentials: 'include',
-                body: JSON.stringify(payload),
-            })
-            .then(async res => {
-                console.log('[sendReply] Response status:', res.status);
-                if (!res.ok) {
-                    const text = await res.text();
-                    console.error('[sendReply] Error response:', text);
-                    throw new Error(text || 'Failed to reply');
-                }
-                return res.json();
-            })
-            .then(data => {
-                console.log('[sendReply] Success data:', data);
-                comment.reply_count = data.reply_count;
-                comment.replyText = '';
-                comment.showReply = false;
-                this.showToast('Reply sent!');
-            })
-            .catch(err => {
-                console.error('[sendReply] Exception:', err);
-                this.showToast('Failed to reply', 'error');
-            });
-        },
-
-        toggleReplies(comment) {
-            if (comment.showReplies) {
-                this.hideReplies(comment);
-                return;
-            }
-            comment.showReplies = true;
-            if (!comment.repliesToShow) comment.repliesToShow = [];
-            if (comment.repliesToShow.length === 0) {
-                this.fetchReplies(comment, 0, 5);
-            }
-        },
-
-        hideReplies(comment) {
-            comment.showReplies = false;
-            comment.repliesToShow = [];
-        },
-
-        loadMoreReplies(comment) {
-            const current = comment.repliesToShow ? comment.repliesToShow.length : 0;
-            this.fetchReplies(comment, current, 5);
-        },
-
-        fetchReplies(comment, offset = 0, limit = 5) {
-            fetch(`/teasers/comments/${comment.id}/replies?offset=${offset}&limit=${limit}`, {
-                headers: this._headers(),
-                credentials: 'include'
-            })
-            .then(res => res.ok ? res.json() : Promise.reject())
-            .then(data => {
-                if (!comment.repliesToShow) comment.repliesToShow = [];
-                comment.repliesToShow = comment.repliesToShow.concat(data);
-            })
-            .catch(() => this.showToast('Failed to load replies', 'error'));
-        },
-
-        isSendDisabled(board) {
-            return !board.newComment || board.newComment.trim() === '';
-        },
-
-        _headers() {
-            return {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
-            };
-        },
-
-        async toggleSaveTeaser(teaser) {
-            // Debug: Log when the function is called
-            console.log('[toggleSaveTeaser] Clicked for teaser:', teaser);
-
-            // Prevent double-clicks while saving
-            if (teaser.saving) {
-                console.log('[toggleSaveTeaser] Already saving, aborting.');
-                return;
-            }
-            teaser.saving = true;
-
-            try {
-                // Send the save/unsave request
-                const response = await fetch('/teasers/toggle-save', {
-                    method: 'POST',
-                    headers: this._headers(),
-                    body: JSON.stringify({ teaser_id: teaser.id })
-                });
-
-                // Debug: Log the raw response
-                console.log('[toggleSaveTeaser] Response:', response);
-
-                if (!response.ok) {
-                    const text = await response.text();
-                    console.error('[toggleSaveTeaser] Error response:', text);
-                    throw new Error('Failed to toggle save');
-                }
-
-                const data = await response.json();
-                console.log('[toggleSaveTeaser] Parsed response:', data);
-
-                // Update the teaser's saved state
-                teaser.is_saved = !!data.is_saved;
-                this.showToast(teaser.is_saved ? 'Teaser saved!' : 'Removed from saved');
-
-            } catch (error) {
-                console.error('[toggleSaveTeaser] Exception:', error);
-                this.showToast('Failed to save teaser', 'error');
-            } finally {
-                teaser.saving = false;
-                console.log('[toggleSaveTeaser] Done for teaser:', teaser.id);
-            }
-        },
-
-        showToast(message = "Done!", type = 'success', delay = 3000) {
-            const box = document.getElementById('toastBox');
-            const msg = document.getElementById('toastMessage');
-
-            msg.textContent = message;
-            msg.className = `px-4 py-2 rounded shadow-lg text-white text-sm font-medium ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
-
-            box.classList.remove('hidden');
-            setTimeout(() => {
-                box.classList.add('hidden');
-            }, delay);
-        },
-
-        showLoadingToast(message = "Working...") {
-            const box = document.getElementById('toastBox');
-            const msg = document.getElementById('toastMessage');
-
-            msg.textContent = message;
-            msg.className = `px-4 py-2 rounded shadow-lg text-white text-sm font-medium bg-gray-600`;
-            box.classList.remove('hidden');
-        },
-
-        setupSeenContentObserver() {
-            this.$nextTick(() => {
-                const seenIds = new Set();
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const el = entry.target;
-                            const type = el.getAttribute('data-type');
-                            const id = el.getAttribute('data-id');
-                            const key = type + '-' + id;
-                            console.log(`[SeenContent] Intersected: type=${type}, id=${id}, key=${key}`);
-                            if (type && id && !seenIds.has(key)) {
-                                seenIds.add(key);
-                                console.log(`[SeenContent] Sending to backend:`, { content_type: type, content_id: id });
-                                fetch('/seen-content', {
-                                    method: 'POST',
-                                    headers: {
-                                        ...this._headers(),
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                    },
-                                    credentials: 'include',
-                                    body: JSON.stringify({
-                                        content_type: type,
-                                        content_id: id
-                                    })
-                                })
-                                .then(res => {
-                                    console.log(`[SeenContent] Response status for ${key}:`, res.status);
-                                    return res.json();
-                                })
-                                .then(data => {
-                                    console.log(`[SeenContent] Backend response for ${key}:`, data);
-                                })
-                                .catch(err => {
-                                    console.error(`[SeenContent] Error for ${key}:`, err);
-                                });
-                            }
-                        }
-                    });
-                }, { threshold: 0.5 }); // 50% visible
-
-                document.querySelectorAll('.feed-tile').forEach(tile => {
-                    observer.observe(tile);
-                    console.log(`[SeenContent] Observing tile:`, tile);
-                });
-            });
-        }
-    }));
-});
-</script>
-@endpush
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed" x-init="init">
     <!-- Global Loading Spinner Overlay -->
 <div 
@@ -2046,5 +882,1168 @@ document.addEventListener('alpine:init', () => {
 </div>
 @endsection
 
+
+
+@push('scripts')
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('vibeFeed', () => ({
+        items: [],
+        loading: false,
+        initialLoading: true,
+        boards: [],
+        page: 1,
+        allLoaded: false,
+        selectedMoods: [],
+        selectedMediaTypes: [],
+        showSearch: false,
+        searchQuery: '',
+        searchResults: [],
+        searchLoading: false,
+        showMobileFilters: false,
+
+        moods: {
+                excited: "🔥",
+                happy: "😊",
+                chill: "😎",
+                thoughtful: "🤔",
+                sad: "😭",
+                flirty: "😏",
+                mindblown: "🤯",
+                love: "💖"
+            },
+
+        reactionMoods: {
+            fire: '🔥',
+            love: '❤️',
+            funny: '😂',
+            'mind-blown': '🤯',
+            cool: '😎',
+            crying: '😭',
+            clap: '👏',
+            flirty: '😉'
+            },
+
+        mediaTypes: {
+            image: "🖼️ Image",
+            video: "🎥 Video",
+            text: "📝 Text",
+            teaser: "🎬 Teaser"
+        },
+        currentPlayingTeaserId: null,
+        teaserPlayStates: {},
+        fetchedBoardIds: [],
+        fetchedTeaserIds: [],
+        teaserReactionClicks: {}, // { [teaserId]: [timestamps] }
+        teaserReactionCooldowns: {}, // { [teaserId]: timestamp }
+        showTeaserComments: false,
+        activeTeaserComments: null,
+        lastLoadedIndex: 0,
+        nextThreshold: 10,
+        allUnseenExhausted: false,
+        showOlderPrompt: false,
+        showOlderContent: false,
+        trackSeenContent: true,
+
+        init() {
+            console.log("Alpine vibeFeed initialized");
+            this.initialLoading = true;
+            this.page = 1;
+            this.items = [];
+            this.allLoaded = false;
+            this.nextThreshold = 10;
+            this.loadBoards().finally(() => {
+                this.initialLoading = false;
+                this.$nextTick(() => {
+                    console.log('filteredBoards after load:', JSON.parse(JSON.stringify(this.filteredBoards)));
+                });
+            });
+            window.addEventListener('scroll', this.scrollHandler.bind(this));
+            window.fb = this.filteredBoards;
+
+
+            // In your Alpine init() or after loading boards:
+            this.$nextTick(() => {
+                this.items.forEach(item => {
+                    if (item.type === 'teaser') {
+                        if (this.teaserPlayStates[item.id] === undefined) {
+                            this.teaserPlayStates[item.id] = false;
+                        }
+                    }
+                    if (item.type === 'board' && Array.isArray(item.files)) {
+                        item.files.forEach((file, idx) => {
+                            if (file.type === 'video') {
+                                const key = 'board-' + item.id + '-' + idx;
+                                if (this.teaserPlayStates[key] === undefined) {
+                                    this.teaserPlayStates[key] = false;
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            this.initializePlayStates();
+            this.setupVideoObservers();
+        },
+
+        scrollHandler() {
+            if (this.loading || this.allLoaded) return;
+            this.$nextTick(() => {
+                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+                if (!feed) return;
+                const tiles = feed.querySelectorAll('.feed-tile');
+                if (tiles.length === 0) return;
+
+                let lastVisibleIndex = -1;
+                for (let i = tiles.length - 1; i >= 0; i--) {
+                    const rect = tiles[i].getBoundingClientRect();
+                    if (rect.top < window.innerHeight) {
+                        lastVisibleIndex = i;
+                        break;
+                    }
+                }
+
+                // Only call loadBoards if we've crossed the next threshold
+                if (
+                    lastVisibleIndex >= this.nextThreshold &&
+                    !this.loading &&
+                    !this.allLoaded
+                ) {
+                    console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${this.nextThreshold}`);
+                    this.lastLoadedIndex = this.nextThreshold;
+                    this.loadBoards('scrollHandler');
+                    this.nextThreshold += 20; // increment by 20 for the next call
+                }
+            });
+        },
+
+        setupVideoObservers() {
+            this.$nextTick(() => {
+                // Moodboard videos
+                document.querySelectorAll('video[data-moodboard]').forEach(video => {
+                    if (video._observer) return; // Prevent double-observing
+                    const observer = new IntersectionObserver(entries => {
+                        entries.forEach(entry => {
+                            if (!entry.isIntersecting && !video.paused) {
+                                video.pause();
+                            }
+                        });
+                    }, { threshold: 0.2 });
+                    observer.observe(video);
+                    video._observer = observer;
+                });
+                // Teaser videos
+                document.querySelectorAll('video[data-teaser]').forEach(video => {
+                    if (video._observer) return;
+                    const observer = new IntersectionObserver(entries => {
+                        entries.forEach(entry => {
+                            if (!entry.isIntersecting && !video.paused) {
+                                video.pause();
+                            }
+                        });
+                    }, { threshold: 0.2 });
+                    observer.observe(video);
+                    video._observer = observer;
+                });
+            });
+        },
+
+        initializePlayStates() {
+            this.items.forEach(item => {
+                if (item.type === 'teaser' && item.id) {
+                    if (this.teaserPlayStates[item.id] === undefined) {
+                        this.teaserPlayStates[item.id] = false;
+                    }
+                }
+                if (item.type === 'board' && Array.isArray(item.files)) {
+                    item.files.forEach((file, idx) => {
+                        if (file.type === 'video') {
+                            const key = 'board-' + item.id + '-' + idx;
+                            if (this.teaserPlayStates[key] === undefined) {
+                                this.teaserPlayStates[key] = false;
+                            }
+                        }
+                    });
+                }
+            });
+        },
+
+        isTeaserPlaying(id) {
+            if (!id) return false;
+            return !!this.teaserPlayStates[id];
+        },
+
+        get filteredBoards() {
+            return this.items.filter(item => {
+                if (item.type === 'teaser') {
+                    // Show teasers unless a media type filter is set and "teaser" is NOT included
+                    return this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes('teaser');
+                }
+                if (item.type === 'board') {
+                    // Mood filter (multiple moods allowed)
+                    const moodMatch = this.selectedMoods.length === 0 || this.selectedMoods.includes(item.latest_mood);
+                    // Media type filter for boards
+                    const mediaMatch = this.selectedMediaTypes.length === 0 || this.selectedMediaTypes.includes(item.media_type);
+                    return moodMatch && mediaMatch;
+                }
+                return false;
+            });
+        },
+        
+        toggleMood(mood) {
+            if (this.loading) return;
+            const index = this.selectedMoods.indexOf(mood);
+            if (index > -1) {
+                this.selectedMoods.splice(index, 1);
+            } else {
+                this.selectedMoods.push(mood);
+            }
+            this.page = 1;
+            this.items = [];
+            this.allLoaded = false;
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
+            this.lastLoadedIndex = -1;
+            this.nextThreshold = 10;
+            this.loadBoards();
+        },
+
+        toggleMediaType(type) {
+            if (this.loading) return;
+            if (this.selectedMediaTypes[0] === type) {
+                this.selectedMediaTypes = [];
+            } else {
+                this.selectedMediaTypes = [type];
+            }
+            this.selectedMoods = [];
+            this.page = 1;
+            this.items = [];
+            this.allLoaded = false;
+            this.fetchedBoardIds = [];
+            this.fetchedTeaserIds = [];
+            this.lastLoadedIndex = -1;
+            this.nextThreshold = 10;
+            this.loadBoards();
+        },
+
+        normalizeItem(item) {
+            if (item.type === 'board') {
+                let files = []
+                let imgs = item.images ?? item.image
+
+                if (Array.isArray(imgs)) {
+                    files.push(...imgs.map(path => ({
+                        path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                        type: 'image'
+                    })))
+                } else if (typeof imgs === 'string' && imgs) {
+                    let parsed = null
+                    try { parsed = JSON.parse(imgs) } catch {}
+                    if (Array.isArray(parsed)) {
+                        files.push(...parsed.map(path => ({
+                            path: path.startsWith('http') ? path : `/storage/${path.replace(/^\/?storage\//, '')}`,
+                            type: 'image'
+                        })))
+                    } else {
+                        files.push({
+                            path: imgs.startsWith('http') ? imgs : `/storage/${imgs.replace(/^\/?storage\//, '')}`,
+                            type: 'image'
+                        })
+                    }
+                }
+
+                // remove dupes
+                const seen = new Set()
+                files = files.filter(f => {
+                    if (seen.has(f.path)) return false
+                    seen.add(f.path)
+                    return true
+                })
+
+                return {
+                    ...item,
+                    files,
+                    teaserError: !item.video,
+                    videoLoaded: false,
+                    newComment: '',
+                    comment_count: item.comment_count ?? 0,
+                    is_saved: !!item.is_saved,
+                    expanded: false,
+                    saving: false
+                }
+            }
+
+            if (item.type === 'teaser') {
+                return {
+                    ...item,
+                    teaserError: !item.video,
+                    is_saved: !!item.is_saved,
+                    saving: false,
+                }
+            }
+
+            return item
+        },
+
+        async loadBoards(source = 'unknown') {
+            console.log(`[loadBoards] Called by: ${source}`);
+            if (this.loading || this.allLoaded) return;
+            if (this.page === 1) this.loading = true;
+
+            const url = `/api/boards?moodboards=20&teasers=5`
+                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
+                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
+                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '')
+                + `&page=${this.page}`;
+
+            try {
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const contentType = res.headers.get('content-type') || '';
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`Request failed: ${res.status}`);
+                }
+                if (!contentType.includes('application/json')) {
+                    const text = await res.text();
+                    throw new Error('Non-JSON response received');
+                }
+
+                const json = await res.json();
+
+                // Update fetched IDs
+                if (json.sent_board_ids) {
+                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
+                }
+                if (json.sent_teaser_ids) {
+                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
+                }
+
+                if (json.all_unseen_exhausted) {
+                    this.allUnseenExhausted = true;
+                    this.showOlderPrompt = true;
+                    this.loading = false;
+                    return;
+                }
+
+                if (!json.data || json.data.length === 0 || json.all_loaded) {
+                    this.allLoaded = true;
+                    this.loading = false;
+                    return;
+                }
+
+                const newItems = json.data.map(item => this.normalizeItem(item))
+                    .filter(newItem => !this.items.some(existing =>
+                        existing.type === newItem.type &&
+                        existing.id === newItem.id &&
+                        existing.created_at === newItem.created_at
+                    ));
+
+                if (!this.items) this.items = [];
+                this.items.push(...newItems);
+
+                this.setupVideoObservers();
+                this.page += 1;
+                this.initializePlayStates();
+
+                // Only track seen content if flag is true
+                if (this.trackSeenContent) {
+                    this.setupSeenContentObserver();
+                }
+
+            } catch (error) {
+                console.error('[loadBoards] Exception:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async loadOlderContent(source = 'unknown') {
+            console.log(`[loadOlderContent] Called by: ${source}`);
+            if (this.loading || this.allLoaded) return;
+            this.trackSeenContent = false; // Disable tracking for older content
+
+            const url = `/api/boards?show_seen=1`
+                + `&exclude_board_ids=${this.fetchedBoardIds.join(',')}`
+                + `&exclude_teaser_ids=${this.fetchedTeaserIds.join(',')}`
+                + (this.selectedMediaTypes.length ? `&media_types=${this.selectedMediaTypes.join(',')}` : '')
+                + (this.selectedMoods.length ? `&moods=${this.selectedMoods.join(',')}` : '')
+                + `&page=${this.page}`;
+
+            try {
+                const res = await fetch(url, {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                const json = await res.json();
+
+                if (json.sent_board_ids) {
+                    this.fetchedBoardIds.push(...json.sent_board_ids.filter(id => !this.fetchedBoardIds.includes(id)));
+                }
+                if (json.sent_teaser_ids) {
+                    this.fetchedTeaserIds.push(...json.sent_teaser_ids.filter(id => !this.fetchedTeaserIds.includes(id)));
+                }
+
+                if (!json.data || json.data.length === 0 || json.all_loaded) {
+                    this.allLoaded = true;
+                    this.loading = false;
+                    return;
+                }
+
+                const newItems = json.data.map(item => this.normalizeItem(item))
+                    .filter(newItem => !this.items.some(existing =>
+                        existing.type === newItem.type &&
+                        existing.id === newItem.id &&
+                        existing.created_at === newItem.created_at
+                    ));
+
+                if (!this.items) this.items = [];
+                this.items.push(...newItems);
+
+                this.setupVideoObservers();
+                this.page += 1;
+                this.initializePlayStates();
+
+                // Do NOT call setupSeenContentObserver here
+
+            } catch (error) {
+                console.error('[loadOlderContent] Exception:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        scrollHandler() {
+            if (this.loading || this.allLoaded) return;
+            this.$nextTick(() => {
+                const feed = document.querySelector('.flex.flex-col.gap-6.md\\:gap-8.z-0.mt-3');
+                if (!feed) return;
+                const tiles = feed.querySelectorAll('.feed-tile');
+                if (tiles.length === 0) return;
+
+                let lastVisibleIndex = -1;
+                for (let i = tiles.length - 1; i >= 0; i--) {
+                    const rect = tiles[i].getBoundingClientRect();
+                    if (rect.top < window.innerHeight) {
+                        lastVisibleIndex = i;
+                        break;
+                    }
+                }
+
+                if (
+                    lastVisibleIndex >= this.nextThreshold &&
+                    !this.loading &&
+                    !this.allLoaded
+                ) {
+                    console.log(`[scrollHandler] Triggered at index ${lastVisibleIndex}, threshold ${this.nextThreshold}`);
+                    this.lastLoadedIndex = this.nextThreshold;
+                    if (this.showOlderContent) {
+                        this.loadOlderContent('scrollHandler');
+                    } else {
+                        this.loadBoards('scrollHandler');
+                    }
+                    this.nextThreshold += 20;
+                }
+            });
+        },
+
+        handlePlay(id) {
+            this.currentPlayingTeaserId = id;
+            this.teaserPlayStates[id] = true;
+        },
+
+        handlePause(id) {
+            if (this.currentPlayingTeaserId === id) {
+                this.currentPlayingTeaserId = null;
+            }
+            this.teaserPlayStates[id] = false;
+        },
+
+        togglePlay(videoEl) {
+            if (!videoEl) return;
+
+            // Pause all other videos
+            document.querySelectorAll('video[data-moodboard], video[data-teaser]').forEach(v => {
+                if (v !== videoEl && !v.paused) v.pause();
+            });
+
+            videoEl.muted = false;
+            if (videoEl.paused) {
+                videoEl.play();
+            } else {
+                videoEl.pause();
+            }
+        },
+
+        startFastForward(videoEl) {
+            if (!videoEl) return;
+            videoEl.playbackRate = 2.0;
+        },
+
+        stopFastForward(videoEl) {
+            if (!videoEl) return;
+            videoEl.playbackRate = 1.0;
+        },
+
+        getRemainingTime(expiresOn) {
+            if (!expiresOn) return '—';
+            const now = new Date();
+            const expires = new Date(expiresOn);
+            const diff = expires - now;
+            if (diff <= 0) return 'Expired';
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hours}h ${mins}m`;
+        },
+
+        toggleSaveById(boardId) {
+            // Find the board from existing state
+            const board =
+                this.items.find(b => b.id === boardId) ||
+                (this.filteredBoards && Array.isArray(this.filteredBoards)
+                    ? this.filteredBoards.find(b => b.id === boardId)
+                    : null);
+
+            if (!board) {
+                console.warn(`Board not found for toggleSave:`, boardId);
+                return;
+            }
+
+            board.saving = true;
+            console.log(`🔄 Toggling save state for board ${board.id}...`);
+
+            fetch('/moodboards/toggle-save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ mood_board_id: board.id })
+            })
+            .then(response => {
+                console.log(`📡 Received response for board ${board.id}:`, response);
+                if (!response.ok) {
+                    throw new Error(`❌ Network response was not ok. Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log(`✅ Save toggle successful for board ${board.id}:`, data);
+                board.is_saved = data.is_saved;
+                this.showToast(data.is_saved ? '💾 Saved to your vibe vault!' : '❌ Removed from saved');
+            })
+            .catch(error => {
+                console.error(`🚨 Error toggling save for board ${board.id}:`, error);
+                this.showToast('⚠️ Something went wrong while saving', 'error');
+            })
+            .finally(() => {
+                board.saving = false;
+                console.log(`🧹 Save toggle complete for board ${board.id}`);
+            });
+        },
+
+        searchUsers() {
+            let q = this.searchQuery.trim();
+            if (q.startsWith('@')) q = q.slice(1);
+            if (q.length === 0) {
+                this.searchResults = [];
+                return;
+            }
+            this.searchLoading = true;
+            fetch(`/api/search-users?q=${encodeURIComponent(q)}`)
+                .then(res => res.json())
+                .then(res => {
+                    this.searchResults = res.data || [];
+                })
+                .catch(() => {
+                    this.searchResults = [];
+                })
+                .finally(() => {
+                    this.searchLoading = false;
+                });
+        },
+
+        goToProfile(username, id) {
+            window.location.href = `/space/${username}-${id}`;
+        },
+
+        renderMediaPreview(board) {
+            const container = document.getElementById(`media-preview-${board.id}`);
+            if (!container) return;
+
+            const mediaPath = board.image || board.video;
+            if (!mediaPath) return;
+
+            const fullPath = mediaPath.startsWith('http') ? mediaPath : `/storage/${mediaPath}`;
+            const ext = fullPath.split('.').pop().toLowerCase();
+
+            if (["mp4", "webm", "ogg"].includes(ext)) {
+                const wrapper = document.createElement('div');
+                wrapper.className = "relative w-full h-full rounded-lg overflow-hidden group";
+
+                if (Alpine.store('videoSettings') === undefined) {
+                    Alpine.store('videoSettings', Alpine.reactive({ muted: true }));
+                }
+
+                const video = document.createElement('video');
+                video.src = fullPath;
+                video.playsInline = true;
+                video.preload = "metadata";
+                video.className = "w-full h-full object-cover rounded-lg";
+
+                let lastTapTime = 0;
+                let tapTimeout = null;
+
+                video.addEventListener('click', (e) => {
+                    const currentTime = new Date().getTime();
+                    const tapX = e.offsetX;
+                    const width = video.offsetWidth;
+                    const isLeft = tapX < width / 2;
+                    const timeDiff = currentTime - lastTapTime;
+
+                    if (tapTimeout) {
+                        clearTimeout(tapTimeout);
+                        tapTimeout = null;
+                    }
+
+                    if (timeDiff < 300) {
+                        if (isLeft) {
+                            video.currentTime = Math.max(0, video.currentTime - 10);
+                            showSeekFlash('⏪ -10s', video);
+                        } else {
+                            video.currentTime = Math.min(video.duration, video.currentTime + 10);
+                            showSeekFlash('+10s ⏩', video);
+                        }
+                    } else {
+                        tapTimeout = setTimeout(() => {
+                            if (video.paused) {
+                                video.play();
+                            } else {
+                                video.pause();
+                            }
+                        }, 250);
+                    }
+
+                    lastTapTime = currentTime;
+                });
+
+                video.muted = Alpine.store('videoSettings').muted;
+
+                const muteBtn = document.createElement('button');
+                muteBtn.innerHTML = Alpine.store('videoSettings').muted ? muteIcon() : unmuteIcon();
+                muteBtn.className = "absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 z-10";
+                muteBtn.addEventListener('click', () => {
+                    const newMuted = !video.muted;
+                    Alpine.store('videoSettings').muted = newMuted;
+                    document.querySelectorAll('video').forEach(v => v.muted = newMuted);
+                    muteBtn.innerHTML = newMuted ? muteIcon() : unmuteIcon();
+                });
+
+                const progress = document.createElement('input');
+                progress.type = 'range';
+                progress.min = 0;
+                progress.max = 100;
+                progress.value = 0;
+                progress.step = 0.1;
+                progress.className = "absolute bottom-0 left-0 w-full h-1 bg-transparent appearance-none z-10 cursor-pointer";
+                progress.style.background = 'linear-gradient(to right, #ec4899 0%, #ec4899 0%, #ddd 0%, #ddd 100%)';
+                progress.style.height = '4px';
+
+                video.addEventListener('timeupdate', () => {
+                    const value = (video.currentTime / video.duration) * 100 || 0;
+                    progress.value = value;
+                    progress.style.background = `linear-gradient(to right, #ec4899 0%, #ec4899 ${value}%, #ddd ${value}%, #ddd 100%)`;
+                });
+
+                progress.addEventListener('input', () => {
+                    video.currentTime = (progress.value / 100) * video.duration;
+                });
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            video.play().catch(() => {});
+                            video.muted = Alpine.store('videoSettings').muted;
+                        } else {
+                            video.pause();
+                        }
+                    });
+                }, { threshold: 0.5 });
+                observer.observe(video);
+
+                wrapper.appendChild(video);
+                wrapper.appendChild(progress);
+                wrapper.appendChild(muteBtn);
+                container.appendChild(wrapper);
+            } else if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
+                const img = document.createElement('img');
+                img.src = fullPath;
+                img.alt = "Moodboard Image";
+                img.className = "w-full h-full rounded-lg border-2 border-blue-500 object-cover";
+                container.appendChild(img);
+            }
+
+            function muteIcon() {
+                return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4l-5 5H5z"/></svg>`;
+            }
+
+            function unmuteIcon() {
+                return `<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="white" viewBox="0 0 24 24"><path d="M5 9v6h4l5 5V4l-5 5H5zm14.5 3c0-1.77-.77-3.36-2-4.47v8.94c1.23-1.11 2-2.7 2-4.47z"/></svg>`;
+            }
+
+            function showSeekFlash(text, parent) {
+                const flash = document.createElement('div');
+                flash.textContent = text;
+                flash.className = "absolute inset-0 flex items-center justify-center text-white text-xl font-bold bg-black/50 animate-pulse z-20";
+                parent.parentElement.appendChild(flash);
+
+                setTimeout(() => flash.remove(), 500);
+            }
+        },
+
+        timeSince(date) {
+            const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+            const interval = seconds / 3600;
+            if (interval > 24) return `${Math.floor(interval / 24)} days ago`;
+            if (interval >= 1) return `${Math.floor(interval)} hrs ago`;
+            if (seconds > 60) return `${Math.floor(seconds / 60)} mins ago`;
+            return "just now";
+        },
+
+        moodKey(m) {
+            return m.replace(/-/g, '_'); // 'mind-blown' -> 'mind_blown'
+        },
+
+        getReactionCount(board, mood) {
+            return board[this.moodKey(mood) + '_count'] ?? 0;
+        },
+
+        react(boardId, mood) {
+            const board = this.items.find(b => b.id === boardId);
+            if (!board) { this.showToast("Board not found", 'error'); return; }
+            if (board.user_reacted_mood === mood) { this.showToast("You already picked this mood 💅", 'error'); return; }
+            if (board.reacting) return; // Prevent double-clicks
+
+            board.reacting = true;
+            this.showLoadingToast("Reacting...");
+
+            fetch('/reaction', {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({ mood_board_id: boardId, mood }),
+            })
+            .then(async res => res.ok ? res.json() : Promise.reject(await res.json()))
+            .then(data => {
+                const newMood = data.mood;
+                const prevMood = data.previous;
+
+                if (prevMood && prevMood !== newMood) {
+                    const kPrev = this.moodKey(prevMood) + '_count';
+                    board[kPrev] = Math.max(0, (board[kPrev] || 0) - 1);
+                }
+
+                const kNew = this.moodKey(newMood) + '_count';
+                board[kNew] = (board[kNew] || 0) + 1;
+
+                board.user_reacted_mood = newMood;
+
+                this.showToast("Mood updated! 💖");
+            })
+            .catch(err => this.showToast(err?.error || "Failed to react 💔", 'error'))
+            .finally(() => {
+                board.reacting = false;
+            });
+        },
+
+        postComment(board) {
+            if (!board.newComment.trim() || board.commenting) return;
+
+            board.commenting = true;
+            this.showLoadingToast("Commenting...");
+
+            fetch(`/boards/${board.id}/comments`, {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({ body: board.newComment.trim() }),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                board.comment_count = (board.comment_count ?? 0) + 1;
+                board.newComment = '';
+                this.showToast("Comment posted! 🎉");
+            })
+            .catch(() => this.showToast("Comment failed 😢", 'error'))
+            .finally(() => {
+                board.commenting = false;
+            });
+        },
+
+        reactToTeaser(teaserId, reaction) {
+            const now = Date.now();
+            const teaser = this.items.find(t => t.id === teaserId && t.type === 'teaser');
+            if (!teaser) return;
+
+            // Cooldown check
+            if (this.teaserReactionCooldowns[teaserId] && now < this.teaserReactionCooldowns[teaserId]) {
+                this.showToast("Too many reactions! Please wait a bit.", "error");
+                return;
+            }
+
+            // Track click timestamps
+            if (!this.teaserReactionClicks[teaserId]) this.teaserReactionClicks[teaserId] = [];
+            // Remove timestamps older than 1 minute
+            this.teaserReactionClicks[teaserId] = this.teaserReactionClicks[teaserId].filter(ts => now - ts < 60000);
+            this.teaserReactionClicks[teaserId].push(now);
+
+            if (this.teaserReactionClicks[teaserId].length > 4) {
+                // Set 30s cooldown
+                this.teaserReactionCooldowns[teaserId] = now + 30000;
+                this.showToast("Reaction limit reached! Try again in 30 seconds.", "error");
+                return;
+            }
+
+            if (teaser.reacting) return;
+            teaser.reacting = true;
+
+            // If already reacted, remove reaction
+            const isRemoving = teaser.user_teaser_reaction === reaction;
+            fetch('/teasers/react', {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({
+                    teaser_id: teaserId,
+                    reaction,
+                    remove: isRemoving ? 1 : 0
+                }),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                ['fire','love','boring'].forEach(r => {
+                    teaser[r + '_count'] = data[r + '_count'] || 0;
+                });
+                teaser.user_teaser_reaction = data.user_reaction;
+            })
+            .catch(() => this.showToast("Failed to react", 'error'))
+            .finally(() => { teaser.reacting = false; });
+        },
+
+        async openTeaserComments(teaser) {
+            this.activeTeaserComments = teaser;
+            this.showTeaserComments = true;
+            if (!teaser.comments) {
+                try {
+                    const res = await fetch(`/teasers/${teaser.id}/comments`);
+                    teaser.comments = res.ok ? await res.json() : [];
+                } catch {
+                    teaser.comments = [];
+                }
+            }
+        },
+
+        closeTeaserComments() {
+            this.showTeaserComments = false;
+            this.activeTeaserComments = null;
+        },
+
+        async postTeaserComment(teaser) {
+            if (!teaser.newComment || !teaser.newComment.trim()) return;
+            if (teaser.commenting) return;
+            teaser.commenting = true;
+
+            try {
+                const res = await fetch('/teasers/comments', {
+                    method: 'POST',
+                    headers: this._headers(),
+                    body: JSON.stringify({
+                        teaser_id: teaser.id,
+                        body: teaser.newComment.trim(),
+                    }),
+                });
+                if (!res.ok) throw new Error('Failed to post comment');
+                const comment = await res.json();
+
+                // Ensure comments array exists
+                if (!teaser.comments) teaser.comments = [];
+                // Add new comment at the top
+                teaser.comments.unshift(comment);
+                teaser.comment_count = (teaser.comment_count || 0) + 1;
+                teaser.newComment = '';
+                this.showToast('Comment posted! 🎉');
+            } catch (e) {
+                this.showToast('Failed to post comment', 'error');
+            } finally {
+                teaser.commenting = false;
+            }
+        },
+
+        likeComment(comment) {
+            if (comment.liking) return;
+            comment.liking = true;
+            const url = `/teasers/comments/${comment.id}/like`;
+            const payload = { reaction_type: 'like' };
+            console.log('[likeComment] Sending:', { url, payload });
+
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[likeComment] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[likeComment] Error response:', text);
+                    throw new Error(text || 'Failed to like');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[likeComment] Success data:', data);
+                comment.like_count = data.like_count;
+                comment.dislike_count = data.dislike_count;
+            })
+            .catch(err => {
+                console.error('[likeComment] Exception:', err);
+                this.showToast('Failed to like', 'error');
+            })
+            .finally(() => { comment.liking = false; });
+        },
+
+        dislikeComment(comment) {
+            if (comment.disliking) return;
+            comment.disliking = true;
+            const url = `/teasers/comments/${comment.id}/dislike`;
+            const payload = { reaction_type: 'dislike' };
+            console.log('[dislikeComment] Sending:', { url, payload });
+
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[dislikeComment] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[dislikeComment] Error response:', text);
+                    throw new Error(text || 'Failed to dislike');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[dislikeComment] Success data:', data);
+                comment.like_count = data.like_count;
+                comment.dislike_count = data.dislike_count;
+            })
+            .catch(err => {
+                console.error('[dislikeComment] Exception:', err);
+                this.showToast('Failed to dislike', 'error');
+            })
+            .finally(() => { comment.disliking = false; });
+        },
+
+        sendReply(comment) {
+            if (!comment.replyText || !comment.replyText.trim()) return;
+            const url = `/teasers/comments/${comment.id}/reply`;
+            const payload = { body: comment.replyText.trim() };
+            console.log('[sendReply] Sending:', { url, payload });
+
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[sendReply] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[sendReply] Error response:', text);
+                    throw new Error(text || 'Failed to reply');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[sendReply] Success data:', data);
+                comment.reply_count = data.reply_count;
+                comment.replyText = '';
+                comment.showReply = false;
+                this.showToast('Reply sent!');
+            })
+            .catch(err => {
+                console.error('[sendReply] Exception:', err);
+                this.showToast('Failed to reply', 'error');
+            });
+        },
+
+        toggleReplies(comment) {
+            if (comment.showReplies) {
+                this.hideReplies(comment);
+                return;
+            }
+            comment.showReplies = true;
+            if (!comment.repliesToShow) comment.repliesToShow = [];
+            if (comment.repliesToShow.length === 0) {
+                this.fetchReplies(comment, 0, 5);
+            }
+        },
+
+        hideReplies(comment) {
+            comment.showReplies = false;
+            comment.repliesToShow = [];
+        },
+
+        loadMoreReplies(comment) {
+            const current = comment.repliesToShow ? comment.repliesToShow.length : 0;
+            this.fetchReplies(comment, current, 5);
+        },
+
+        fetchReplies(comment, offset = 0, limit = 5) {
+            fetch(`/teasers/comments/${comment.id}/replies?offset=${offset}&limit=${limit}`, {
+                headers: this._headers(),
+                credentials: 'include'
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                if (!comment.repliesToShow) comment.repliesToShow = [];
+                comment.repliesToShow = comment.repliesToShow.concat(data);
+            })
+            .catch(() => this.showToast('Failed to load replies', 'error'));
+        },
+
+        isSendDisabled(board) {
+            return !board.newComment || board.newComment.trim() === '';
+        },
+
+        _headers() {
+            return {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
+            };
+        },
+
+        async toggleSaveTeaser(teaser) {
+            // Debug: Log when the function is called
+            console.log('[toggleSaveTeaser] Clicked for teaser:', teaser);
+
+            // Prevent double-clicks while saving
+            if (teaser.saving) {
+                console.log('[toggleSaveTeaser] Already saving, aborting.');
+                return;
+            }
+            teaser.saving = true;
+
+            try {
+                // Send the save/unsave request
+                const response = await fetch('/teasers/toggle-save', {
+                    method: 'POST',
+                    headers: this._headers(),
+                    body: JSON.stringify({ teaser_id: teaser.id })
+                });
+
+                // Debug: Log the raw response
+                console.log('[toggleSaveTeaser] Response:', response);
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('[toggleSaveTeaser] Error response:', text);
+                    throw new Error('Failed to toggle save');
+                }
+
+                const data = await response.json();
+                console.log('[toggleSaveTeaser] Parsed response:', data);
+
+                // Update the teaser's saved state
+                teaser.is_saved = !!data.is_saved;
+                this.showToast(teaser.is_saved ? 'Teaser saved!' : 'Removed from saved');
+
+            } catch (error) {
+                console.error('[toggleSaveTeaser] Exception:', error);
+                this.showToast('Failed to save teaser', 'error');
+            } finally {
+                teaser.saving = false;
+                console.log('[toggleSaveTeaser] Done for teaser:', teaser.id);
+            }
+        },
+
+        showToast(message = "Done!", type = 'success', delay = 3000) {
+            const box = document.getElementById('toastBox');
+            const msg = document.getElementById('toastMessage');
+
+            msg.textContent = message;
+            msg.className = `px-4 py-2 rounded shadow-lg text-white text-sm font-medium ${type === 'error' ? 'bg-red-500' : 'bg-green-500'}`;
+
+            box.classList.remove('hidden');
+            setTimeout(() => {
+                box.classList.add('hidden');
+            }, delay);
+        },
+
+        showLoadingToast(message = "Working...") {
+            const box = document.getElementById('toastBox');
+            const msg = document.getElementById('toastMessage');
+
+            msg.textContent = message;
+            msg.className = `px-4 py-2 rounded shadow-lg text-white text-sm font-medium bg-gray-600`;
+            box.classList.remove('hidden');
+        },
+
+        setupSeenContentObserver() {
+            this.$nextTick(() => {
+                const seenIds = new Set();
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const el = entry.target;
+                            const type = el.getAttribute('data-type');
+                            const id = el.getAttribute('data-id');
+                            const key = type + '-' + id;
+                            console.log(`[SeenContent] Intersected: type=${type}, id=${id}, key=${key}`);
+                            if (type && id && !seenIds.has(key)) {
+                                seenIds.add(key);
+                                console.log(`[SeenContent] Sending to backend:`, { content_type: type, content_id: id });
+                                fetch('/seen-content', {
+                                    method: 'POST',
+                                    headers: {
+                                        ...this._headers(),
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                    },
+                                    credentials: 'include',
+                                    body: JSON.stringify({
+                                        content_type: type,
+                                        content_id: id
+                                    })
+                                })
+                                .then(res => {
+                                    console.log(`[SeenContent] Response status for ${key}:`, res.status);
+                                    return res.json();
+                                })
+                                .then(data => {
+                                    console.log(`[SeenContent] Backend response for ${key}:`, data);
+                                })
+                                .catch(err => {
+                                    console.error(`[SeenContent] Error for ${key}:`, err);
+                                });
+                            }
+                        }
+                    });
+                }, { threshold: 0.5 }); // 50% visible
+
+                document.querySelectorAll('.feed-tile').forEach(tile => {
+                    observer.observe(tile);
+                    console.log(`[SeenContent] Observing tile:`, tile);
+                });
+            });
+        }
+    }));
+});
+</script>
+@endpush
 
 
