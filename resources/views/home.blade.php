@@ -644,10 +644,6 @@
                                     </div>
                                 </template>
 
-                                <div x-show="!item.videoLoaded" class="absolute inset-0 flex items-center justify-center z-20">
-                                    <span class="animate-spin text-3xl text-white">⏳</span>
-                                </div>
-
                                 <template x-if="item.teaserError">
                                     <div class="absolute inset-0 flex items-center justify-center bg-black/80 text-white text-xl font-bold">
                                         teaser error
