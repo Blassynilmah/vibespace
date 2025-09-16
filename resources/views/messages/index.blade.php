@@ -342,18 +342,18 @@
 
 <div class="lg:hidden sticky top-[44px] z-[98] bg-white border-b flex justify-around items-center py-2">
     <button
-        @click="activeTab = 'messages'"
-        :class="activeTab === 'messages' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+        @click="$store.messaging.activeTab = 'messages'"
+        :class="$store.messaging.activeTab === 'messages' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
         class="flex-1 py-2 text-center transition"
     >Messages</button>
     <button
-        @click="activeTab = 'requests'"
-        :class="activeTab === 'requests' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+        @click="$store.messaging.activeTab = 'requests'"
+        :class="$store.messaging.activeTab === 'requests' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
         class="flex-1 py-2 text-center transition"
     >Requests</button>
     <button
-        @click="activeTab = 'friends'"
-        :class="activeTab === 'friends' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+        @click="$store.messaging.activeTab = 'friends'"
+        :class="$store.messaging.activeTab === 'friends' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
         class="flex-1 py-2 text-center transition"
     >Friends</button>
 </div>
@@ -368,7 +368,7 @@
         </div>
 
         <!-- 💬 Recent Chats List -->
-        <template x-if="activeTab === 'messages'">
+        <template x-if="$store.messaging.activeTab === 'messages'">
             <div
                 x-show="showRecentChats || isDesktop"
                 x-transition:enter="transition ease-out duration-300"
@@ -428,7 +428,7 @@
             </div>
         </template>
 
-        <template x-if="activeTab === 'messages'">
+        <template x-if="$store.messaging.activeTab === 'requests'">
             <div
                 x-show="showRecentChats || isDesktop"
                 x-transition:enter="transition ease-out duration-300"
@@ -488,7 +488,7 @@
             </div>
         </template>
 
-        <template x-if="activeTab === 'friends'">
+        <template x-if="$store.messaging.activeTab === 'friends'">
             <div>
                 <template x-for="contact in $store.messaging.tabbedContacts" :key="contact.id">
                     <a href="#" @click.prevent.stop="selectUser(contact)" class="flex items-center gap-3 px-4 py-2 mb-2 rounded-lg hover:bg-pink-50 transition">
