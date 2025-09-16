@@ -438,23 +438,21 @@
             </div>
         </template>
 
-        <template x-if="$store.messaging.activeTab === 'requests'">
+    <template x-if="$store.messaging.activeTab === 'requests' && !$store.messaging.receiver">
             <div>
-                <!-- Sub-tabs for Requests: Only show when no conversation is open -->
-                <template x-if="!$store.messaging.receiver">
-                    <div class="flex justify-center gap-2 mb-2">
-                        <button
-                            @click="$store.messaging.requestsSubTab = 'received'"
-                            :class="$store.messaging.requestsSubTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                            class="px-4 py-2 transition"
-                        >Received</button>
-                        <button
-                            @click="$store.messaging.requestsSubTab = 'sent'"
-                            :class="$store.messaging.requestsSubTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                            class="px-4 py-2 transition"
-                        >Sent</button>
-                    </div>
-                </template>
+                <!-- Sub-tabs for Requests -->
+                <div class="flex justify-center gap-2 mb-2">
+                    <button
+                        @click="$store.messaging.requestsSubTab = 'received'"
+                        :class="$store.messaging.requestsSubTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                        class="px-4 py-2 transition"
+                    >Received</button>
+                    <button
+                        @click="$store.messaging.requestsSubTab = 'sent'"
+                        :class="$store.messaging.requestsSubTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                        class="px-4 py-2 transition"
+                    >Sent</button>
+                </div>
                 <div class="flex-1 overflow-y-auto px-4 pt-4 transition-all" id="recent-chats-scroll">
                     <template
                         x-for="contact in [...$store.messaging.tabbedContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
