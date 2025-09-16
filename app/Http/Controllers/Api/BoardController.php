@@ -109,6 +109,11 @@ public function index(Request $request)
                     'type' => 'teaser',
                     // Add comments with reactions and replies
                     'comments' => $teaser->comments->map(function ($comment) {
+                        // Get only the latest 5 replies, descending by created_at
+                        $latestReplies = $comment->replies
+                            ->sortByDesc('created_at')
+                            ->take(5);
+
                         return [
                             'id' => $comment->id,
                             'body' => $comment->body,
@@ -121,8 +126,8 @@ public function index(Request $request)
                             // Reaction counts
                             'like_count' => $comment->reactions->where('reaction_type', 'like')->count(),
                             'dislike_count' => $comment->reactions->where('reaction_type', 'dislike')->count(),
-                            // Replies and reply count
-                            'replies' => $comment->replies->map(function ($reply) {
+                            // Only latest 5 replies
+                            'replies' => $latestReplies->map(function ($reply) {
                                 return [
                                     'id' => $reply->id,
                                     'body' => $reply->body,
@@ -133,7 +138,8 @@ public function index(Request $request)
                                         'profile_picture' => $reply->user->profilePicture->path ?? null,
                                     ],
                                 ];
-                            }),
+                            })->values(),
+                            // Total reply count
                             'reply_count' => $comment->replies->count(),
                         ];
                     }),
