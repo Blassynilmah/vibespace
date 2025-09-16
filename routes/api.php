@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/files', [FileController::class, 'fetch']); // consider renaming if 'fetch' actually retrieves data
     Route::get('/user/lists', [FileController::class, 'getListsWithCounts']);
     Route::get('/user/lists/{list}/items', [FileController::class, 'fetchListItems']);
+    Route::post('/seen-content', [SeenContentController::class, 'store']);
 });
 
 // 🛡️ JSON fallback for API (no HTML)
