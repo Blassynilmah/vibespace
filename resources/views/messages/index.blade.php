@@ -382,7 +382,7 @@
             >
                 <!-- 🔁 Recent Chats Loop -->
                 <template
-                    x-for="contact in [...$store.messaging.filteredContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
+                    x-for="contact in [...$store.messaging.tabbedContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
                     :key="contact.id"
                 >
                     <a href="#"
@@ -422,7 +422,7 @@
                 </template>
 
                 <!-- 🚫 Fallback if no contacts -->
-                <template x-if="$store.messaging.filteredContacts.length === 0">
+                 <template x-if="$store.messaging.tabbedContacts.length === 0">
                     <div class="text-center text-gray-400 text-sm py-4">No recent chats found.</div>
                 </template>
             </div>
@@ -442,7 +442,7 @@
             >
                 <!-- 🔁 Recent Chats Loop -->
                 <template
-                    x-for="contact in [...$store.messaging.filteredContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
+                    x-for="contact in [...$store.messaging.tabbedContacts].sort((a, b) => new Date(b.last_message?.created_at || 0) - new Date(a.last_message?.created_at || 0))"
                     :key="contact.id"
                 >
                     <a href="#"
@@ -470,7 +470,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2">
-                                <template x-if="contact.should_bold && contact.unread_count > 0">
+                                 <template x-if="$store.messaging.tabbedContacts.length === 0">
                                     <span class="inline-block min-w-[22px] px-2 py-0.5 rounded-full bg-pink-500 text-white text-xs font-bold text-center" x-text="contact.unread_count"></span>
                                 </template>
                                 <div :class="contact.should_bold ? 'font-bold text-gray-900' : 'text-gray-400'" class="text-[0.7rem] whitespace-nowrap"
