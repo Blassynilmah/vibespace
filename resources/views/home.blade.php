@@ -1821,50 +1821,53 @@ document.addEventListener('alpine:init', () => {
             box.classList.remove('hidden');
         },
 
-        setupSeenContentObserver() {
-            this.$nextTick(() => {
-                const seenIds = new Set();
-                const observer = new IntersectionObserver((entries) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const el = entry.target;
-                            const type = el.getAttribute('data-type');
-                            const id = el.getAttribute('data-id');
-                            const key = type + '-' + id;
-                            console.log(`[SeenContent] Intersected: type=${type}, id=${id}, key=${key}`);
-                            if (type && id && !seenIds.has(key)) {
-                                seenIds.add(key);
-                                console.log(`[SeenContent] Sending to backend:`, { content_type: type, content_id: id });
-                                fetch('/api/seen-content', {
-                                    method: 'POST',
-                                    headers: this._headers(),
-                                    credentials: 'include',
-                                    body: JSON.stringify({
-                                        content_type: type,
-                                        content_id: id
-                                    })
-                                })
-                                .then(res => {
-                                    console.log(`[SeenContent] Response status for ${key}:`, res.status);
-                                    return res.json();
-                                })
-                                .then(data => {
-                                    console.log(`[SeenContent] Backend response for ${key}:`, data);
-                                })
-                                .catch(err => {
-                                    console.error(`[SeenContent] Error for ${key}:`, err);
-                                });
-                            }
-                        }
-                    });
-                }, { threshold: 0.5 }); // 50% visible
-
-                document.querySelectorAll('.feed-tile').forEach(tile => {
-                    observer.observe(tile);
-                    console.log(`[SeenContent] Observing tile:`, tile);
-                });
+setupSeenContentObserver() {
+    this.$nextTick(() => {
+        const seenIds = new Set();
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const el = entry.target;
+                    const type = el.getAttribute('data-type');
+                    const id = el.getAttribute('data-id');
+                    const key = type + '-' + id;
+                    console.log(`[SeenContent] Intersected: type=${type}, id=${id}, key=${key}`);
+                    if (type && id && !seenIds.has(key)) {
+                        seenIds.add(key);
+                        console.log(`[SeenContent] Sending to backend:`, { content_type: type, content_id: id });
+                        fetch('/seen-content', {
+                            method: 'POST',
+                            headers: {
+                                ...this._headers(),
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                content_type: type,
+                                content_id: id
+                            })
+                        })
+                        .then(res => {
+                            console.log(`[SeenContent] Response status for ${key}:`, res.status);
+                            return res.json();
+                        })
+                        .then(data => {
+                            console.log(`[SeenContent] Backend response for ${key}:`, data);
+                        })
+                        .catch(err => {
+                            console.error(`[SeenContent] Error for ${key}:`, err);
+                        });
+                    }
+                }
             });
-        },
+        }, { threshold: 0.5 }); // 50% visible
+
+        document.querySelectorAll('.feed-tile').forEach(tile => {
+            observer.observe(tile);
+            console.log(`[SeenContent] Observing tile:`, tile);
+        });
+    });
+}
     }));
 });
 </script>

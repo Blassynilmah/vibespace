@@ -48,6 +48,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/api/notifications/mark-all-read', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
     Route::post('/api/notifications/{id}/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAsRead']);
 });
+
+Route::post('/seen-content', [SeenContentController::class, 'store'])->middleware('auth');
+
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)
