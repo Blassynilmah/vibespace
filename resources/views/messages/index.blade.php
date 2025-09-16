@@ -348,7 +348,8 @@
     >
         Messages
         <template x-if="$store.messaging.unreadMessagesCount() > 0">
-            <span class="absolute top-0 right-2 bg-pink-500 text-white text-xs rounded-full px-2 py-0.5" x-text="$store.messaging.unreadMessagesCount()"></span>
+            <span class="absolute top-0 right-2 bg-pink-500 text-white text-xs rounded-full px-2 py-0.5"
+                x-text="$store.messaging.unreadMessagesCount()"></span>
         </template>
     </button>
     <button
@@ -357,15 +358,18 @@
         class="flex-1 py-2 text-center transition relative"
     >
         Requests
-        <template x-if="$store.messaging.tabbedContacts.length > 0 && $store.messaging.activeTab === 'requests'">
-            <span class="absolute top-0 right-2 bg-pink-500 text-white text-xs rounded-full px-2 py-0.5" x-text="$store.messaging.tabbedContacts.length"></span>
+        <template x-if="$store.messaging.unreadRequestsCount() > 0">
+            <span class="absolute top-0 right-2 bg-pink-500 text-white text-xs rounded-full px-2 py-0.5"
+                x-text="$store.messaging.unreadRequestsCount()"></span>
         </template>
     </button>
     <button
         @click="$store.messaging.activeTab = 'friends'"
         :class="$store.messaging.activeTab === 'friends' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
         class="flex-1 py-2 text-center transition"
-    >Friends</button>
+    >
+        Friends
+    </button>
 </div>
 
 
