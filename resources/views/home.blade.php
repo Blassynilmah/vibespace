@@ -143,6 +143,9 @@
 
         <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
             <template x-for="item in filteredBoards" :key="item.type + '-' + item.id + '-' + item.created_at">  
+                <div>
+                    <span x-text="item.type + ' ' + item.id"></span>
+                </div>
                 <template x-if="item.type === 'board'">
                     <div class="feed-tile relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;">
                         <div 
@@ -820,17 +823,13 @@ document.addEventListener('alpine:init', () => {
             this.allLoaded = false;
             this.loadBoards().finally(() => {
                 this.initialLoading = false;
+                this.$nextTick(() => {
+                    console.log('filteredBoards after load:', this.filteredBoards);
+                });
             });
             window.addEventListener('scroll', this.scrollHandler.bind(this));
             window.fb = this.filteredBoards;
 
-                // Watch for filter changes
-    this.$watch('selectedMediaTypes', (val) => {
-        console.log('[DEBUG] selectedMediaTypes changed:', val);
-    });
-    this.$watch('selectedMoods', (val) => {
-        console.log('[DEBUG] selectedMoods changed:', val);
-    });
 
             // In your Alpine init() or after loading boards:
             this.$nextTick(() => {
