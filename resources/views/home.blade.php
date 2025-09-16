@@ -138,16 +138,16 @@
                 >
                     <template x-for="user in searchResults" :key="user.id">
                         <li
-                            @click="goToProfile(user.username)"
-                            class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-pink-50 transition"
-                        >
-                            <img
-                                :src="user.profile_picture ? '/storage/' + user.profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
-                                alt="Profile"
-                                class="w-8 h-8 rounded-full border border-pink-300 object-cover"
-                            >
-                            <span class="font-semibold text-pink-600">@<span x-text="user.username"></span></span>
-                        </li>
+    @click="goToProfile(user.username, user.id)"
+    class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-pink-50 transition"
+>
+    <img
+        :src="user.profile_picture ? '/storage/' + user.profile_picture : '/storage/moodboard_images/Screenshot 2025-07-14 032412.png'"
+        alt="Profile"
+        class="w-8 h-8 rounded-full border border-pink-300 object-cover"
+    >
+    <span class="font-semibold text-pink-600">@<span x-text="user.username"></span></span>
+</li>
                     </template>
                 </ul>
             </template>
@@ -1467,8 +1467,8 @@ document.addEventListener('alpine:init', () => {
                 });
         },
 
-        goToProfile(username) {
-            window.location.href = `/space/${username}`;
+        goToProfile(username, id) {
+            window.location.href = `/space/${username}-${id}`;
         },
 
         renderMediaPreview(board) {
