@@ -755,7 +755,7 @@ Alpine.store('messaging', {
 
     async fetchUnreadConversationsCount() {
         try {
-            const res = await fetch('/api/messages/unread-conversations-count', {
+            const res = await fetch('/messages/unread-conversations-count', {
                 credentials: 'same-origin',
                 headers: {
                     'Accept': 'application/json'

@@ -52,6 +52,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::post('/seen-content', [SeenContentController::class, 'store'])->middleware('auth');
 
+Route::get('/messages/unread-conversations-count', [MessageController::class, 'unreadConversationsCount'])->middleware('auth');
+
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)
