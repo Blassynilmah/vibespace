@@ -1,3 +1,9 @@
+
+
+@extends('layouts.app')
+
+@section('content')
+
 @push('scripts')
 <script>
 document.addEventListener('alpine:init', () => {
@@ -1159,10 +1165,6 @@ document.addEventListener('alpine:init', () => {
 });
 </script>
 @endpush
-
-@extends('layouts.app')
-
-@section('content')
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed" x-init="init">
     <!-- Global Loading Spinner Overlay -->
 <div 
