@@ -594,18 +594,20 @@
                                                     </div>
                                                     <!-- Replies & Reply Input -->
                                                     <div class="mt-6 flex flex-col gap-2">
-                                                        <button 
-                                                            @click="toggleReplies(comment)" 
-                                                            class="text-blue-600 hover:underline text-xs font-medium w-fit"
-                                                        >
-                                                            View Replies (<span x-text="comment.reply_count || 0"></span>)
-                                                        </button>
-                                                        <button 
-                                                            @click="comment.showReply = !comment.showReply" 
-                                                            class="text-pink-600 hover:underline text-xs font-medium w-fit"
-                                                        >
-                                                            Reply
-                                                        </button>
+                                                        <div class="mt-6 flex flex-row gap-4 items-center">
+    <button 
+        @click="toggleReplies(comment)" 
+        class="text-blue-600 hover:underline text-xs font-medium"
+    >
+        View Replies (<span x-text="comment.reply_count || 0"></span>)
+    </button>
+    <button 
+        @click="comment.showReply = !comment.showReply" 
+        class="text-pink-600 hover:underline text-xs font-medium"
+    >
+        Reply
+    </button>
+</div>
                                                         <div x-show="comment.showReply" class="mt-2 flex items-center gap-2">
                                                             <input type="text" x-model="comment.replyText" class="flex-1 px-2 py-1 rounded border text-xs" placeholder="Type your reply...">
                                                             <button @click="sendReply(comment)" class="bg-pink-500 text-white px-3 py-1 rounded text-xs font-semibold">Send</button>
