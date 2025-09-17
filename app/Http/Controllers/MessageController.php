@@ -132,8 +132,8 @@ public function index(Request $request)
 
 public function store(Request $request)
 {
-    // 1. Validate incoming request
     \Log::info('[SEND] Incoming request', $request->all());
+
     try {
         $validated = $request->validate([
             'receiver_id' => 'required|exists:users,id',
@@ -151,11 +151,10 @@ public function store(Request $request)
     $fileIds = $validated['file_ids'] ?? [];
     $receiverId = $validated['receiver_id'];
 
-    // 2. Start transaction for atomicity
     try {
         \DB::beginTransaction();
 
-        // 3. Create the message
+        // Create the message
         $message = Message::create([
             'sender_id' => $user->id,
             'receiver_id' => $receiverId,
@@ -164,9 +163,7 @@ public function store(Request $request)
         ]);
         \Log::info('[SEND] Message created', ['id' => $message->id]);
 
-        $attachments = [];
-
-        // 4. Attach files (copy to attachments folder and create attachment records)
+        // Attach files (copy to attachments folder and create attachment records)
         foreach ($fileIds as $id) {
             $file = \App\Models\UserFile::find($id);
             if (!$file) {
@@ -199,47 +196,47 @@ public function store(Request $request)
                 return response()->json(['error' => "Failed to store attachment (ID: $id)"], 500);
             }
 
-            $attachments[] = [
-                'name' => $attachment->file_name,
-                'url' => \Storage::url($attachment->file_path),
-                'mime' => $attachment->mime_type,
-                'size' => $attachment->size,
-            ];
             \Log::info('[SEND] Attachment created', ['attachment_id' => $attachment->id]);
         }
 
-        // 5. Commit transaction
         \DB::commit();
 
-        // 6. Query attachments again to ensure they're available
-        $freshAttachments = $message->attachments()->get()->map(function ($file) {
-            return [
-                'name' => $file->file_name,
-                'url' => \Storage::url($file->file_path),
-                'mime' => $file->mime_type,
-                'size' => $file->size,
-            ];
-        });
+        // Fetch the message with attachments using the same mapping as thread
+        $msg = Message::with('attachments')->find($message->id);
 
-        // 7. Return response with message and attachments
+        $attachments = collect($msg->attachments)->map(function ($file) {
+            $extension = pathinfo($file->file_path ?? '', PATHINFO_EXTENSION);
+            $filename = $file->file_name ?? basename($file->file_path);
+            return [
+                'name' => $filename,
+                'url' => Storage::url($file->file_path),
+                'size' => $file->size,
+                'extension' => strtolower($extension),
+                'mime_type' => $file->mime_type,
+                'meta' => $file->meta,
+            ];
+        })->values()->all();
+
+        $mappedMessage = [
+            'id' => $msg->id,
+            'body' => $msg->body,
+            'sender_id' => $msg->sender_id,
+            'receiver_id' => $msg->receiver_id,
+            'created_at' => $msg->created_at,
+            'read_at' => $msg->read_at,
+            'attachments' => $attachments,
+        ];
+
         \Log::info('[SEND] Returning response', [
-            'message_id' => $message->id,
-            'attachments_count' => count($freshAttachments)
+            'message_id' => $msg->id,
+            'attachments_count' => count($attachments)
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => [
-                'id' => $message->id,
-                'body' => $message->body,
-                'sender_id' => $message->sender_id,
-                'receiver_id' => $message->receiver_id,
-                'created_at' => $message->created_at,
-                'attachments' => $freshAttachments,
-            ],
+            'message' => $mappedMessage,
         ]);
     } catch (\Exception $e) {
-        // 8. Rollback and log error if anything fails
         \DB::rollBack();
         \Log::error('[SEND] Transaction failed', ['error' => $e->getMessage()]);
         return response()->json(['error' => 'Failed to send message or attachments', 'details' => $e->getMessage()], 500);
