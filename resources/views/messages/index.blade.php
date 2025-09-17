@@ -613,6 +613,7 @@
     class="object-cover w-full h-full rounded-lg mb-2 bg-black"
     style="height: 320px;"
     muted
+    controls="false"
     playsinline
     preload="metadata"
     @contextmenu.prevent
