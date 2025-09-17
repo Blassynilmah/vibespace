@@ -243,31 +243,57 @@ public function store(Request $request)
     }
 }
 
-    // 🔁 Load more messages
-    public function loadMore(Request $request)
-    {
-        $request->validate([
-            'receiver_id' => 'required|exists:users,id',
-            'offset' => 'nullable|integer',
-        ]);
+public function loadMore(Request $request)
+{
+    $request->validate([
+        'receiver_id' => 'required|exists:users,id',
+        'offset' => 'nullable|integer',
+    ]);
 
-        $user = Auth::user();
-        $receiver = User::findOrFail($request->receiver_id);
-        $offset = intval($request->offset ?? 0);
+    $user = Auth::user();
+    $receiver = User::findOrFail($request->receiver_id);
+    $offset = intval($request->offset ?? 0);
 
-        $messages = Message::where(function ($q) use ($user, $receiver) {
+    $messages = Message::with('attachments')
+        ->where(function ($q) use ($user, $receiver) {
             $q->where('sender_id', $user->id)->where('receiver_id', $receiver->id);
         })->orWhere(function ($q) use ($user, $receiver) {
             $q->where('sender_id', $receiver->id)->where('receiver_id', $user->id);
         })->latest()
-          ->skip($offset)
-          ->take(10)
-          ->get()
-          ->reverse()
-          ->values();
+        ->skip($offset)
+        ->take(10) // Always 10 for load more
+        ->get()
+        ->reverse()
+        ->values();
 
-        return response()->json(['messages' => $messages]);
-    }
+    // Map attachments as in thread
+    $mappedMessages = $messages->map(function ($msg) {
+        $attachments = collect($msg->attachments)->map(function ($file) {
+            $extension = pathinfo($file->file_path ?? '', PATHINFO_EXTENSION);
+            $filename = $file->file_name ?? basename($file->file_path);
+            return [
+                'name' => $filename,
+                'url' => Storage::url($file->file_path),
+                'size' => $file->size,
+                'extension' => strtolower($extension),
+                'mime_type' => $file->mime_type,
+                'meta' => $file->meta,
+            ];
+        })->values()->all();
+
+        return [
+            'id' => $msg->id,
+            'body' => $msg->body,
+            'sender_id' => $msg->sender_id,
+            'receiver_id' => $msg->receiver_id,
+            'created_at' => $msg->created_at,
+            'read_at' => $msg->read_at,
+            'attachments' => $attachments,
+        ];
+    });
+
+    return response()->json(['messages' => $mappedMessages]);
+}
 
     // 📥 Mark messages as read (API version)
     public function markAsRead(Request $request)
@@ -360,7 +386,7 @@ public function thread($receiverId)
     try {
         $userId = auth()->id();
 
-        $limit = intval(request('limit', 20));
+        $limit = intval(request('limit', 5)); // Default to 5 for initial fetch
         $offset = intval(request('offset', 0));
 
 
@@ -370,21 +396,21 @@ public function thread($receiverId)
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
-        $messages = Message::with('attachments')
-            ->where(function ($query) use ($userId, $receiverId) {
-                $query->where('sender_id', $userId)
-                    ->where('receiver_id', $receiverId);
-            })
-            ->orWhere(function ($query) use ($userId, $receiverId) {
-                $query->where('sender_id', $receiverId)
-                    ->where('receiver_id', $userId);
-            })
-            ->orderBy('created_at', 'desc')
-            ->skip($offset)
-            ->take($limit)
-            ->get()
-            ->reverse()
-            ->values();
+            $messages = Message::with('attachments')
+                ->where(function ($query) use ($userId, $receiverId) {
+                    $query->where('sender_id', $userId)
+                        ->where('receiver_id', $receiverId);
+                })
+                ->orWhere(function ($query) use ($userId, $receiverId) {
+                    $query->where('sender_id', $receiverId)
+                        ->where('receiver_id', $userId);
+                })
+                ->orderBy('created_at', 'desc')
+                ->skip($offset)
+                ->take($limit)
+                ->get()
+                ->reverse()
+                ->values();
 
         $mappedMessages = $messages->map(function ($msg) {
             $attachments = collect($msg->attachments)->map(function ($file) {
