@@ -1072,7 +1072,7 @@ async sendMessage(message, files = []) {
     this.isLoading = true;
     this.error = null;
 
-    // Add a temporary message with spinner for attachments
+    // 1. Add temp message immediately so spinner shows
     const tempId = 'pending-' + Date.now();
     const tempMessage = {
         id: tempId,
@@ -1089,7 +1089,7 @@ async sendMessage(message, files = []) {
     console.log('[SEND] Pushing temp message:', tempMessage);
     this.messages.push(tempMessage);
 
-    // Start timer for minimum spinner duration
+    // 2. Start timer for minimum spinner duration
     const spinnerMinTime = 2000;
     const spinnerStart = Date.now();
 
@@ -1131,17 +1131,17 @@ async sendMessage(message, files = []) {
             return;
         }
 
-        // Wait for at least 2 seconds before replacing the temp message
+        // 3. Wait for at least 2 seconds before replacing the temp message
         const elapsed = Date.now() - spinnerStart;
         if (elapsed < spinnerMinTime) {
             await new Promise(resolve => setTimeout(resolve, spinnerMinTime - elapsed));
         }
 
-        // Replace temp message with real message
+        // 4. Replace temp message with real message
         console.log('[SEND] Replacing temp message with backend message:', data.message);
         this.messages = this.messages.map(m => m.id === tempId ? data.message : m);
 
-        // Update contact sidebar as before
+        // ...rest of your logic...
         const contact = this.contacts.find(c => c.id === this.receiver.id);
         if (contact) {
             contact.last_message = {
