@@ -1089,6 +1089,10 @@ async sendMessage(message, files = []) {
     console.log('[SEND] Pushing temp message:', tempMessage);
     this.messages.push(tempMessage);
 
+    // Start timer for minimum spinner duration
+    const spinnerMinTime = 2000;
+    const spinnerStart = Date.now();
+
     try {
         const formData = new FormData();
         formData.append('body', message);
@@ -1125,6 +1129,12 @@ async sendMessage(message, files = []) {
             // Remove the temp message
             this.messages = this.messages.filter(m => m.id !== tempId);
             return;
+        }
+
+        // Wait for at least 2 seconds before replacing the temp message
+        const elapsed = Date.now() - spinnerStart;
+        if (elapsed < spinnerMinTime) {
+            await new Promise(resolve => setTimeout(resolve, spinnerMinTime - elapsed));
         }
 
         // Replace temp message with real message
