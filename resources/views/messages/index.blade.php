@@ -587,37 +587,69 @@
                                         ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
                                         : 'bg-white border border-gray-200 rounded-bl-none'">
 
-                                    <!-- Attachments Preview Block for each message -->
+                                    <!-- 📌 Attachments Preview (Modern, Taller, Unified for Images & Videos) -->
 <template x-if="message.attachments?.length">
     <div class="relative mt-3 group cursor-pointer w-full max-w-full" x-data="{ index: 0 }">
-        <template x-for="(attachment, idx) in message.attachments" :key="idx">
-            <div>
-                <template x-if="attachment.pending">
-                    <!-- Spinner for pending attachment -->
-                    <div class="flex items-center justify-center h-32">
-                        <svg class="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <template x-if="message.attachments[index]">
+            <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;" @click.stop="$dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
+                <!-- Spinner for pending attachments -->
+                <template x-if="message.attachments[index].pending">
+                    <div class="flex items-center justify-center h-full">
+                        <svg class="animate-spin h-10 w-10 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
                         </svg>
                     </div>
                 </template>
-                <template x-if="!attachment.pending">
-                    <!-- Image Preview -->
-                    <template x-if="['jpg','jpeg','png','gif','webp'].includes((attachment.extension || (attachment.filename ? attachment.filename.split('.').pop().toLowerCase() : '') || (attachment.mime_type ? attachment.mime_type.split('/').pop().toLowerCase() : '')))">
-                        <img :src="attachment.url || attachment.file_path || attachment.path" class="object-cover w-full h-32 rounded-lg mb-2" />
-                    </template>
-                    <!-- Video Preview -->
-                    <template x-if="['mp4','mov','webm'].includes((attachment.extension || (attachment.filename ? attachment.filename.split('.').pop().toLowerCase() : '') || (attachment.mime_type ? attachment.mime_type.split('/').pop().toLowerCase() : '')))">
-                        <video :src="attachment.url || attachment.file_path || attachment.path" controls class="object-cover w-full h-32 rounded-lg mb-2"></video>
-                    </template>
-                    <!-- Fallback for other files -->
-                    <template x-if="!['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((attachment.extension || (attachment.filename ? attachment.filename.split('.').pop().toLowerCase() : '') || (attachment.mime_type ? attachment.mime_type.split('/').pop().toLowerCase() : '')))">
-                        <div class="flex flex-col items-center justify-center h-32 p-6 text-xs italic text-gray-500 text-center">
-                            <span x-text="attachment.name || attachment.file_name || attachment.filename"></span><br>
-                            <a :href="attachment.url || attachment.file_path || attachment.path" target="_blank" class="text-blue-500 underline">Download</a>
-                        </div>
-                    </template>
+                <!-- Image Preview (robust for all sources) -->
+                <template x-if="!message.attachments[index].pending && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                    <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
                 </template>
+                <!-- Video Thumbnail Preview (robust for all sources) -->
+                <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                    <div class="relative w-full h-full bg-black">
+                        <img
+                            :src="message.attachments[index].thumbnail || '/default-video-thumb.jpg'"
+                            class="object-cover w-full h-full"
+                            alt="Video thumbnail"
+                        >
+                    </div>
+                </template>
+                <!-- Fallback for other files (robust for all sources) -->
+                <template x-if="!message.attachments[index].pending && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                    <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
+                        <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
+                        <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- ◀️▶️ Navigation Arrows -->
+        <button @click.stop="index = index > 0 ? index - 1 : index"
+                :disabled="index === 0"
+                :class="index === 0 ? 'opacity-30 cursor-not-allowed' : ''"
+                class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+            ‹
+        </button>
+
+        <button @click.stop="index = index < message.attachments.length - 1 ? index + 1 : index"
+                :disabled="index === message.attachments.length - 1"
+                :class="index === message.attachments.length - 1 ? 'opacity-30 cursor-not-allowed' : ''"
+                class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+            ›
+        </button>
+
+        <!-- 📌 File Info -->
+        <template x-if="message.attachments[index]">
+            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
+                <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                    <span class="text-pink-500">🖼️</span>
+                </template>
+                <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                    <span class="text-purple-500">🎬</span>
+                </template>
+                <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
             </div>
         </template>
     </div>
