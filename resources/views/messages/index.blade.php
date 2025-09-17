@@ -606,32 +606,32 @@
                                                         <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
                                                     </template>
                                                     <!-- Video Thumbnail Preview (robust for all sources) -->
-<template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-    <div class="relative w-full h-full">
-        <video
-            :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
-            class="object-cover w-full h-full rounded-lg mb-2"
-            style="height: 320px;"
-            muted
-            playsinline
-            preload="metadata"
-            @contextmenu.prevent
-            tabindex="-1"
-        ></video>
-        <!-- Play button overlay -->
-        <button
-            type="button"
-            class="absolute inset-0 flex items-center justify-center"
-            style="pointer-events: none;"
-            tabindex="-1"
-        >
-            <svg class="h-16 w-16 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
-                <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
-                <polygon points="26,20 50,32 26,44" fill="white"/>
-            </svg>
-        </button>
-    </div>
-</template>
+                                                    <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                        <div class="relative w-full h-full">
+                                                            <video
+                                                                :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
+                                                                class="object-cover w-full h-full rounded-lg mb-2"
+                                                                style="height: 320px;"
+                                                                muted
+                                                                playsinline
+                                                                preload="metadata"
+                                                                @contextmenu.prevent
+                                                                tabindex="-1"
+                                                            ></video>
+                                                            <!-- Play button overlay -->
+                                                            <button
+                                                                type="button"
+                                                                class="absolute inset-0 flex items-center justify-center"
+                                                                style="pointer-events: none;"
+                                                                tabindex="-1"
+                                                            >
+                                                                <svg class="h-16 w-16 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
+                                                                    <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
+                                                                    <polygon points="26,20 50,32 26,44" fill="white"/>
+                                                                </svg>
+                                                            </button>
+                                                        </div>
+                                                    </template>
                                                     <!-- Fallback for other files (robust for all sources) -->
                                                     <template x-if="!message.attachments[index].pending && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
                                                         <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
@@ -984,7 +984,7 @@ Alpine.store('messaging', {
         this.topReached = false;
 
         try {
-            const res = await fetch(`/api/messages/thread/${receiverId}?limit=20`, {
+            const res = await fetch(`/api/messages/thread/${receiverId}?limit=5`, {
                 headers: {
                     'Accept': 'application/json'
                 }
@@ -1079,121 +1079,121 @@ Alpine.store('messaging', {
         }
     },
 
-async sendMessage(message, files = []) {
-    console.log('[SEND] Starting sendMessage...');
-    if (!this.receiver || (!message.trim() && files.length === 0)) {
-        console.warn('[SEND] No receiver or empty message/files, aborting.');
-        return;
-    }
-
-    this.isLoading = true;
-    this.error = null;
-
-    // 1. Add temp message immediately so spinner shows
-    const tempId = 'pending-' + Date.now();
-    const tempMessage = {
-        id: tempId,
-        body: message,
-        sender_id: this.authUser.id,
-        receiver_id: this.receiver.id,
-        created_at: new Date().toISOString(),
-        attachments: files.length ? files.map((file, idx) => {
-            console.log(`[SEND] Adding pending attachment for file #${idx}`, file);
-            return { pending: true };
-        }) : [],
-        pending: true
-    };
-    console.log('[SEND] Pushing temp message:', tempMessage);
-    this.messages.push(tempMessage);
-
-    // 2. Start timer for minimum spinner duration
-    const spinnerMinTime = 2000;
-    const spinnerStart = Date.now();
-
-    try {
-        const formData = new FormData();
-        formData.append('body', message);
-        formData.append('receiver_id', this.receiver.id);
-
-        files.forEach((file, index) => {
-            if (file instanceof File) {
-                formData.append(`files[${index}]`, file);
-                console.log(`[SEND] Appended raw File object at index ${index}:`, file);
-            } else {
-                formData.append(`file_ids[${index}]`, file.id);
-                console.log(`[SEND] Appended file by ID at index ${index}:`, file.id);
-            }
-        });
-
-        console.log('[SEND] Sending fetch request to /messages...');
-        const res = await fetch('/messages', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'Accept': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            }
-        });
-
-        console.log('[SEND] Fetch response status:', res.status);
-        const data = await res.json();
-        console.log('[SEND] Response data:', data);
-
-        if (!res.ok || !data.success) {
-            this.error = data.error || 'Failed to send message. Please try again.';
-            this.showToast(this.error);
-            console.warn('[SEND] Backend error:', this.error);
-            // Remove the temp message
-            this.messages = this.messages.filter(m => m.id !== tempId);
+    async sendMessage(message, files = []) {
+        console.log('[SEND] Starting sendMessage...');
+        if (!this.receiver || (!message.trim() && files.length === 0)) {
+            console.warn('[SEND] No receiver or empty message/files, aborting.');
             return;
         }
 
-        // 3. Wait for at least 2 seconds before replacing the temp message
-        const elapsed = Date.now() - spinnerStart;
-        if (elapsed < spinnerMinTime) {
-            await new Promise(resolve => setTimeout(resolve, spinnerMinTime - elapsed));
+        this.isLoading = true;
+        this.error = null;
+
+        // 1. Add temp message immediately so spinner shows
+        const tempId = 'pending-' + Date.now();
+        const tempMessage = {
+            id: tempId,
+            body: message,
+            sender_id: this.authUser.id,
+            receiver_id: this.receiver.id,
+            created_at: new Date().toISOString(),
+            attachments: files.length ? files.map((file, idx) => {
+                console.log(`[SEND] Adding pending attachment for file #${idx}`, file);
+                return { pending: true };
+            }) : [],
+            pending: true
+        };
+        console.log('[SEND] Pushing temp message:', tempMessage);
+        this.messages.push(tempMessage);
+
+        // 2. Start timer for minimum spinner duration
+        const spinnerMinTime = 2000;
+        const spinnerStart = Date.now();
+
+        try {
+            const formData = new FormData();
+            formData.append('body', message);
+            formData.append('receiver_id', this.receiver.id);
+
+            files.forEach((file, index) => {
+                if (file instanceof File) {
+                    formData.append(`files[${index}]`, file);
+                    console.log(`[SEND] Appended raw File object at index ${index}:`, file);
+                } else {
+                    formData.append(`file_ids[${index}]`, file.id);
+                    console.log(`[SEND] Appended file by ID at index ${index}:`, file.id);
+                }
+            });
+
+            console.log('[SEND] Sending fetch request to /messages...');
+            const res = await fetch('/messages', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            });
+
+            console.log('[SEND] Fetch response status:', res.status);
+            const data = await res.json();
+            console.log('[SEND] Response data:', data);
+
+            if (!res.ok || !data.success) {
+                this.error = data.error || 'Failed to send message. Please try again.';
+                this.showToast(this.error);
+                console.warn('[SEND] Backend error:', this.error);
+                // Remove the temp message
+                this.messages = this.messages.filter(m => m.id !== tempId);
+                return;
+            }
+
+            // 3. Wait for at least 2 seconds before replacing the temp message
+            const elapsed = Date.now() - spinnerStart;
+            if (elapsed < spinnerMinTime) {
+                await new Promise(resolve => setTimeout(resolve, spinnerMinTime - elapsed));
+            }
+
+            // 4. Replace temp message with real message
+            console.log('[SEND] Replacing temp message with backend message:', data.message);
+            this.messages = this.messages.map(m => m.id === tempId ? data.message : m);
+
+            // ...rest of your logic...
+            const contact = this.contacts.find(c => c.id === this.receiver.id);
+            if (contact) {
+                contact.last_message = {
+                    id: data.message.id,
+                    body: data.message.body,
+                    created_at: data.message.created_at,
+                    has_attachment: (data.message.attachments && data.message.attachments.length > 0),
+                };
+                contact.should_bold = false;
+                contact.unread_count = 0;
+                contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
+                console.log('[SEND] Updated contact:', contact);
+            }
+
+            await Alpine.nextTick();
+            const el = document.getElementById('chat-scroll');
+            if (el) {
+                el.scrollTop = el.scrollHeight;
+                console.log('[SEND] Scrolled chat to bottom.');
+            }
+
+            this.selectedFiles = [];
+            this.fetchUnreadConversationsCount();
+            console.log('[SEND] Finished sendMessage.');
+        } catch (e) {
+            this.error = 'Failed to send message. Please try again.';
+            this.showToast(this.error);
+            console.error('[SEND] Exception:', e);
+            // Remove the temp message
+            this.messages = this.messages.filter(m => m.id !== tempId);
+        } finally {
+            this.isLoading = false;
+            console.log('[SEND] isLoading set to false.');
         }
-
-        // 4. Replace temp message with real message
-        console.log('[SEND] Replacing temp message with backend message:', data.message);
-        this.messages = this.messages.map(m => m.id === tempId ? data.message : m);
-
-        // ...rest of your logic...
-        const contact = this.contacts.find(c => c.id === this.receiver.id);
-        if (contact) {
-            contact.last_message = {
-                id: data.message.id,
-                body: data.message.body,
-                created_at: data.message.created_at,
-                has_attachment: (data.message.attachments && data.message.attachments.length > 0),
-            };
-            contact.should_bold = false;
-            contact.unread_count = 0;
-            contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
-            console.log('[SEND] Updated contact:', contact);
-        }
-
-        await Alpine.nextTick();
-        const el = document.getElementById('chat-scroll');
-        if (el) {
-            el.scrollTop = el.scrollHeight;
-            console.log('[SEND] Scrolled chat to bottom.');
-        }
-
-        this.selectedFiles = [];
-        this.fetchUnreadConversationsCount();
-        console.log('[SEND] Finished sendMessage.');
-    } catch (e) {
-        this.error = 'Failed to send message. Please try again.';
-        this.showToast(this.error);
-        console.error('[SEND] Exception:', e);
-        // Remove the temp message
-        this.messages = this.messages.filter(m => m.id !== tempId);
-    } finally {
-        this.isLoading = false;
-        console.log('[SEND] isLoading set to false.');
-    }
-},
+    },
 
     addSelectedFiles(files) {
         this.selectedFiles = [...this.selectedFiles, ...files].slice(0, 20);
