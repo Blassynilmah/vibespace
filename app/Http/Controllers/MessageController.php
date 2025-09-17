@@ -146,6 +146,7 @@ public function store(Request $request)
     try {
         \DB::beginTransaction();
 
+        // 1. Create the message
         $message = Message::create([
             'sender_id' => $user->id,
             'receiver_id' => $receiverId,
@@ -153,8 +154,8 @@ public function store(Request $request)
             'is_read' => false,
         ]);
 
+        // 2. Attach files (move/copy if needed, then create attachment records)
         $attachments = [];
-
         foreach ($fileIds as $id) {
             $file = \App\Models\UserFile::find($id);
             if (!$file) {
@@ -162,9 +163,15 @@ public function store(Request $request)
                 return response()->json(['error' => "Attachment file not found (ID: $id)"], 500);
             }
 
+            // If you need to move/copy the file to the attachments folder:
+            $newPath = 'attachments/' . basename($file->path);
+            if (!Storage::disk('public')->exists($newPath)) {
+                Storage::disk('public')->copy($file->path, $newPath);
+            }
+
             $attachment = $message->attachments()->create([
                 'file_name' => $file->name ?? null,
-                'file_path' => $file->path,
+                'file_path' => $newPath,
                 'mime_type' => $file->mime,
                 'size' => $file->size,
                 'sender_id' => $user->id,
@@ -179,13 +186,23 @@ public function store(Request $request)
 
             $attachments[] = [
                 'name' => $attachment->file_name,
-                'url' => \Storage::url($attachment->file_path),
+                'url' => Storage::url($attachment->file_path),
                 'mime' => $attachment->mime_type,
                 'size' => $attachment->size,
             ];
         }
 
         \DB::commit();
+
+        // 3. Query attachments again to ensure they're available
+        $freshAttachments = $message->attachments()->get()->map(function ($file) {
+            return [
+                'name' => $file->file_name,
+                'url' => Storage::url($file->file_path),
+                'mime' => $file->mime_type,
+                'size' => $file->size,
+            ];
+        });
 
         return response()->json([
             'success' => true,
@@ -195,7 +212,7 @@ public function store(Request $request)
                 'sender_id' => $message->sender_id,
                 'receiver_id' => $message->receiver_id,
                 'created_at' => $message->created_at,
-                'attachments' => $attachments,
+                'attachments' => $freshAttachments,
             ],
         ]);
     } catch (\Exception $e) {
