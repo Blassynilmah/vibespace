@@ -580,7 +580,6 @@
                             </div>
                         </template>
                         <template x-for="message in $store.messaging.messages" :key="message.id">
-
                             <div class="flex" :class="message.sender_id === $store.messaging.authUser.id ? 'justify-end' : 'justify-start'">
                                 <div class="w-full max-w-[75%] sm:max-w-[60%] px-3 py-2 rounded-xl text-sm shadow relative"
                                     :class="message.sender_id === $store.messaging.authUser.id 
@@ -646,23 +645,28 @@
                                         </div>
                                     </template>
 
+                                    <!-- Add a line break between media and message body -->
+                                    <template x-if="message.attachments?.length">
+                                        <br>
+                                    </template>
+
                                     <!-- 💬 Message Body -->
                                     <div x-text="message.body" class="break-words mt-2"></div>
-
-                                    <!-- ⏰ Timestamp & ✅ Read Status -->
-                                    <div class="flex justify-end items-center mt-1">
-                                        <div class="text-[0.65rem]" 
-                                            :class="message.sender_id === $store.messaging.authUser.id ? 'text-white/70' : 'text-gray-400'"
-                                            x-text="new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})">
-                                        </div>
-                                        <template x-if="message.sender_id === $store.messaging.authUser.id">
-                                            <svg x-show="message.read_at" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-white/70" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                            </svg>
-                                        </template>
+                                </div>
+                                <!-- ⏰ Timestamp & ✅ Read Status (moved below the bubble) -->
+                                <div class="flex justify-end items-center mt-1 mb-4" style="margin-top: 2px;">
+                                    <div class="text-[0.65rem]" 
+                                        :class="message.sender_id === $store.messaging.authUser.id ? 'text-pink-500' : 'text-gray-400'"
+                                        x-text="new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})">
                                     </div>
+                                    <template x-if="message.sender_id === $store.messaging.authUser.id">
+                                        <svg x-show="message.read_at" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-pink-500" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                        </svg>
+                                    </template>
                                 </div>
                             </div>
+
                         </template>
                     </div>
 
