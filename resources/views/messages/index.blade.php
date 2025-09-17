@@ -609,15 +609,16 @@
                                                     <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
                                                         <div class="relative w-full h-full">
                                                             <video
-                                                                :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
-                                                                class="object-cover w-full h-full rounded-lg mb-2"
-                                                                style="height: 320px;"
-                                                                muted
-                                                                playsinline
-                                                                preload="metadata"
-                                                                @contextmenu.prevent
-                                                                tabindex="-1"
-                                                            ></video>
+    :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
+    class="object-cover w-full h-full rounded-lg mb-2 bg-black"
+    style="height: 320px;"
+    muted
+    playsinline
+    preload="metadata"
+    @contextmenu.prevent
+    tabindex="-1"
+    poster="/default-video-thumb.jpg"
+></video>
                                                             <!-- Play button overlay -->
                                                             <button
                                                                 type="button"
