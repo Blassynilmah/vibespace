@@ -180,6 +180,7 @@ public function store(Request $request)
                 'size' => $file->size,
                 'sender_id' => $user->id,
                 'receiver_id' => $receiverId,
+                'message_id' => $message->id,
             ];
 
             if (!empty($file->name)) {
@@ -191,7 +192,7 @@ public function store(Request $request)
 
             $attachments[] = [
                 'name' => $attachment->file_name,
-                'url' => Storage::url($attachment->file_path),
+                'url' => \Storage::url($attachment->file_path),
                 'mime' => $attachment->mime_type,
                 'size' => $attachment->size,
             ];
