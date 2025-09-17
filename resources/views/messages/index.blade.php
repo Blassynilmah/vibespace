@@ -606,17 +606,31 @@
                                                         <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
                                                     </template>
                                                     <!-- Video Thumbnail Preview (robust for all sources) -->
-                                                    <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-    <video
-        :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
-        class="object-cover w-full h-full rounded-lg mb-2"
-        style="height: 320px;"
-        muted
-        playsinline
-        preload="metadata"
-        @contextmenu.prevent
-        tabindex="-1"
-    ></video>
+<template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+    <div class="relative w-full h-full">
+        <video
+            :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
+            class="object-cover w-full h-full rounded-lg mb-2"
+            style="height: 320px;"
+            muted
+            playsinline
+            preload="metadata"
+            @contextmenu.prevent
+            tabindex="-1"
+        ></video>
+        <!-- Play button overlay -->
+        <button
+            type="button"
+            class="absolute inset-0 flex items-center justify-center"
+            style="pointer-events: none;"
+            tabindex="-1"
+        >
+            <svg class="h-16 w-16 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
+                <polygon points="26,20 50,32 26,44" fill="white"/>
+            </svg>
+        </button>
+    </div>
 </template>
                                                     <!-- Fallback for other files (robust for all sources) -->
                                                     <template x-if="!message.attachments[index].pending && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
