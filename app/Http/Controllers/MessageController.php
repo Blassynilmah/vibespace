@@ -132,43 +132,57 @@ public function index(Request $request)
 
 public function store(Request $request)
 {
-    $validated = $request->validate([
-        'receiver_id' => 'required|exists:users,id',
-        'body' => 'nullable|string|max:1000',
-        'file_ids' => 'nullable|array',
-        'file_ids.*' => 'exists:user_files,id,user_id,' . auth()->id(),
-    ]);
+    // 1. Validate incoming request
+    \Log::info('[SEND] Incoming request', $request->all());
+    try {
+        $validated = $request->validate([
+            'receiver_id' => 'required|exists:users,id',
+            'body' => 'nullable|string|max:1000',
+            'file_ids' => 'nullable|array',
+            'file_ids.*' => 'exists:user_files,id,user_id,' . auth()->id(),
+        ]);
+        \Log::info('[SEND] Validation passed', $validated);
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        \Log::error('[SEND] Validation failed', ['errors' => $e->errors()]);
+        return response()->json(['error' => 'Validation failed', 'details' => $e->errors()], 422);
+    }
 
     $user = auth()->user();
     $fileIds = $validated['file_ids'] ?? [];
     $receiverId = $validated['receiver_id'];
 
+    // 2. Start transaction for atomicity
     try {
         \DB::beginTransaction();
 
-        // 1. Create the message
+        // 3. Create the message
         $message = Message::create([
             'sender_id' => $user->id,
             'receiver_id' => $receiverId,
             'body' => $validated['body'] ?? '',
             'is_read' => false,
         ]);
+        \Log::info('[SEND] Message created', ['id' => $message->id]);
 
-        // 2. Attach files (move/copy if needed, then create attachment records)
         $attachments = [];
+
+        // 4. Attach files (copy to attachments folder and create attachment records)
         foreach ($fileIds as $id) {
             $file = \App\Models\UserFile::find($id);
             if (!$file) {
+                \Log::error('[SEND] File not found', ['file_id' => $id]);
                 \DB::rollBack();
                 return response()->json(['error' => "Attachment file not found (ID: $id)"], 500);
             }
 
-            // If you need to move/copy the file to the attachments folder:
+            // Copy file to attachments folder if needed
             $newPath = 'attachments/' . basename($file->path);
-            if (!Storage::disk('public')->exists($newPath)) {
-                Storage::disk('public')->copy($file->path, $newPath);
+            if (!\Storage::disk('public')->exists($newPath)) {
+                \Storage::disk('public')->copy($file->path, $newPath);
+                \Log::info('[SEND] File copied to attachments folder', ['from' => $file->path, 'to' => $newPath]);
             }
 
+            // Create attachment record
             $attachment = $message->attachments()->create([
                 'file_name' => $file->name ?? null,
                 'file_path' => $newPath,
@@ -180,29 +194,38 @@ public function store(Request $request)
             ]);
 
             if (!$attachment) {
+                \Log::error('[SEND] Failed to create attachment', ['file_id' => $id]);
                 \DB::rollBack();
                 return response()->json(['error' => "Failed to store attachment (ID: $id)"], 500);
             }
 
             $attachments[] = [
                 'name' => $attachment->file_name,
-                'url' => Storage::url($attachment->file_path),
+                'url' => \Storage::url($attachment->file_path),
                 'mime' => $attachment->mime_type,
                 'size' => $attachment->size,
             ];
+            \Log::info('[SEND] Attachment created', ['attachment_id' => $attachment->id]);
         }
 
+        // 5. Commit transaction
         \DB::commit();
 
-        // 3. Query attachments again to ensure they're available
+        // 6. Query attachments again to ensure they're available
         $freshAttachments = $message->attachments()->get()->map(function ($file) {
             return [
                 'name' => $file->file_name,
-                'url' => Storage::url($file->file_path),
+                'url' => \Storage::url($file->file_path),
                 'mime' => $file->mime_type,
                 'size' => $file->size,
             ];
         });
+
+        // 7. Return response with message and attachments
+        \Log::info('[SEND] Returning response', [
+            'message_id' => $message->id,
+            'attachments_count' => count($freshAttachments)
+        ]);
 
         return response()->json([
             'success' => true,
@@ -216,8 +239,10 @@ public function store(Request $request)
             ],
         ]);
     } catch (\Exception $e) {
+        // 8. Rollback and log error if anything fails
         \DB::rollBack();
-        return response()->json(['error' => 'Failed to send message or attachments'], 500);
+        \Log::error('[SEND] Transaction failed', ['error' => $e->getMessage()]);
+        return response()->json(['error' => 'Failed to send message or attachments', 'details' => $e->getMessage()], 500);
     }
 }
 

@@ -588,72 +588,72 @@
                                         : 'bg-white border border-gray-200 rounded-bl-none'">
 
                                     <!-- 📌 Attachments Preview (Modern, Taller, Unified for Images & Videos) -->
-<template x-if="message.attachments?.length">
-    <div class="relative mt-3 group cursor-pointer w-full max-w-full" x-data="{ index: 0 }">
-        <template x-if="message.attachments[index]">
-            <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;" @click.stop="$dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
-                <!-- Spinner for pending attachments -->
-                <template x-if="message.attachments[index].pending">
-                    <div class="flex items-center justify-center h-full">
-                        <svg class="animate-spin h-10 w-10 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                        </svg>
-                    </div>
-                </template>
-                <!-- Image Preview (robust for all sources) -->
-                <template x-if="!message.attachments[index].pending && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                    <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
-                </template>
-                <!-- Video Thumbnail Preview (robust for all sources) -->
-                <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                    <div class="relative w-full h-full bg-black">
-                        <img
-                            :src="message.attachments[index].thumbnail || '/default-video-thumb.jpg'"
-                            class="object-cover w-full h-full"
-                            alt="Video thumbnail"
-                        >
-                    </div>
-                </template>
-                <!-- Fallback for other files (robust for all sources) -->
-                <template x-if="!message.attachments[index].pending && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                    <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
-                        <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
-                        <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
-                    </div>
-                </template>
-            </div>
-        </template>
+                                    <template x-if="message.attachments?.length">
+                                        <div class="relative mt-3 group cursor-pointer w-full max-w-full" x-data="{ index: 0 }">
+                                            <template x-if="message.attachments[index]">
+                                                <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;" @click.stop="$dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
+                                                    <!-- Spinner for pending attachments -->
+                                                    <template x-if="message.attachments[index].pending">
+                                                        <div class="flex items-center justify-center h-full">
+                                                            <svg class="animate-spin h-10 w-10 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                                            </svg>
+                                                        </div>
+                                                    </template>
+                                                    <!-- Image Preview (robust for all sources) -->
+                                                    <template x-if="!message.attachments[index].pending && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                        <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
+                                                    </template>
+                                                    <!-- Video Thumbnail Preview (robust for all sources) -->
+                                                    <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                        <div class="relative w-full h-full bg-black">
+                                                            <img
+                                                                :src="message.attachments[index].thumbnail || '/default-video-thumb.jpg'"
+                                                                class="object-cover w-full h-full"
+                                                                alt="Video thumbnail"
+                                                            >
+                                                        </div>
+                                                    </template>
+                                                    <!-- Fallback for other files (robust for all sources) -->
+                                                    <template x-if="!message.attachments[index].pending && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                        <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
+                                                            <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
+                                                            <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
 
-        <!-- ◀️▶️ Navigation Arrows -->
-        <button @click.stop="index = index > 0 ? index - 1 : index"
-                :disabled="index === 0"
-                :class="index === 0 ? 'opacity-30 cursor-not-allowed' : ''"
-                class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-            ‹
-        </button>
+                                            <!-- ◀️▶️ Navigation Arrows -->
+                                            <button @click.stop="index = index > 0 ? index - 1 : index"
+                                                    :disabled="index === 0"
+                                                    :class="index === 0 ? 'opacity-30 cursor-not-allowed' : ''"
+                                                    class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+                                                ‹
+                                            </button>
 
-        <button @click.stop="index = index < message.attachments.length - 1 ? index + 1 : index"
-                :disabled="index === message.attachments.length - 1"
-                :class="index === message.attachments.length - 1 ? 'opacity-30 cursor-not-allowed' : ''"
-                class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-            ›
-        </button>
+                                            <button @click.stop="index = index < message.attachments.length - 1 ? index + 1 : index"
+                                                    :disabled="index === message.attachments.length - 1"
+                                                    :class="index === message.attachments.length - 1 ? 'opacity-30 cursor-not-allowed' : ''"
+                                                    class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+                                                ›
+                                            </button>
 
-        <!-- 📌 File Info -->
-        <template x-if="message.attachments[index]">
-            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
-                <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                    <span class="text-pink-500">🖼️</span>
-                </template>
-                <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                    <span class="text-purple-500">🎬</span>
-                </template>
-                <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
-            </div>
-        </template>
-    </div>
-</template>
+                                            <!-- 📌 File Info -->
+                                            <template x-if="message.attachments[index]">
+                                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
+                                                    <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                                                        <span class="text-pink-500">🖼️</span>
+                                                    </template>
+                                                    <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                                                        <span class="text-purple-500">🎬</span>
+                                                    </template>
+                                                    <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
 
                                     <template x-if="message.attachments?.length">
                                         <div class="my-2"></div>
@@ -1062,89 +1062,111 @@ Alpine.store('messaging', {
         }
     },
 
-    async sendMessage(message, files = []) {
-        if (!this.receiver || (!message.trim() && files.length === 0)) return;
+async sendMessage(message, files = []) {
+    console.log('[SEND] Starting sendMessage...');
+    if (!this.receiver || (!message.trim() && files.length === 0)) {
+        console.warn('[SEND] No receiver or empty message/files, aborting.');
+        return;
+    }
 
-        this.isLoading = true;
-        this.error = null;
+    this.isLoading = true;
+    this.error = null;
 
-        // Add a temporary message with spinner for attachments
-        const tempId = 'pending-' + Date.now();
-        const tempMessage = {
-            id: tempId,
-            body: message,
-            sender_id: this.authUser.id,
-            receiver_id: this.receiver.id,
-            created_at: new Date().toISOString(),
-            attachments: files.length ? files.map(() => ({ pending: true })) : [],
-            pending: true
-        };
-        this.messages.push(tempMessage);
+    // Add a temporary message with spinner for attachments
+    const tempId = 'pending-' + Date.now();
+    const tempMessage = {
+        id: tempId,
+        body: message,
+        sender_id: this.authUser.id,
+        receiver_id: this.receiver.id,
+        created_at: new Date().toISOString(),
+        attachments: files.length ? files.map((file, idx) => {
+            console.log(`[SEND] Adding pending attachment for file #${idx}`, file);
+            return { pending: true };
+        }) : [],
+        pending: true
+    };
+    console.log('[SEND] Pushing temp message:', tempMessage);
+    this.messages.push(tempMessage);
 
-        try {
-            const formData = new FormData();
-            formData.append('body', message);
-            formData.append('receiver_id', this.receiver.id);
+    try {
+        const formData = new FormData();
+        formData.append('body', message);
+        formData.append('receiver_id', this.receiver.id);
 
-            files.forEach((file, index) => {
-                if (file instanceof File) {
-                    formData.append(`files[${index}]`, file);
-                } else {
-                    formData.append(`file_ids[${index}]`, file.id);
-                }
-            });
-
-            const res = await fetch('/messages', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            });
-
-            const data = await res.json();
-
-            if (!res.ok || !data.success) {
-                this.error = data.error || 'Failed to send message. Please try again.';
-                this.showToast(this.error);
-                // Remove the temp message
-                this.messages = this.messages.filter(m => m.id !== tempId);
-                return;
+        files.forEach((file, index) => {
+            if (file instanceof File) {
+                formData.append(`files[${index}]`, file);
+                console.log(`[SEND] Appended raw File object at index ${index}:`, file);
+            } else {
+                formData.append(`file_ids[${index}]`, file.id);
+                console.log(`[SEND] Appended file by ID at index ${index}:`, file.id);
             }
+        });
 
-            // Replace temp message with real message
-            this.messages = this.messages.map(m => m.id === tempId ? data.message : m);
-
-            // Update contact sidebar as before
-            const contact = this.contacts.find(c => c.id === this.receiver.id);
-            if (contact) {
-                contact.last_message = {
-                    id: data.message.id,
-                    body: data.message.body,
-                    created_at: data.message.created_at,
-                    has_attachment: (data.message.attachments && data.message.attachments.length > 0),
-                };
-                contact.should_bold = false;
-                contact.unread_count = 0;
-                contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
+        console.log('[SEND] Sending fetch request to /messages...');
+        const res = await fetch('/messages', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             }
+        });
 
-            await Alpine.nextTick();
-            const el = document.getElementById('chat-scroll');
-            if (el) el.scrollTop = el.scrollHeight;
+        console.log('[SEND] Fetch response status:', res.status);
+        const data = await res.json();
+        console.log('[SEND] Response data:', data);
 
-            this.selectedFiles = [];
-            this.fetchUnreadConversationsCount();
-        } catch (e) {
-            this.error = 'Failed to send message. Please try again.';
+        if (!res.ok || !data.success) {
+            this.error = data.error || 'Failed to send message. Please try again.';
             this.showToast(this.error);
+            console.warn('[SEND] Backend error:', this.error);
             // Remove the temp message
             this.messages = this.messages.filter(m => m.id !== tempId);
-        } finally {
-            this.isLoading = false;
+            return;
         }
-    },
+
+        // Replace temp message with real message
+        console.log('[SEND] Replacing temp message with backend message:', data.message);
+        this.messages = this.messages.map(m => m.id === tempId ? data.message : m);
+
+        // Update contact sidebar as before
+        const contact = this.contacts.find(c => c.id === this.receiver.id);
+        if (contact) {
+            contact.last_message = {
+                id: data.message.id,
+                body: data.message.body,
+                created_at: data.message.created_at,
+                has_attachment: (data.message.attachments && data.message.attachments.length > 0),
+            };
+            contact.should_bold = false;
+            contact.unread_count = 0;
+            contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
+            console.log('[SEND] Updated contact:', contact);
+        }
+
+        await Alpine.nextTick();
+        const el = document.getElementById('chat-scroll');
+        if (el) {
+            el.scrollTop = el.scrollHeight;
+            console.log('[SEND] Scrolled chat to bottom.');
+        }
+
+        this.selectedFiles = [];
+        this.fetchUnreadConversationsCount();
+        console.log('[SEND] Finished sendMessage.');
+    } catch (e) {
+        this.error = 'Failed to send message. Please try again.';
+        this.showToast(this.error);
+        console.error('[SEND] Exception:', e);
+        // Remove the temp message
+        this.messages = this.messages.filter(m => m.id !== tempId);
+    } finally {
+        this.isLoading = false;
+        console.log('[SEND] isLoading set to false.');
+    }
+},
 
     addSelectedFiles(files) {
         this.selectedFiles = [...this.selectedFiles, ...files].slice(0, 20);
