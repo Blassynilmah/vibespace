@@ -606,18 +606,16 @@
                                                         <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
                                                     </template>
                                                     <!-- Video Thumbnail Preview (robust for all sources) -->
-                                                    <!-- Video Preview (shows actual video, no controls, paused) -->
                                                     <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
     <video
         :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
         class="object-cover w-full h-full rounded-lg mb-2"
         style="height: 320px;"
-        controls="false"
-        autoplay="false"
         muted
         playsinline
         preload="metadata"
-        @play="$event.target.pause()"
+        @contextmenu.prevent
+        tabindex="-1"
     ></video>
 </template>
                                                     <!-- Fallback for other files (robust for all sources) -->
