@@ -438,7 +438,7 @@
             </div>
         </template>
 
-    <template x-if="$store.messaging.activeTab === 'requests' && !$store.messaging.receiver">
+        <template x-if="$store.messaging.activeTab === 'requests' && !$store.messaging.receiver">
             <div>
                 <!-- Sub-tabs for Requests -->
                 <div class="flex justify-center gap-2 mb-2">
@@ -1047,64 +1047,86 @@ Alpine.store('messaging', {
         }
     },
 
-    async sendMessage(message, files = []) {
-        if (!this.receiver || (!message.trim() && files.length === 0)) return;
+async sendMessage(message, files = []) {
+    if (!this.receiver || (!message.trim() && files.length === 0)) {
+        console.log('[SEND] No receiver or empty message/files, aborting.');
+        return;
+    }
 
-        this.isLoading = true;
-        this.error = null;
+    this.isLoading = true;
+    this.error = null;
 
-        try {
-            const formData = new FormData();
-            formData.append('body', message);
-            formData.append('receiver_id', this.receiver.id);
-            files.forEach((file, index) => {
-                if (file instanceof File) {
-                    formData.append(`files[${index}]`, file);
-                } else {
-                    formData.append(`file_ids[${index}]`, file.id);
-                }
-            });
+    try {
+        // Prepare FormData
+        const formData = new FormData();
+        formData.append('body', message);
+        formData.append('receiver_id', this.receiver.id);
 
-            const res = await fetch('/messages', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'Accept': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                }
-            });
+        console.log('[SEND] Attaching files:', files);
 
-            const data = await res.json();
-            this.messages.push(data.message);
-
-            // Update the conversations list (sidebar) immediately
-            const contact = this.contacts.find(c => c.id === this.receiver.id);
-            if (contact) {
-                contact.last_message = {
-                    id: data.message.id,
-                    body: data.message.body,
-                    created_at: data.message.created_at,
-                    has_attachment: (data.message.attachments && data.message.attachments.length > 0),
-                };
-                contact.should_bold = false;
-                contact.unread_count = 0;
-                contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
+        files.forEach((file, index) => {
+            if (file instanceof File) {
+                // Direct File object from file picker
+                formData.append(`files[${index}]`, file);
+                console.log(`[SEND] Attached raw File object at index ${index}:`, file);
+            } else {
+                // Existing uploaded file (from user's files)
+                formData.append(`file_ids[${index}]`, file.id);
+                console.log(`[SEND] Attached file by ID at index ${index}:`, file.id);
             }
+        });
 
-            await Alpine.nextTick();
-            const el = document.getElementById('chat-scroll');
-            if (el) el.scrollTop = el.scrollHeight;
-
-            this.selectedFiles = [];
-            // Update unread conversations count
-            this.fetchUnreadConversationsCount();
-        } catch (e) {
-            console.error('[Send Message] Error:', e);
-            this.error = e.message;
-        } finally {
-            this.isLoading = false;
+        // Log FormData keys for debugging
+        for (let pair of formData.entries()) {
+            console.log(`[SEND] FormData: ${pair[0]} =`, pair[1]);
         }
-    },
+
+        // Send request
+        const res = await fetch('/messages', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        console.log('[SEND] Response status:', res.status);
+
+        const data = await res.json();
+        console.log('[SEND] Server response:', data);
+
+        // Add new message to chat
+        this.messages.push(data.message);
+
+        // Update sidebar contact info
+        const contact = this.contacts.find(c => c.id === this.receiver.id);
+        if (contact) {
+            contact.last_message = {
+                id: data.message.id,
+                body: data.message.body,
+                created_at: data.message.created_at,
+                has_attachment: (data.message.attachments && data.message.attachments.length > 0),
+            };
+            contact.should_bold = false;
+            contact.unread_count = 0;
+            contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
+            console.log('[SEND] Updated contact after sending:', contact);
+        }
+
+        await Alpine.nextTick();
+        const el = document.getElementById('chat-scroll');
+        if (el) el.scrollTop = el.scrollHeight;
+
+        this.selectedFiles = [];
+        this.fetchUnreadConversationsCount();
+    } catch (e) {
+        console.error('[SEND] Error:', e);
+        this.error = e.message;
+    } finally {
+        this.isLoading = false;
+    }
+},
 
     addSelectedFiles(files) {
         this.selectedFiles = [...this.selectedFiles, ...files].slice(0, 20);
@@ -1125,6 +1147,7 @@ Alpine.data('messageInbox', () => ({
     isDesktop: window.innerWidth >= 1024,
     focusedPreviewFiles: [],
     focusedPreviewIndex: null,
+
     openPreviewModal(files, index = 0) {
         this.focusedPreviewFiles = files;
         this.focusedPreviewIndex = index;
