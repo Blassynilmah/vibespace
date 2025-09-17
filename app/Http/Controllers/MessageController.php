@@ -132,63 +132,50 @@ public function index(Request $request)
 
 public function store(Request $request)
 {
-    \Log::info('[MessageStore] Incoming request', $request->all());
-
-    try {
-        $validated = $request->validate([
-            'receiver_id' => 'required|exists:users,id',
-            'body' => 'nullable|string|max:1000',
-            'file_ids' => 'nullable|array',
-            'file_ids.*' => 'exists:user_files,id,user_id,' . auth()->id(),
-        ]);
-        \Log::info('[MessageStore] Validation passed', $validated);
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        \Log::error('[MessageStore] Validation failed', ['errors' => $e->errors()]);
-        return response()->json(['error' => 'Validation failed', 'details' => $e->errors()], 422);
-    }
+    $validated = $request->validate([
+        'receiver_id' => 'required|exists:users,id',
+        'body' => 'nullable|string|max:1000',
+        'file_ids' => 'nullable|array',
+        'file_ids.*' => 'exists:user_files,id,user_id,' . auth()->id(),
+    ]);
 
     $user = auth()->user();
-    \Log::info('[MessageStore] Authenticated user', ['id' => $user->id]);
-
     $fileIds = $validated['file_ids'] ?? [];
     $receiverId = $validated['receiver_id'];
 
-    // 📨 Create the message
     try {
+        \DB::beginTransaction();
+
         $message = Message::create([
             'sender_id' => $user->id,
             'receiver_id' => $receiverId,
             'body' => $validated['body'] ?? '',
             'is_read' => false,
         ]);
-        \Log::info('[MessageStore] Message created', ['id' => $message->id]);
-    } catch (\Exception $e) {
-        \Log::error('[MessageStore] Failed to create message', ['error' => $e->getMessage()]);
-        return response()->json(['error' => 'Failed to create message'], 500);
-    }
 
-    $attachments = [];
+        $attachments = [];
 
-    foreach ($fileIds as $id) {
-        try {
-            $file = \App\Models\UserFile::findOrFail($id);
-            \Log::info('[MessageStore] Found file', ['file_id' => $id]);
+        foreach ($fileIds as $id) {
+            $file = \App\Models\UserFile::find($id);
+            if (!$file) {
+                \DB::rollBack();
+                return response()->json(['error' => "Attachment file not found (ID: $id)"], 500);
+            }
 
-            $attachmentData = [
+            $attachment = $message->attachments()->create([
+                'file_name' => $file->name ?? null,
                 'file_path' => $file->path,
                 'mime_type' => $file->mime,
                 'size' => $file->size,
                 'sender_id' => $user->id,
                 'receiver_id' => $receiverId,
                 'message_id' => $message->id,
-            ];
+            ]);
 
-            if (!empty($file->name)) {
-                $attachmentData['file_name'] = $file->name;
+            if (!$attachment) {
+                \DB::rollBack();
+                return response()->json(['error' => "Failed to store attachment (ID: $id)"], 500);
             }
-
-            $attachment = $message->attachments()->create($attachmentData);
-            \Log::info('[MessageStore] Attachment created', ['attachment_id' => $attachment->id]);
 
             $attachments[] = [
                 'name' => $attachment->file_name,
@@ -196,26 +183,25 @@ public function store(Request $request)
                 'mime' => $attachment->mime_type,
                 'size' => $attachment->size,
             ];
-        } catch (\Exception $e) {
-            \Log::error('[MessageStore] Failed to attach file', [
-                'file_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
         }
-    }
 
-    // 🧾 Return enriched response
-    return response()->json([
-        'success' => true,
-        'message' => [
-            'id' => $message->id,
-            'body' => $message->body,
-            'sender_id' => $message->sender_id,
-            'receiver_id' => $message->receiver_id,
-            'created_at' => $message->created_at,
-            'attachments' => $attachments,
-        ],
-    ]);
+        \DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => [
+                'id' => $message->id,
+                'body' => $message->body,
+                'sender_id' => $message->sender_id,
+                'receiver_id' => $message->receiver_id,
+                'created_at' => $message->created_at,
+                'attachments' => $attachments,
+            ],
+        ]);
+    } catch (\Exception $e) {
+        \DB::rollBack();
+        return response()->json(['error' => 'Failed to send message or attachments'], 500);
+    }
 }
 
     // 🔁 Load more messages

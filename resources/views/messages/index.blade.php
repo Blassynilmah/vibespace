@@ -1049,7 +1049,6 @@ Alpine.store('messaging', {
 
     async sendMessage(message, files = []) {
         if (!this.receiver || (!message.trim() && files.length === 0)) {
-            console.log('[SEND] No receiver or empty message/files, aborting.');
             return;
         }
 
@@ -1057,31 +1056,18 @@ Alpine.store('messaging', {
         this.error = null;
 
         try {
-            // Prepare FormData
             const formData = new FormData();
             formData.append('body', message);
             formData.append('receiver_id', this.receiver.id);
 
-            console.log('[SEND] Attaching files:', files);
-
             files.forEach((file, index) => {
                 if (file instanceof File) {
-                    // Direct File object from file picker
                     formData.append(`files[${index}]`, file);
-                    console.log(`[SEND] Attached raw File object at index ${index}:`, file);
                 } else {
-                    // Existing uploaded file (from user's files)
                     formData.append(`file_ids[${index}]`, file.id);
-                    console.log(`[SEND] Attached file by ID at index ${index}:`, file.id);
                 }
             });
 
-            // Log FormData keys for debugging
-            for (let pair of formData.entries()) {
-                console.log(`[SEND] FormData: ${pair[0]} =`, pair[1]);
-            }
-
-            // Send request
             const res = await fetch('/messages', {
                 method: 'POST',
                 body: formData,
@@ -1091,15 +1077,16 @@ Alpine.store('messaging', {
                 }
             });
 
-            console.log('[SEND] Response status:', res.status);
-
             const data = await res.json();
-            console.log('[SEND] Server response:', data);
 
-            // Add new message to chat
+            if (!res.ok || !data.success) {
+                this.error = data.error || 'Failed to send message. Please try again.';
+                this.showToast(this.error);
+                return;
+            }
+
             this.messages.push(data.message);
 
-            // Update sidebar contact info
             const contact = this.contacts.find(c => c.id === this.receiver.id);
             if (contact) {
                 contact.last_message = {
@@ -1111,7 +1098,6 @@ Alpine.store('messaging', {
                 contact.should_bold = false;
                 contact.unread_count = 0;
                 contact.has_attachment = (data.message.attachments && data.message.attachments.length > 0);
-                console.log('[SEND] Updated contact after sending:', contact);
             }
 
             await Alpine.nextTick();
@@ -1121,8 +1107,8 @@ Alpine.store('messaging', {
             this.selectedFiles = [];
             this.fetchUnreadConversationsCount();
         } catch (e) {
-            console.error('[SEND] Error:', e);
-            this.error = e.message;
+            this.error = 'Failed to send message. Please try again.';
+            this.showToast(this.error);
         } finally {
             this.isLoading = false;
         }
