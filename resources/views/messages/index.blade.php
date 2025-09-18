@@ -526,6 +526,10 @@
                         </button>
                         <div x-show="showMenu" @click.away="showMenu = false" x-transition
                             class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg border z-50 py-2">
+                            <!-- View Profile -->
+                            <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
+                                <span>View Profile</span>
+                            </button>
                             <!-- Follow/Unfollow -->
                             <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
                                 <span x-text="$store.messaging.receiver.is_following ? 'Unfollow' : 'Follow'"></span>
@@ -533,10 +537,6 @@
                             <!-- Media -->
                             <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
                                 <span>Media</span>
-                            </button>
-                            <!-- View Profile -->
-                            <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
-                                <span>View Profile</span>
                             </button>
                             <!-- Block User -->
                             <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2 text-red-500">
@@ -550,7 +550,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
                                 </svg>
-                                <span>Mute</span>
+                                <span>Mute User</span>
                             </button>
                         </div>
                     </div>
