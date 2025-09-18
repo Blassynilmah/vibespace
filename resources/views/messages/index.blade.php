@@ -691,7 +691,6 @@
                                                                 :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
                                                                 class="object-cover w-full h-full rounded-lg mb-2"
                                                                 style="height: 320px;"
-                                                                controls="false"
                                                                 autoplay="false"
                                                                 muted
                                                                 playsinline
