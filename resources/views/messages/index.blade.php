@@ -1486,6 +1486,16 @@ Alpine.data('messageInbox', () => ({
         show: false,
         files: [],
         index: 0,
+        videoCurrentTime: 0,
+        videoDuration: 0,
+        videoMuted: true,
+        
+        formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return "00:00";
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        },
 
         open(files, startIndex = 0) {
             this.files = files;
