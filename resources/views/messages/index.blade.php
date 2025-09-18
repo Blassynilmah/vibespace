@@ -1189,12 +1189,15 @@ Alpine.data('messageInbox', () => ({
     searchQuery: '',
     newMessage: '',
     showModal: false,
-    showMediaModal: false, // <-- Added for modal reactivity
+    showMediaModal: false,
     selectedFiles: [],
     showRecentChats: window.innerWidth < 1024,
     isDesktop: window.innerWidth >= 1024,
     focusedPreviewFiles: [],
     focusedPreviewIndex: null,
+    showPreviewModal: false,
+    previewFiles: [],
+    previewIndex: null,
 
     openPreviewModal(files, index = 0) {
         this.showPreviewModal = true;
