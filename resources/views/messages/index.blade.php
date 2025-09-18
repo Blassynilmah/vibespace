@@ -3,6 +3,7 @@
 @section('content')
 <div x-data="messageInbox()" x-init="init()" @open-preview-modal.window="openPreviewModal($event.detail.files, $event.detail.index)" class="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
 
+<!-- Unified File Preview Modal (images, videos, files) -->
 <template x-if="showPreviewModal && previewFiles && previewFiles.length > 0 && typeof previewIndex === 'number'">
     <div 
         class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center"
@@ -10,6 +11,7 @@
             videoCurrentTime: 0,
             videoDuration: 0,
             videoMuted: true,
+            hoverTime: null,
             formatTime(seconds) {
                 if (!seconds || isNaN(seconds)) return '00:00';
                 const m = Math.floor(seconds / 60);
@@ -17,72 +19,93 @@
                 return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             }
         }"
+        @keydown.escape.window="showPreviewModal = false"
     >
+        <!-- Close Button -->
         <button @click="showPreviewModal = false" class="absolute top-4 right-4 text-white text-xl sm:text-2xl hover:text-pink-300 transition">×</button>
+        
         <template x-if="previewFiles[previewIndex]">
-            <div class="relative group">
+            <div class="relative group flex items-center justify-center w-full h-full">
                 <!-- Video Preview -->
                 <template x-if="previewFiles[previewIndex].extension && previewFiles[previewIndex].extension.match(/^(mp4|mov|webm)$/i)">
-                    <div class="relative group">
+                    <div class="relative flex flex-col items-center justify-center w-full h-full">
                         <video
                             x-ref="previewVideo"
                             :src="previewFiles[previewIndex].url || previewFiles[previewIndex].path || previewFiles[previewIndex].file_path"
+                            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
+                            :muted="videoMuted"
+                            playsinline
+                            preload="metadata"
+                            @contextmenu.prevent
                             @timeupdate="videoCurrentTime = $refs.previewVideo.currentTime"
                             @loadedmetadata="videoDuration = $refs.previewVideo.duration"
                             @volumechange="videoMuted = $refs.previewVideo.muted"
-                            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
-                            x-init="videoCurrentTime = 0; videoDuration = 0; videoMuted = $refs.previewVideo.muted"
-                            controlslist="nodownload noremoteplayback"
-                            @contextmenu.prevent
                             @ended="videoCurrentTime = 0"
                         ></video>
-                        <!-- Custom Progress Bar & Controls -->
-                        <div class="absolute bottom-0 left-0 w-full bg-black/70 text-white px-4 py-2 flex items-center justify-between gap-3 rounded-b-lg">
-                            <div class="flex items-center gap-3">
-                                <button
-                                    @click="
-                                        if ($refs.previewVideo.src && !$refs.previewVideo.src.endsWith('/')) {
-                                            if ($refs.previewVideo.paused) {
-                                                $refs.previewVideo.play();
-                                            } else {
-                                                $refs.previewVideo.pause();
-                                            }
-                                        }
-                                    "
-                                    class="px-1 hover:text-pink-400"
-                                >
-                                    <template x-if="$refs.previewVideo && $refs.previewVideo.paused">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><polygon points="6,4 18,10 6,16" /></svg>
-                                    </template>
-                                    <template x-if="$refs.previewVideo && !$refs.previewVideo.paused">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="4" width="3" height="12" /><rect x="11" y="4" width="3" height="12" /></svg>
-                                    </template>
-                                </button>
-                                <button @click="$refs.previewVideo.muted = !$refs.previewVideo.muted" class="px-1 hover:text-pink-400">
-                                    <template x-if="!videoMuted">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/></svg>
-                                    </template>
-                                    <template x-if="videoMuted">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="2"/></svg>
-                                    </template>
-                                </button>
-                                <span class="text-xs font-mono min-w-[48px]" x-text="formatTime(videoCurrentTime)"></span>
-                            </div>
-                            <div class="flex-1 mx-3">
-                                <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
-                                     @click="$refs.previewVideo.currentTime = (videoDuration * ($event.offsetX / $event.target.offsetWidth))">
-                                    <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
-                                         :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
-                                </div>
-                            </div>
-                            <span class="text-xs font-mono min-w-[48px]" x-text="formatTime(videoDuration)"></span>
+                        <!-- Timers above the bar -->
+                        <div class="absolute left-1/2 -translate-x-1/2 w-[60%] flex justify-between px-2 pointer-events-none select-none z-10" style="bottom: 64px;">
+                            <span class="text-xs font-mono text-white" x-text="formatTime(videoCurrentTime)"></span>
+                            <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
                         </div>
+                        <!-- Progress Bar -->
+                        <div class="absolute left-1/2 -translate-x-1/2 w-[60%] z-10" style="bottom: 48px;">
+                            <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
+                                @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
+                                @mouseleave="hoverTime = null"
+                                @click="
+                                    if ($refs.previewVideo && videoDuration) {
+                                        const percent = $event.offsetX / $event.target.offsetWidth;
+                                        $refs.previewVideo.currentTime = percent * videoDuration;
+                                        videoCurrentTime = $refs.previewVideo.currentTime;
+                                    }
+                                ">
+                                <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
+                                    :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
+                                <!-- Hover time indicator -->
+                                <template x-if="hoverTime !== null">
+                                    <div class="absolute -top-6 left-0 text-xs text-white font-mono px-2 py-1 bg-black/80 rounded"
+                                        :style="`left: calc(${(hoverTime / videoDuration) * 100}% - 24px);`"
+                                        x-text="formatTime(hoverTime)">
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <!-- Play/Pause Button (bottom left) -->
+                        <button
+                            @click="
+                                if ($refs.previewVideo.paused) {
+                                    $refs.previewVideo.play();
+                                } else {
+                                    $refs.previewVideo.pause();
+                                }
+                            "
+                            class="absolute bottom-8 left-8 bg-black/70 text-white rounded-full p-3 hover:text-pink-400 z-10"
+                        >
+                            <template x-if="$refs.previewVideo && $refs.previewVideo.paused">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><polygon points="6,4 18,10 6,16" /></svg>
+                            </template>
+                            <template x-if="$refs.previewVideo && !$refs.previewVideo.paused">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="4" width="3" height="12" /><rect x="11" y="4" width="3" height="12" /></svg>
+                            </template>
+                        </button>
+                        <!-- Mute Button (bottom right) -->
+                        <button
+                            @click="$refs.previewVideo.muted = !$refs.previewVideo.muted"
+                            class="absolute bottom-8 right-8 bg-black/70 text-white rounded-full p-3 hover:text-pink-400 z-10"
+                        >
+                            <template x-if="!videoMuted">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/></svg>
+                            </template>
+                            <template x-if="videoMuted">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+                            </template>
+                        </button>
                     </div>
                 </template>
                 <!-- Image Preview -->
                 <template x-if="previewFiles[previewIndex].extension && previewFiles[previewIndex].extension.match(/^(jpg|jpeg|png|gif|webp)$/i)">
                     <img :src="previewFiles[previewIndex].url || previewFiles[previewIndex].path || previewFiles[previewIndex].file_path"
-                        class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl object-contain">
+                        class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl object-contain" @contextmenu.prevent />
                 </template>
                 <!-- Fallback for other files -->
                 <template x-if="!previewFiles[previewIndex].extension || !previewFiles[previewIndex].extension.match(/^(jpg|jpeg|png|gif|webp|mp4|mov|webm)$/i)">
