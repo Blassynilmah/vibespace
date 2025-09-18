@@ -528,15 +528,11 @@
                             class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg border z-50 py-2">
                             <!-- View Profile -->
                             <a
-    :href="`/space/${$store.messaging.receiver.username}`"
-    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
->
-    <span>View Profile</span>
-</a>
-                            <!-- Follow/Unfollow -->
-                            <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
-                                <span x-text="$store.messaging.receiver.is_following ? 'Unfollow' : 'Follow'"></span>
-                            </button>
+                                :href="`/space/${$store.messaging.receiver.username}-${$store.messaging.receiver.id}`"
+                                class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+                            >
+                                <span>View Profile</span>
+                            </a>
                             <!-- Media -->
                             <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
                                 <span>Media</span>
