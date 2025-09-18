@@ -750,64 +750,99 @@
                         </div>
                     </template>
 
-                    <!-- Media Screen Template -->
-                    <template x-if="showMediaScreen">
-                        <div class="flex flex-col flex-1 overflow-hidden bg-white">
-                            <!-- Header: Back arrow + Media Tabs on same line, no username -->
-                            <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center">
-                                <button @click="showMediaScreen = false"
-                                    class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 text-pink-600 text-lg mr-4"
-                                    title="Back to Chat">
-                                    ←
-                                </button>
-                                <div class="flex gap-2">
-                                    <button
-                                        @click="mediaTab = 'sent'"
-                                        :class="mediaTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                                        class="px-4 py-2 transition"
-                                    >Sent Media</button>
-                                    <button
-                                        @click="mediaTab = 'received'"
-                                        :class="mediaTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                                        class="px-4 py-2 transition"
-                                    >Received Media</button>
-                                </div>
-                            </div>
-                            <!-- Media Grid -->
-                            <div class="flex-1 overflow-y-auto p-4 grid gap-4"
-                                style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-                                <template x-for="(media, mediaIdx) in $store.messaging.messages.filter(m =>
-                                    m.attachments?.length &&
-                                    (mediaTab === 'sent'
-                                        ? m.sender_id === $store.messaging.authUser.id
-                                        : m.sender_id !== $store.messaging.authUser.id)
-                                ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i})))" :key="`${media._msgId}-${media._idx}`">
-                                    <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
-                                        @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
-                                            m.attachments?.length &&
-                                            (mediaTab === 'sent'
-                                                ? m.sender_id === $store.messaging.authUser.id
-                                                : m.sender_id !== $store.messaging.authUser.id)
-                                        ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i}))), index: mediaIdx })">
-                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
-                                            <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
-                                        </template>
-                                        <template x-if="['mp4','mov','webm'].includes(media.extension)">
-                                            <video :src="media.url || media.file_path || media.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
-                                        </template>
-                                    </div>
+<!-- Media Screen Template with Date Grouping -->
+<template x-if="showMediaScreen">
+    <div class="flex flex-col flex-1 overflow-hidden bg-white">
+        <!-- Header: Back arrow + Media Tabs -->
+        <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center">
+            <button @click="showMediaScreen = false"
+                class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 text-pink-600 text-lg mr-4"
+                title="Back to Chat">
+                ←
+            </button>
+            <div class="flex gap-2">
+                <button
+                    @click="mediaTab = 'sent'"
+                    :class="mediaTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                    class="px-4 py-2 transition"
+                >Sent Media</button>
+                <button
+                    @click="mediaTab = 'received'"
+                    :class="mediaTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                    class="px-4 py-2 transition"
+                >Received Media</button>
+            </div>
+        </div>
+        <!-- Media Grouped by Date -->
+        <div class="flex-1 overflow-y-auto p-4">
+            <template x-for="(group, groupIdx) in (() => {
+                // 1. Get all media for current tab
+                const mediaList = $store.messaging.messages
+                    .filter(m => m.attachments?.length &&
+                        (mediaTab === 'sent'
+                            ? m.sender_id === $store.messaging.authUser.id
+                            : m.sender_id !== $store.messaging.authUser.id)
+                    )
+                    .flatMap(m => m.attachments.map((a, i) => ({
+                        ...a,
+                        _msgId: m.id,
+                        _idx: i,
+                        _created_at: m.created_at
+                    })))
+                    .sort((a, b) => new Date(b._created_at) - new Date(a._created_at)); // newest first
+
+                // 2. Group by date string
+                const groups = {};
+                mediaList.forEach(media => {
+                    const d = new Date(media._created_at);
+                    const today = new Date();
+                    const yesterday = new Date();
+                    yesterday.setDate(today.getDate() - 1);
+
+                    let label;
+                    if (d.toDateString() === today.toDateString()) label = 'Today';
+                    else if (d.toDateString() === yesterday.toDateString()) label = 'Yesterday';
+                    else label = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+
+                    if (!groups[label]) groups[label] = [];
+                    groups[label].push(media);
+                });
+
+                // 3. Return as array of { label, items }
+                return Object.entries(groups).map(([label, items]) => ({ label, items }));
+            })()" :key="groupIdx">
+                <div class="mb-8">
+                    <div class="text-xs font-bold text-pink-600 mb-2 uppercase tracking-wide">{{ group.label }}</div>
+                    <div class="grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+                        <template x-for="(media, mediaIdx) in group.items" :key="`${media._msgId}-${media._idx}`">
+                            <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
+                                @click="$dispatch('open-preview-modal', { files: group.items, index: mediaIdx })">
+                                <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
+                                    <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
                                 </template>
-                                <template x-if="$store.messaging.messages.filter(m =>
-                                    m.attachments?.length &&
-                                    (mediaTab === 'sent'
-                                        ? m.sender_id === $store.messaging.authUser.id
-                                        : m.sender_id !== $store.messaging.authUser.id)
-                                ).flatMap(m => m.attachments).length === 0">
-                                    <div class="text-center text-gray-400 text-sm py-4 col-span-full">No media found.</div>
+                                <template x-if="['mp4','mov','webm'].includes(media.extension)">
+                                    <video :src="media.url || media.file_path || media.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
                                 </template>
                             </div>
-                        </div>
-                    </template>
+                        </template>
+                    </div>
+                </div>
+            </template>
+            <template x-if="(() => {
+                const mediaList = $store.messaging.messages
+                    .filter(m => m.attachments?.length &&
+                        (mediaTab === 'sent'
+                            ? m.sender_id === $store.messaging.authUser.id
+                            : m.sender_id !== $store.messaging.authUser.id)
+                    )
+                    .flatMap(m => m.attachments);
+                return mediaList.length === 0;
+            })()">
+                <div class="text-center text-gray-400 text-sm py-4">No media found.</div>
+            </template>
+        </div>
+    </div>
+</template>
 
                     <!-- Message Input -->
                     <template x-if="!showMediaScreen">
