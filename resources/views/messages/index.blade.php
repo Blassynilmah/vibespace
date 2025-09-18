@@ -534,7 +534,9 @@
                                 <span>View Profile</span>
                             </a>
                             <!-- Media -->
-                            <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
+                            <button type="button"
+                                class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+                                @click="showMediaScreen = true; mediaTab = 'sent'; showMenu = false">
                                 <span>Media</span>
                             </button>
                             <!-- Block User -->
@@ -555,194 +557,267 @@
                     </div>
                 </div>
 
-                    <div id="chat-scroll" x-data="{ showLoadMore: false }" @scroll="$store.messaging.scrollHandler; showLoadMore = $event.target.scrollTop <= 10" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-gray-50 relative">
-                        <!-- 🔼 Load More Button -->
-                        <div x-show="showLoadMore && !$store.messaging.topReached && $store.messaging.messages.length >= 20"
-                            class="text-center py-2">
+                    <template x-if="!showMediaScreen">
+                        <div id="chat-scroll" x-data="{ showLoadMore: false }" @scroll="$store.messaging.scrollHandler; showLoadMore = $event.target.scrollTop <= 10" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-gray-50 relative">
+                            <!-- 🔼 Load More Button -->
+                            <div x-show="showLoadMore && !$store.messaging.topReached && $store.messaging.messages.length >= 20"
+                                class="text-center py-2">
 
-                            <button @click="$store.messaging.fetchMoreMessages()"
-                                    :disabled="$store.messaging.isFetchingMore"
-                                    class="text-sm text-pink-600 hover:underline flex items-center justify-center gap-2">
+                                <button @click="$store.messaging.fetchMoreMessages()"
+                                        :disabled="$store.messaging.isFetchingMore"
+                                        class="text-sm text-pink-600 hover:underline flex items-center justify-center gap-2">
 
-                                <template x-if="!$store.messaging.isFetchingMore">
-                                    <span>Load More</span>
-                                </template>
+                                    <template x-if="!$store.messaging.isFetchingMore">
+                                        <span>Load More</span>
+                                    </template>
 
-                                <template x-if="$store.messaging.isFetchingMore">
-                                    <svg class="animate-spin h-4 w-4 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                                    </svg>
-                                </template>
+                                    <template x-if="$store.messaging.isFetchingMore">
+                                        <svg class="animate-spin h-4 w-4 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor"
+                                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                        </svg>
+                                    </template>
 
-                            </button>
-                        </div>
-
-                        <!-- 🟣 Loading Full Chat -->
-                        <template x-if="$store.messaging.isLoading">
-                            <div class="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
-                                <div class="text-center py-4 text-gray-400 text-sm">Loading chat...</div>
+                                </button>
                             </div>
-                        </template>
 
-                        <!-- 🔵 Loading More Messages (Top) -->
-                        <template x-if="$store.messaging.isFetchingMore">
-                            <div class="sticky top-0 z-10 text-center text-xs py-2 text-gray-400 bg-gradient-to-b from-white to-transparent">
-                                Loading more messages...
-                            </div>
-                        </template>
-                        <template x-for="message in $store.messaging.messages" :key="message.id">
+                            <!-- 🟣 Loading Full Chat -->
+                            <template x-if="$store.messaging.isLoading">
+                                <div class="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
+                                    <div class="text-center py-4 text-gray-400 text-sm">Loading chat...</div>
+                                </div>
+                            </template>
 
-                            <div class="flex" :class="message.sender_id === $store.messaging.authUser.id ? 'justify-end' : 'justify-start'">
-                                <div class="w-full max-w-[75%] sm:max-w-[60%] px-3 py-2 rounded-xl text-sm shadow relative"
-                                    :class="message.sender_id === $store.messaging.authUser.id 
-                                        ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
-                                        : 'bg-white border border-gray-200 rounded-bl-none'">
+                            <!-- 🔵 Loading More Messages (Top) -->
+                            <template x-if="$store.messaging.isFetchingMore">
+                                <div class="sticky top-0 z-10 text-center text-xs py-2 text-gray-400 bg-gradient-to-b from-white to-transparent">
+                                    Loading more messages...
+                                </div>
+                            </template>
+                            <template x-for="message in $store.messaging.messages" :key="message.id">
 
-                                    <!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
-                                    <template x-if="message.attachments?.length">
-                                        <div class="relative mt-3 group w-full max-w-full" x-data="{
-                                            index: 0,
-                                            loading: true,
-                                            loadedFiles: [],
-                                            minLoadingTime: 5000,
-                                            startLoading() {
-                                                this.loading = true;
-                                                this.loadedFiles = Array(message.attachments.length).fill(false);
-                                                const start = Date.now();
-                                                Promise.all(message.attachments.map((file, i) => {
-                                                    return new Promise(resolve => {
-                                                        const ext = (file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : ''));
-                                                        if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
-                                                            const img = new Image();
-                                                            img.onload = () => { this.loadedFiles[i] = true; resolve(); };
-                                                            img.onerror = () => { this.loadedFiles[i] = true; resolve(); };
-                                                            img.src = file.url || file.file_path || file.path;
-                                                        } else if (['mp4','mov','webm'].includes(ext)) {
-                                                            const video = document.createElement('video');
-                                                            video.onloadedmetadata = () => { this.loadedFiles[i] = true; resolve(); };
-                                                            video.onerror = () => { this.loadedFiles[i] = true; resolve(); };
-                                                            video.src = file.url || file.file_path || file.path;
-                                                        } else {
-                                                            this.loadedFiles[i] = true;
-                                                            resolve();
-                                                        }
+                                <div class="flex" :class="message.sender_id === $store.messaging.authUser.id ? 'justify-end' : 'justify-start'">
+                                    <div class="w-full max-w-[75%] sm:max-w-[60%] px-3 py-2 rounded-xl text-sm shadow relative"
+                                        :class="message.sender_id === $store.messaging.authUser.id 
+                                            ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
+                                            : 'bg-white border border-gray-200 rounded-bl-none'">
+
+                                        <!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
+                                        <template x-if="message.attachments?.length">
+                                            <div class="relative mt-3 group w-full max-w-full" x-data="{
+                                                index: 0,
+                                                loading: true,
+                                                loadedFiles: [],
+                                                minLoadingTime: 5000,
+                                                startLoading() {
+                                                    this.loading = true;
+                                                    this.loadedFiles = Array(message.attachments.length).fill(false);
+                                                    const start = Date.now();
+                                                    Promise.all(message.attachments.map((file, i) => {
+                                                        return new Promise(resolve => {
+                                                            const ext = (file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : ''));
+                                                            if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+                                                                const img = new Image();
+                                                                img.onload = () => { this.loadedFiles[i] = true; resolve(); };
+                                                                img.onerror = () => { this.loadedFiles[i] = true; resolve(); };
+                                                                img.src = file.url || file.file_path || file.path;
+                                                            } else if (['mp4','mov','webm'].includes(ext)) {
+                                                                const video = document.createElement('video');
+                                                                video.onloadedmetadata = () => { this.loadedFiles[i] = true; resolve(); };
+                                                                video.onerror = () => { this.loadedFiles[i] = true; resolve(); };
+                                                                video.src = file.url || file.file_path || file.path;
+                                                            } else {
+                                                                this.loadedFiles[i] = true;
+                                                                resolve();
+                                                            }
+                                                        });
+                                                    })).then(() => {
+                                                        const elapsed = Date.now() - start;
+                                                        setTimeout(() => { this.loading = false; }, Math.max(0, this.minLoadingTime - elapsed));
                                                     });
-                                                })).then(() => {
-                                                    const elapsed = Date.now() - start;
-                                                    setTimeout(() => { this.loading = false; }, Math.max(0, this.minLoadingTime - elapsed));
-                                                });
-                                            }
-                                        }"
-                                        x-init="startLoading()"
-                                        >
-                                            <!-- Spinner Overlay -->
-                                            <template x-if="loading">
-                                                <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-0">
-                                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                                                    </svg>
+                                                }
+                                            }"
+                                            x-init="startLoading()"
+                                            >
+                                                <!-- Spinner Overlay -->
+                                                <template x-if="loading">
+                                                    <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-0">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                                        </svg>
+                                                    </div>
+                                                </template>
+                                                <template x-if="message.attachments[index]">
+                                                    <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;">
+                                                        <!-- Image Preview -->
+                                                        <template x-if="!loading && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                            <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
+                                                        </template>
+                                                        <!-- Video Thumbnail Preview -->
+                                                        <template x-if="!loading && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                            <div class="relative w-full h-full">
+                                                                <video
+                                                                    :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
+                                                                    class="object-cover w-full h-full rounded-lg mb-2"
+                                                                    style="height: 320px;"
+                                                                    autoplay="false"
+                                                                    muted
+                                                                    playsinline
+                                                                    @play="$event.target.pause()"
+                                                                ></video>
+                                                                <!-- Play button overlay (smaller) -->
+                                                                <button
+                                                                    type="button"
+                                                                    class="absolute inset-0 flex items-center justify-center"
+                                                                    style="pointer-events: none;"
+                                                                    tabindex="-1"
+                                                                >
+                                                                    <svg class="h-10 w-10 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
+                                                                        <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
+                                                                        <polygon points="26,20 50,32 26,44" fill="white"/>
+                                                                    </svg>
+                                                                </button>
+                                                            </div>
+                                                        </template>
+                                                        <!-- Fallback for other files -->
+                                                        <template x-if="!loading && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                                                            <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
+                                                                <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
+                                                                <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <!-- Navigation Arrows (disabled while loading) -->
+                                                <button @click.stop="if(!loading) index = index > 0 ? index - 1 : index"
+                                                        :disabled="loading || index === 0"
+                                                        :class="(loading || index === 0) ? 'opacity-30 cursor-not-allowed' : ''"
+                                                        class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+                                                    ‹
+                                                </button>
+                                                <button @click.stop="if(!loading) index = index < message.attachments.length - 1 ? index + 1 : index"
+                                                        :disabled="loading || index === message.attachments.length - 1"
+                                                        :class="(loading || index === message.attachments.length - 1) ? 'opacity-30 cursor-not-allowed' : ''"
+                                                        class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+                                                    ›
+                                                </button>
+                                                <!-- Click to open preview modal (disabled while loading) -->
+                                                <div class="absolute inset-0" :class="loading ? 'pointer-events-none' : ''"
+                                                    @click.stop="if(!loading) $dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
                                                 </div>
-                                            </template>
-                                            <template x-if="message.attachments[index]">
-                                                <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;">
-                                                    <!-- Image Preview -->
-                                                    <template x-if="!loading && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                        <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
-                                                    </template>
-                                                    <!-- Video Thumbnail Preview -->
-                                                    <template x-if="!loading && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                        <div class="relative w-full h-full">
-                                                            <video
-                                                                :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
-                                                                class="object-cover w-full h-full rounded-lg mb-2"
-                                                                style="height: 320px;"
-                                                                autoplay="false"
-                                                                muted
-                                                                playsinline
-                                                                @play="$event.target.pause()"
-                                                            ></video>
-                                                            <!-- Play button overlay (smaller) -->
-                                                            <button
-                                                                type="button"
-                                                                class="absolute inset-0 flex items-center justify-center"
-                                                                style="pointer-events: none;"
-                                                                tabindex="-1"
-                                                            >
-                                                                <svg class="h-10 w-10 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
-                                                                    <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
-                                                                    <polygon points="26,20 50,32 26,44" fill="white"/>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </template>
-                                                    <!-- Fallback for other files -->
-                                                    <template x-if="!loading && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                        <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
-                                                            <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
-                                                            <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                            <!-- Navigation Arrows (disabled while loading) -->
-                                            <button @click.stop="if(!loading) index = index > 0 ? index - 1 : index"
-                                                    :disabled="loading || index === 0"
-                                                    :class="(loading || index === 0) ? 'opacity-30 cursor-not-allowed' : ''"
-                                                    class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-                                                ‹
-                                            </button>
-                                            <button @click.stop="if(!loading) index = index < message.attachments.length - 1 ? index + 1 : index"
-                                                    :disabled="loading || index === message.attachments.length - 1"
-                                                    :class="(loading || index === message.attachments.length - 1) ? 'opacity-30 cursor-not-allowed' : ''"
-                                                    class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-                                                ›
-                                            </button>
-                                            <!-- Click to open preview modal (disabled while loading) -->
-                                            <div class="absolute inset-0" :class="loading ? 'pointer-events-none' : ''"
-                                                @click.stop="if(!loading) $dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
+                                                <!-- File Info -->
+                                                <template x-if="message.attachments[index]">
+                                                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
+                                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                                                            <span class="text-pink-500">🖼️</span>
+                                                        </template>
+                                                        <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                                                            <span class="text-purple-500">🎬</span>
+                                                        </template>
+                                                        <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
+                                                    </div>
+                                                </template>
                                             </div>
-                                            <!-- File Info -->
-                                            <template x-if="message.attachments[index]">
-                                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
-                                                    <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                        <span class="text-pink-500">🖼️</span>
-                                                    </template>
-                                                    <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                        <span class="text-purple-500">🎬</span>
-                                                    </template>
-                                                    <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
-                                                </div>
+                                        </template>
+
+                                        <template x-if="message.attachments?.length">
+                                            <div class="my-2"></div>
+                                        </template>
+
+                                        <!-- 💬 Message Body -->
+                                        <div x-text="message.body" class="break-words mt-2"></div>
+
+                                        <div class="my-2"></div>
+
+                                        <!-- ⏰ Timestamp & ✅ Read Status -->
+                                        <div class="flex justify-end items-center mt-1">
+                                            <div class="text-[0.65rem]" 
+                                                :class="message.sender_id === $store.messaging.authUser.id ? 'text-white/70' : 'text-gray-400'"
+                                                x-text="new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})">
+                                            </div>
+                                            <template x-if="message.sender_id === $store.messaging.authUser.id">
+                                                <svg x-show="message.read_at" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-white/70" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                </svg>
                                             </template>
                                         </div>
-                                    </template>
-
-                                    <template x-if="message.attachments?.length">
-                                        <div class="my-2"></div>
-                                    </template>
-
-                                    <!-- 💬 Message Body -->
-                                    <div x-text="message.body" class="break-words mt-2"></div>
-
-                                    <div class="my-2"></div>
-
-                                    <!-- ⏰ Timestamp & ✅ Read Status -->
-                                    <div class="flex justify-end items-center mt-1">
-                                        <div class="text-[0.65rem]" 
-                                            :class="message.sender_id === $store.messaging.authUser.id ? 'text-white/70' : 'text-gray-400'"
-                                            x-text="new Date(message.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})">
-                                        </div>
-                                        <template x-if="message.sender_id === $store.messaging.authUser.id">
-                                            <svg x-show="message.read_at" xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 ml-1 text-white/70" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                            </svg>
-                                        </template>
                                     </div>
                                 </div>
+                            </template>
+                        </div>
+                    </template>
+
+                    <template x-if="showMediaScreen">
+                        <div class="flex flex-col flex-1 overflow-hidden bg-white">
+                            <!-- Sticky Chat Header (same as chat, with back arrow) -->
+                            <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <button @click="showMediaScreen = false"
+                                        class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 mr-2 text-pink-600 text-lg"
+                                        title="Back to Chat">
+                                        ←
+                                    </button>
+                                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-600 text-sm sm:text-base">
+                                        <span x-text="$store.messaging.receiver.username.charAt(0).toUpperCase()"></span>
+                                    </div>
+                                    <span class="font-semibold text-pink-600 text-base sm:text-lg truncate max-w-[60vw] sm:max-w-none"
+                                        x-text="'@' + $store.messaging.receiver.username"></span>
+                                </div>
                             </div>
-                        </template>
-                    </div>
+                            <!-- Media Tabs -->
+                            <div class="flex justify-center gap-2 border-b bg-white py-2">
+                                <button
+                                    @click="mediaTab = 'sent'"
+                                    :class="mediaTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                                    class="px-4 py-2 transition"
+                                >Sent Media</button>
+                                <button
+                                    @click="mediaTab = 'received'"
+                                    :class="mediaTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                                    class="px-4 py-2 transition"
+                                >Received Media</button>
+                            </div>
+                            <!-- Media Grid -->
+                            <div class="flex-1 overflow-y-auto p-4 grid gap-4"
+                                style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+                                <template x-for="media in $store.messaging.messages.filter(m =>
+                                    m.attachments?.length &&
+                                    (mediaTab === 'sent'
+                                        ? m.sender_id === $store.messaging.authUser.id
+                                        : m.sender_id !== $store.messaging.authUser.id)
+                                ).flatMap(m => m.attachments)" :key="media.id">
+                                    <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
+                                        @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
+                                            m.attachments?.length &&
+                                            (mediaTab === 'sent'
+                                                ? m.sender_id === $store.messaging.authUser.id
+                                                : m.sender_id !== $store.messaging.authUser.id)
+                                        ).flatMap(m => m.attachments), index: $store.messaging.messages.filter(m =>
+                                            m.attachments?.length &&
+                                            (mediaTab === 'sent'
+                                                ? m.sender_id === $store.messaging.authUser.id
+                                                : m.sender_id !== $store.messaging.authUser.id)
+                                        ).flatMap(m => m.attachments).findIndex(a => a.id === media.id) })">
+                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
+                                            <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
+                                        </template>
+                                        <template x-if="['mp4','mov','webm'].includes(media.extension)">
+                                            <video :src="media.url || media.file_path || media.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template x-if="$store.messaging.messages.filter(m =>
+                                    m.attachments?.length &&
+                                    (mediaTab === 'sent'
+                                        ? m.sender_id === $store.messaging.authUser.id
+                                        : m.sender_id !== $store.messaging.authUser.id)
+                                ).flatMap(m => m.attachments).length === 0">
+                                    <div class="text-center text-gray-400 text-sm py-4 col-span-full">No media found.</div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
 
                     <!-- Message Input -->
                     <div class="sticky bottom-0 z-10 p-3 border-t bg-white">
@@ -1263,6 +1338,8 @@ Alpine.data('messageInbox', () => ({
     showPreviewModal: false,
     previewFiles: [],
     previewIndex: null,
+    showMediaScreen: false,
+    mediaTab: 'sent', 
 
     openPreviewModal(files, index = 0) {
         this.showPreviewModal = true;
