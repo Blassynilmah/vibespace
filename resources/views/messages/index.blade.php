@@ -5,7 +5,20 @@
 
 <!-- Universal File Preview Modal (Image/Video, navigable by index, for non-attachments only) -->
 <template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number' && !(focusedPreviewFiles[0]?.is_attachment)">
-    <div class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center">
+     <div 
+        class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center"
+        x-data="{
+            videoCurrentTime: 0,
+            videoDuration: 0,
+            videoMuted: true,
+            formatTime(seconds) {
+                if (!seconds || isNaN(seconds)) return '00:00';
+                const m = Math.floor(seconds / 60);
+                const s = Math.floor(seconds % 60);
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+        }"
+    >
         <!-- ...existing code for preview modal... -->
         <button @click="focusedPreviewFiles = []; focusedPreviewIndex = null"
             class="absolute top-4 sm:top-6 right-4 sm:right-6 text-white text-xl sm:text-2xl hover:text-pink-300 transition">
