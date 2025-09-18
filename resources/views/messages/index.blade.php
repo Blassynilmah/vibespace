@@ -4,8 +4,9 @@
 <div x-data="messageInbox()" x-init="init()" @open-preview-modal.window="openPreviewModal($event.detail.files, $event.detail.index)" class="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
 
 <!-- Universal File Preview Modal (Image/Video, navigable by index, for non-attachments only) -->
-<template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number' && !(focusedPreviewFiles[0]?.is_attachment)">
-     <div 
+ <template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number' && !$store.previewModal.show">
+    
+<div 
         class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center"
         x-data="{
             videoCurrentTime: 0,
@@ -100,7 +101,7 @@
 </template>
 
 <!-- Fullscreen Preview Modal -->
-<template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number'">
+<template x-if="$store.previewModal.show">
     <div 
         class="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center"
         style="backdrop-filter: blur(2px);"
