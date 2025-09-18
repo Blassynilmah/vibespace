@@ -130,18 +130,23 @@
                             <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
                         </div>
                         <!-- Progress Bar -->
-                        <div class="absolute bottom-12 left-1/2 -translate-x-1/2 w-[80%] z-10">
+                        <div class="absolute bottom-16 left-1/2 -translate-x-1/2 w-[80%] z-10">
                             <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
-                                 @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
-                                 @mouseleave="hoverTime = null"
-                                 @click="$refs.previewVideo.currentTime = (videoDuration * ($event.offsetX / $event.target.offsetWidth))">
+                                @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
+                                @mouseleave="hoverTime = null"
+                                @click="
+                                    if ($refs.previewVideo && videoDuration) {
+                                        const percent = $event.offsetX / $event.target.offsetWidth;
+                                        $refs.previewVideo.currentTime = percent * videoDuration;
+                                    }
+                                ">
                                 <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
-                                     :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
+                                    :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
                                 <!-- Hover time indicator -->
                                 <template x-if="hoverTime !== null">
                                     <div class="absolute -top-6 left-0 text-xs text-white font-mono px-2 py-1 bg-black/80 rounded"
-                                         :style="`left: calc(${(hoverTime / videoDuration) * 100}% - 24px);`"
-                                         x-text="formatTime(hoverTime)">
+                                        :style="`left: calc(${(hoverTime / videoDuration) * 100}% - 24px);`"
+                                        x-text="formatTime(hoverTime)">
                                     </div>
                                 </template>
                             </div>
