@@ -492,70 +492,72 @@
         <template x-if="$store.messaging.receiver">
             <div class="flex flex-col flex-1 overflow-hidden">
                 <!-- Sticky Chat Header -->
-                <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <!-- Left Arrow: Only show when a conversation is open (mobile/desktop) -->
-                        <template x-if="$store.messaging.receiver">
-                            <button @click="
-                                showRecentChats = true;
-                                $store.messaging.receiver = null;
-                                $store.messaging.messages = [];
-                                history.pushState(null, '', '/messages');
-                            "
-                            class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 mr-2 text-pink-600 text-lg"
-                            title="Back to Recent Chats">
-                                ←
-                            </button>
-                        </template>
-                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-600 text-sm sm:text-base">
-                            <span x-text="$store.messaging.receiver.username.charAt(0).toUpperCase()"></span>
+                 <template x-if="!showMediaScreen">
+                    <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <!-- Left Arrow: Only show when a conversation is open (mobile/desktop) -->
+                            <template x-if="$store.messaging.receiver">
+                                <button @click="
+                                    showRecentChats = true;
+                                    $store.messaging.receiver = null;
+                                    $store.messaging.messages = [];
+                                    history.pushState(null, '', '/messages');
+                                "
+                                class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 mr-2 text-pink-600 text-lg"
+                                title="Back to Recent Chats">
+                                    ←
+                                </button>
+                            </template>
+                            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-600 text-sm sm:text-base">
+                                <span x-text="$store.messaging.receiver.username.charAt(0).toUpperCase()"></span>
+                            </div>
+                            <!-- ✅ Clickable Username -->
+                            <span
+                                class="font-semibold text-pink-600 text-base sm:text-lg truncate max-w-[60vw] sm:max-w-none"
+                                x-text="'@' + $store.messaging.receiver.username">
+                            </span>
                         </div>
-                        <!-- ✅ Clickable Username -->
-                        <span
-                            class="font-semibold text-pink-600 text-base sm:text-lg truncate max-w-[60vw] sm:max-w-none"
-                            x-text="'@' + $store.messaging.receiver.username">
-                        </span>
-                    </div>
 
-                    <!-- Options Dropdown -->
-                    <div x-data="{ showMenu: false }" class="relative z-[49]">
-                        <button @click="showMenu = !showMenu" class="text-gray-400 hover:text-pink-500 focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
-                            </svg>
-                        </button>
-                        <div x-show="showMenu" @click.away="showMenu = false" x-transition
-                            class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg border z-50 py-2">
-                            <!-- View Profile -->
-                            <a
-                                :href="`/space/${$store.messaging.receiver.username}-${$store.messaging.receiver.id}`"
-                                class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
-                            >
-                                <span>View Profile</span>
-                            </a>
-                            <!-- Media -->
-                            <button type="button"
-                                class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
-                                @click="showMediaScreen = true; mediaTab = 'sent'; showMenu = false">
-                                <span>Media</span>
-                            </button>
-                            <!-- Block User -->
-                            <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2 text-red-500">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+                        <!-- Options Dropdown -->
+                        <div x-data="{ showMenu: false }" class="relative z-[49]">
+                            <button @click="showMenu = !showMenu" class="text-gray-400 hover:text-pink-500 focus:outline-none">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z" />
                                 </svg>
-                                <span>Block User</span>
                             </button>
-                            <!-- Mute -->
-                            <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
-                                </svg>
-                                <span>Mute User</span>
-                            </button>
+                            <div x-show="showMenu" @click.away="showMenu = false" x-transition
+                                class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg border z-50 py-2">
+                                <!-- View Profile -->
+                                <a
+                                    :href="`/space/${$store.messaging.receiver.username}-${$store.messaging.receiver.id}`"
+                                    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+                                >
+                                    <span>View Profile</span>
+                                </a>
+                                <!-- Media -->
+                                <button type="button"
+                                    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+                                    @click="showMediaScreen = true; mediaTab = 'sent'; showMenu = false">
+                                    <span>Media</span>
+                                </button>
+                                <!-- Block User -->
+                                <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2 text-red-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
+                                    </svg>
+                                    <span>Block User</span>
+                                </button>
+                                <!-- Mute -->
+                                <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
+                                    </svg>
+                                    <span>Mute User</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </template>
 
                     <template x-if="!showMediaScreen">
                         <div id="chat-scroll" x-data="{ showLoadMore: false }" @scroll="$store.messaging.scrollHandler; showLoadMore = $event.target.scrollTop <= 10" class="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-gray-50 relative">
@@ -748,139 +750,141 @@
                         </div>
                     </template>
 
-<!-- Media Screen Template -->
-<template x-if="showMediaScreen">
-    <div class="flex flex-col flex-1 overflow-hidden bg-white">
-        <!-- Header: Back arrow + Media Tabs on same line, no username -->
-        <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center">
-            <button @click="showMediaScreen = false"
-                class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 text-pink-600 text-lg mr-4"
-                title="Back to Chat">
-                ←
-            </button>
-            <div class="flex gap-2">
-                <button
-                    @click="mediaTab = 'sent'"
-                    :class="mediaTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                    class="px-4 py-2 transition"
-                >Sent Media</button>
-                <button
-                    @click="mediaTab = 'received'"
-                    :class="mediaTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                    class="px-4 py-2 transition"
-                >Received Media</button>
-            </div>
-        </div>
-        <!-- Media Grid -->
-        <div class="flex-1 overflow-y-auto p-4 grid gap-4"
-            style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-            <template x-for="(media, mediaIdx) in $store.messaging.messages.filter(m =>
-                m.attachments?.length &&
-                (mediaTab === 'sent'
-                    ? m.sender_id === $store.messaging.authUser.id
-                    : m.sender_id !== $store.messaging.authUser.id)
-            ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i})))" :key="`${media._msgId}-${media._idx}`">
-                <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
-                    @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
-                        m.attachments?.length &&
-                        (mediaTab === 'sent'
-                            ? m.sender_id === $store.messaging.authUser.id
-                            : m.sender_id !== $store.messaging.authUser.id)
-                    ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i}))), index: mediaIdx })">
-                    <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
-                        <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
-                    </template>
-                    <template x-if="['mp4','mov','webm'].includes(media.extension)">
-                        <video :src="media.url || media.file_path || media.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
-                    </template>
-                </div>
-            </template>
-            <template x-if="$store.messaging.messages.filter(m =>
-                m.attachments?.length &&
-                (mediaTab === 'sent'
-                    ? m.sender_id === $store.messaging.authUser.id
-                    : m.sender_id !== $store.messaging.authUser.id)
-            ).flatMap(m => m.attachments).length === 0">
-                <div class="text-center text-gray-400 text-sm py-4 col-span-full">No media found.</div>
-            </template>
-        </div>
-    </div>
-</template>
-
-                    <!-- Message Input -->
-                    <div class="sticky bottom-0 z-10 p-3 border-t bg-white">
-                        <!-- File Previews -->
-                        <div 
-                            x-show="$store.messaging.selectedFiles.length > 0" 
-                            class="flex flex-row gap-2 overflow-x-auto mb-2"
-                            style="padding-bottom: 2px;"
-                        >
-                            <template x-for="(file, index) in $store.messaging.selectedFiles" :key="file.id || index">
-                                <div class="relative group flex-shrink-0 w-20 h-20 rounded-lg border border-gray-200 bg-white overflow-hidden"
-                                    @click="$dispatch('open-preview-modal', { files: $store.messaging.selectedFiles, index })">
-                                    <!-- File Type Icon (top right, no bg, only 3 types) -->
-                                    <div class="absolute top-1 right-1 z-20 text-xl select-none">
-                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
-                                            <span title="Image">🖼️</span>
+                    <!-- Media Screen Template -->
+                    <template x-if="showMediaScreen">
+                        <div class="flex flex-col flex-1 overflow-hidden bg-white">
+                            <!-- Header: Back arrow + Media Tabs on same line, no username -->
+                            <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center">
+                                <button @click="showMediaScreen = false"
+                                    class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 text-pink-600 text-lg mr-4"
+                                    title="Back to Chat">
+                                    ←
+                                </button>
+                                <div class="flex gap-2">
+                                    <button
+                                        @click="mediaTab = 'sent'"
+                                        :class="mediaTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                                        class="px-4 py-2 transition"
+                                    >Sent Media</button>
+                                    <button
+                                        @click="mediaTab = 'received'"
+                                        :class="mediaTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                                        class="px-4 py-2 transition"
+                                    >Received Media</button>
+                                </div>
+                            </div>
+                            <!-- Media Grid -->
+                            <div class="flex-1 overflow-y-auto p-4 grid gap-4"
+                                style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+                                <template x-for="(media, mediaIdx) in $store.messaging.messages.filter(m =>
+                                    m.attachments?.length &&
+                                    (mediaTab === 'sent'
+                                        ? m.sender_id === $store.messaging.authUser.id
+                                        : m.sender_id !== $store.messaging.authUser.id)
+                                ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i})))" :key="`${media._msgId}-${media._idx}`">
+                                    <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
+                                        @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
+                                            m.attachments?.length &&
+                                            (mediaTab === 'sent'
+                                                ? m.sender_id === $store.messaging.authUser.id
+                                                : m.sender_id !== $store.messaging.authUser.id)
+                                        ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i}))), index: mediaIdx })">
+                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
+                                            <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
                                         </template>
-                                        <template x-if="['mp4','mov','webm'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
-                                            <span title="Video">🎬</span>
-                                        </template>
-                                        <template x-if="['mp3','wav','ogg'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
-                                            <span title="Audio">🎵</span>
+                                        <template x-if="['mp4','mov','webm'].includes(media.extension)">
+                                            <video :src="media.url || media.file_path || media.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
                                         </template>
                                     </div>
-                                    <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp4','mov','webm'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
-                                        <video :src="file.url || file.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
-                                    </template>
-                                    <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['jpg','jpeg','png','gif','webp'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
-                                        <img :src="file.url || file.path" class="w-full h-full object-cover" alt="">
-                                    </template>
-                                    <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp3','wav','ogg'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
-                                        <div class="flex flex-col items-center justify-center w-full h-full text-blue-500">
-                                            <span class="text-4xl">🎵</span>
-                                            <audio :src="file.url || file.path" controls class="w-full mt-1"></audio>
-                                        </div>
-                                    </template>
-                                    <button 
-                                        @click="$store.messaging.removeFile(index)" 
-                                        class="absolute top-1 left-1 bg-white/80 hover:bg-white text-red-500 rounded-full p-1 text-xs shadow"
-                                        title="Remove"
-                                    >×</button>
-                                </div>
-                            </template>
+                                </template>
+                                <template x-if="$store.messaging.messages.filter(m =>
+                                    m.attachments?.length &&
+                                    (mediaTab === 'sent'
+                                        ? m.sender_id === $store.messaging.authUser.id
+                                        : m.sender_id !== $store.messaging.authUser.id)
+                                ).flatMap(m => m.attachments).length === 0">
+                                    <div class="text-center text-gray-400 text-sm py-4 col-span-full">No media found.</div>
+                                </template>
+                            </div>
                         </div>
+                    </template>
 
-                        <form @submit.prevent="handleSend" class="flex items-center gap-2">
-                            <button type="button" 
-                                @click="showMediaModal = true"
-                                :disabled="$store.messaging.selectedFiles.length >= 20"
-                                class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-pink-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                title="Add files (max 20)">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                            </button>
+                    <!-- Message Input -->
+                    <template x-if="!showMediaScreen">
+                        <div class="sticky bottom-0 z-10 p-3 border-t bg-white">
+                            <!-- File Previews -->
+                            <div 
+                                x-show="$store.messaging.selectedFiles.length > 0" 
+                                class="flex flex-row gap-2 overflow-x-auto mb-2"
+                                style="padding-bottom: 2px;"
+                            >
+                                <template x-for="(file, index) in $store.messaging.selectedFiles" :key="file.id || index">
+                                    <div class="relative group flex-shrink-0 w-20 h-20 rounded-lg border border-gray-200 bg-white overflow-hidden"
+                                        @click="$dispatch('open-preview-modal', { files: $store.messaging.selectedFiles, index })">
+                                        <!-- File Type Icon (top right, no bg, only 3 types) -->
+                                        <div class="absolute top-1 right-1 z-20 text-xl select-none">
+                                            <template x-if="['jpg','jpeg','png','gif','webp'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                                <span title="Image">🖼️</span>
+                                            </template>
+                                            <template x-if="['mp4','mov','webm'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                                <span title="Video">🎬</span>
+                                            </template>
+                                            <template x-if="['mp3','wav','ogg'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                                <span title="Audio">🎵</span>
+                                            </template>
+                                        </div>
+                                        <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp4','mov','webm'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                            <video :src="file.url || file.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
+                                        </template>
+                                        <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['jpg','jpeg','png','gif','webp'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                            <img :src="file.url || file.path" class="w-full h-full object-cover" alt="">
+                                        </template>
+                                        <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp3','wav','ogg'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                            <div class="flex flex-col items-center justify-center w-full h-full text-blue-500">
+                                                <span class="text-4xl">🎵</span>
+                                                <audio :src="file.url || file.path" controls class="w-full mt-1"></audio>
+                                            </div>
+                                        </template>
+                                        <button 
+                                            @click="$store.messaging.removeFile(index)" 
+                                            class="absolute top-1 left-1 bg-white/80 hover:bg-white text-red-500 rounded-full p-1 text-xs shadow"
+                                            title="Remove"
+                                        >×</button>
+                                    </div>
+                                </template>
+                            </div>
 
-                            <textarea 
-                                x-model="newMessage"
-                                placeholder="Type a message..."
-                                rows="1"
-                                class="flex-1 px-4 py-2 border rounded-full text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 max-h-[6.5rem] overflow-y-auto"
-                                @input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 104) + 'px'"
-                            ></textarea>
+                            <form @submit.prevent="handleSend" class="flex items-center gap-2">
+                                <button type="button" 
+                                    @click="showMediaModal = true"
+                                    :disabled="$store.messaging.selectedFiles.length >= 20"
+                                    class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-pink-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Add files (max 20)">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                    </svg>
+                                </button>
 
-                            <button type="submit"
-                                class="bg-pink-500 text-white px-4 py-2 rounded-full text-sm hover:bg-pink-600 transition flex items-center gap-1"
-                                :disabled="(!newMessage.trim() && $store.messaging.selectedFiles.length === 0) || $store.messaging.isLoading">
-                                <span x-show="!$store.messaging.isLoading">Send</span>
-                                <span x-show="$store.messaging.isLoading">Sending...</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                </svg>
-                            </button>
-                        </form>
-                    </div>
+                                <textarea 
+                                    x-model="newMessage"
+                                    placeholder="Type a message..."
+                                    rows="1"
+                                    class="flex-1 px-4 py-2 border rounded-full text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 max-h-[6.5rem] overflow-y-auto"
+                                    @input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 104) + 'px'"
+                                ></textarea>
+
+                                <button type="submit"
+                                    class="bg-pink-500 text-white px-4 py-2 rounded-full text-sm hover:bg-pink-600 transition flex items-center gap-1"
+                                    :disabled="(!newMessage.trim() && $store.messaging.selectedFiles.length === 0) || $store.messaging.isLoading">
+                                    <span x-show="!$store.messaging.isLoading">Send</span>
+                                    <span x-show="$store.messaging.isLoading">Sending...</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                    </svg>
+                                </button>
+                            </form>
+                        </div>
+                    </template>
                 </div>
             </template>
 
