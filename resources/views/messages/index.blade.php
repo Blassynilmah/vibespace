@@ -46,10 +46,12 @@
                             <div class="flex items-center gap-3">
                                 <button
                                     @click="
-                                        if ($refs.previewVideo.paused) {
-                                            $refs.previewVideo.play();
-                                        } else {
-                                            $refs.previewVideo.pause();
+                                        if ($refs.previewVideo.src && !$refs.previewVideo.src.endsWith('/')) {
+                                            if ($refs.previewVideo.paused) {
+                                                $refs.previewVideo.play();
+                                            } else {
+                                                $refs.previewVideo.pause();
+                                            }
                                         }
                                     "
                                     class="px-1 hover:text-pink-400"
