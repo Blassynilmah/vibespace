@@ -84,66 +84,99 @@
     </div>
 </template>
 
-<!-- Video Preview with Custom Controls -->
-<template x-if="focusedPreviewFiles[focusedPreviewIndex].extension && ['mp4','mov','avi','webm'].includes(focusedPreviewFiles[focusedPreviewIndex].extension.toLowerCase())">
-    <div class="relative group flex flex-col items-center justify-center">
-        <video
-            x-ref="previewVideo"
-            :src="focusedPreviewFiles[focusedPreviewIndex].url || focusedPreviewFiles[focusedPreviewIndex].file_path"
-            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
-            @timeupdate="videoCurrentTime = $refs.previewVideo.currentTime"
-            @loadedmetadata="videoDuration = $refs.previewVideo.duration"
-            @volumechange="videoMuted = $refs.previewVideo.muted"
-            controlslist="nodownload noremoteplayback"
-            @contextmenu.prevent
-            @ended="videoCurrentTime = 0"
-            :muted="videoMuted"
-            :autoplay="false"
-            playsinline
-        ></video>
-        <!-- Timers above the bar -->
-        <div class="absolute bottom-16 left-0 w-full flex justify-between px-6">
-            <span class="text-xs font-mono text-white" x-text="formatTime(videoCurrentTime)"></span>
-            <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
-        </div>
-        <!-- Progress Bar -->
-        <div class="absolute bottom-12 left-1/2 -translate-x-1/2 w-[80%]">
-            <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
-                 @click="$refs.previewVideo.currentTime = (videoDuration * ($event.offsetX / $event.target.offsetWidth))">
-                <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
-                     :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
+<!-- Fullscreen Preview Modal -->
+<template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number'">
+    <div class="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center" style="backdrop-filter: blur(2px);">
+        <button @click="focusedPreviewFiles = []; focusedPreviewIndex = null"
+            class="absolute top-4 right-4 text-white text-3xl hover:text-pink-300 transition z-20">
+            ×
+        </button>
+        <template x-if="focusedPreviewFiles[focusedPreviewIndex]">
+            <div class="relative group flex items-center justify-center w-full h-full">
+                <!-- Video Preview -->
+                <template x-if="['mp4','mov','webm'].includes((focusedPreviewFiles[focusedPreviewIndex].extension || (focusedPreviewFiles[focusedPreviewIndex].filename ? focusedPreviewFiles[focusedPreviewIndex].filename.split('.').pop().toLowerCase() : '')))">
+                    <div class="relative flex flex-col items-center justify-center w-full h-full">
+                        <video
+                            x-ref="previewVideo"
+                            :src="focusedPreviewFiles[focusedPreviewIndex].url || focusedPreviewFiles[focusedPreviewIndex].file_path"
+                            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
+                            :muted="videoMuted"
+                            playsinline
+                            preload="metadata"
+                            @contextmenu.prevent
+                            @timeupdate="videoCurrentTime = $refs.previewVideo.currentTime"
+                            @loadedmetadata="videoDuration = $refs.previewVideo.duration"
+                            @volumechange="videoMuted = $refs.previewVideo.muted"
+                            @ended="videoCurrentTime = 0"
+                        ></video>
+                        <!-- Timers above the bar -->
+                        <div class="absolute bottom-16 left-0 w-full flex justify-between px-6 pointer-events-none select-none z-10">
+                            <span class="text-xs font-mono text-white" x-text="formatTime(videoCurrentTime)"></span>
+                            <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
+                        </div>
+                        <!-- Progress Bar -->
+                        <div class="absolute bottom-12 left-1/2 -translate-x-1/2 w-[80%] z-10">
+                            <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
+                                 @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
+                                 @mouseleave="hoverTime = null"
+                                 @click="$refs.previewVideo.currentTime = (videoDuration * ($event.offsetX / $event.target.offsetWidth))">
+                                <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
+                                     :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
+                                <!-- Hover time indicator -->
+                                <template x-if="hoverTime !== null">
+                                    <div class="absolute -top-6 left-0 text-xs text-white font-mono px-2 py-1 bg-black/80 rounded"
+                                         :style="`left: calc(${(hoverTime / videoDuration) * 100}% - 24px);`"
+                                         x-text="formatTime(hoverTime)">
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        <!-- Play/Pause Button (bottom left) -->
+                        <button
+                            @click="
+                                if ($refs.previewVideo.paused) {
+                                    $refs.previewVideo.play();
+                                } else {
+                                    $refs.previewVideo.pause();
+                                }
+                            "
+                            class="absolute bottom-4 left-6 bg-black/70 text-white rounded-full p-3 hover:text-pink-400 z-10"
+                        >
+                            <template x-if="$refs.previewVideo && $refs.previewVideo.paused">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><polygon points="6,4 18,10 6,16" /></svg>
+                            </template>
+                            <template x-if="$refs.previewVideo && !$refs.previewVideo.paused">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="4" width="3" height="12" /><rect x="11" y="4" width="3" height="12" /></svg>
+                            </template>
+                        </button>
+                        <!-- Mute Button (bottom right) -->
+                        <button
+                            @click="$refs.previewVideo.muted = !$refs.previewVideo.muted"
+                            class="absolute bottom-4 right-6 bg-black/70 text-white rounded-full p-3 hover:text-pink-400 z-10"
+                        >
+                            <template x-if="!videoMuted">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/></svg>
+                            </template>
+                            <template x-if="videoMuted">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+                            </template>
+                        </button>
+                    </div>
+                </template>
+                <!-- Image Preview -->
+                <template x-if="['jpg','jpeg','png','gif','webp'].includes((focusedPreviewFiles[focusedPreviewIndex].extension || (focusedPreviewFiles[focusedPreviewIndex].filename ? focusedPreviewFiles[focusedPreviewIndex].filename.split('.').pop().toLowerCase() : '')))">
+                    <img :src="focusedPreviewFiles[focusedPreviewIndex].url || focusedPreviewFiles[focusedPreviewIndex].file_path"
+                        class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl object-contain" @contextmenu.prevent />
+                </template>
             </div>
-        </div>
-        <!-- Play/Pause Button (bottom left) -->
-        <button
-            @click="
-                if ($refs.previewVideo.paused) {
-                    $refs.previewVideo.play();
-                } else {
-                    $refs.previewVideo.pause();
-                }
-            "
-            class="absolute bottom-4 left-6 bg-black/70 text-white rounded-full p-2 hover:text-pink-400"
-        >
-            <template x-if="$refs.previewVideo && $refs.previewVideo.paused">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><polygon points="6,4 18,10 6,16" /></svg>
-            </template>
-            <template x-if="$refs.previewVideo && !$refs.previewVideo.paused">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="4" width="3" height="12" /><rect x="11" y="4" width="3" height="12" /></svg>
-            </template>
-        </button>
-        <!-- Mute Button (bottom right) -->
-        <button
-            @click="$refs.previewVideo.muted = !$refs.previewVideo.muted"
-            class="absolute bottom-4 right-6 bg-black/70 text-white rounded-full p-2 hover:text-pink-400"
-        >
-            <template x-if="!videoMuted">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/></svg>
-            </template>
-            <template x-if="videoMuted">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="2"/></svg>
-            </template>
-        </button>
+        </template>
+        <!-- Navigation Buttons -->
+        <button @click="focusedPreviewIndex = Math.max(0, focusedPreviewIndex - 1)"
+                :disabled="focusedPreviewIndex === 0"
+                class="absolute left-4 top-1/2 transform -translate-y-1/2 text-white text-3xl z-20">‹</button>
+        <button @click="focusedPreviewIndex = Math.min(focusedPreviewFiles.length - 1, focusedPreviewIndex + 1)"
+                :disabled="focusedPreviewIndex === focusedPreviewFiles.length - 1"
+                class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-3xl z-20">›</button>
     </div>
 </template>
     <!-- File Picker Modal (mirroring create.blade.php CSS/structure, but keeping logic) -->
@@ -1489,7 +1522,8 @@ Alpine.data('messageInbox', () => ({
         videoCurrentTime: 0,
         videoDuration: 0,
         videoMuted: true,
-        
+        hoverTime: null,
+
         formatTime(seconds) {
             if (!seconds || isNaN(seconds)) return "00:00";
             const m = Math.floor(seconds / 60);
