@@ -750,7 +750,7 @@
                         </div>
                     </template>
 
-<!-- Media Screen Template with Date Grouping -->
+<!-- Media Screen Template with Date Grouping (No Blade curly braces, Alpine only) -->
 <template x-if="showMediaScreen">
     <div class="flex flex-col flex-1 overflow-hidden bg-white">
         <!-- Header: Back arrow + Media Tabs -->
@@ -812,7 +812,7 @@
                 return Object.entries(groups).map(([label, items]) => ({ label, items }));
             })()" :key="groupIdx">
                 <div class="mb-8">
-                    <div class="text-xs font-bold text-pink-600 mb-2 uppercase tracking-wide">{{ group.label }}</div>
+                    <div class="text-xs font-bold text-pink-600 mb-2 uppercase tracking-wide" x-text="group.label"></div>
                     <div class="grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
                         <template x-for="(media, mediaIdx) in group.items" :key="`${media._msgId}-${media._idx}`">
                             <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
