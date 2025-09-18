@@ -124,34 +124,34 @@
                             @volumechange="videoMuted = $refs.previewVideo.muted"
                             @ended="videoCurrentTime = 0"
                         ></video>
-<!-- Timers above the bar -->
-<div class="absolute left-1/2 -translate-x-1/2 w-[60%] flex justify-between px-2 pointer-events-none select-none z-10" style="bottom: 24px;">
-    <span class="text-xs font-mono text-white" x-text="formatTime(videoCurrentTime)"></span>
-    <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
-</div>
-<!-- Progress Bar -->
-<div class="absolute left-1/2 -translate-x-1/2 w-[60%] z-10" style="bottom: 16px;">
-    <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
-        @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
-        @mouseleave="hoverTime = null"
-        @click="
-            if ($refs.previewVideo && videoDuration) {
-                const percent = $event.offsetX / $event.target.offsetWidth;
-                $refs.previewVideo.currentTime = percent * videoDuration;
-                videoCurrentTime = $refs.previewVideo.currentTime;
-            }
-        ">
-        <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
-            :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
-        <!-- Hover time indicator -->
-        <template x-if="hoverTime !== null">
-            <div class="absolute -top-6 left-0 text-xs text-white font-mono px-2 py-1 bg-black/80 rounded"
-                :style="`left: calc(${(hoverTime / videoDuration) * 100}% - 24px);`"
-                x-text="formatTime(hoverTime)">
-            </div>
-        </template>
-    </div>
-</div>
+                        <!-- Timers above the bar -->
+                        <div class="absolute left-1/2 -translate-x-1/2 w-[60%] flex justify-between px-2 pointer-events-none select-none z-10" style="bottom: 24px;">
+                            <span class="text-xs font-mono text-white" x-text="formatTime(videoCurrentTime)"></span>
+                            <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
+                        </div>
+                        <!-- Progress Bar -->
+                        <div class="absolute left-1/2 -translate-x-1/2 w-[60%] z-10" style="bottom: 16px;">
+                            <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
+                                @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
+                                @mouseleave="hoverTime = null"
+                                @click="
+                                    if ($refs.previewVideo && videoDuration) {
+                                        const percent = $event.offsetX / $event.target.offsetWidth;
+                                        $refs.previewVideo.currentTime = percent * videoDuration;
+                                        videoCurrentTime = $refs.previewVideo.currentTime;
+                                    }
+                                ">
+                                <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
+                                    :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
+                                <!-- Hover time indicator -->
+                                <template x-if="hoverTime !== null">
+                                    <div class="absolute -top-6 left-0 text-xs text-white font-mono px-2 py-1 bg-black/80 rounded"
+                                        :style="`left: calc(${(hoverTime / videoDuration) * 100}% - 24px);`"
+                                        x-text="formatTime(hoverTime)">
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
                         <!-- Play/Pause Button (bottom left) -->
                         <button
                             @click="
