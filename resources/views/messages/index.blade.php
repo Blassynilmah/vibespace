@@ -1197,8 +1197,9 @@ Alpine.data('messageInbox', () => ({
     focusedPreviewIndex: null,
 
     openPreviewModal(files, index = 0) {
-        this.focusedPreviewFiles = files;
-        this.focusedPreviewIndex = index;
+        this.showPreviewModal = true;
+        this.previewFiles = files;
+        this.previewIndex = index;
     },
 
     init() {
@@ -1442,15 +1443,17 @@ Alpine.data('messageInbox', () => ({
         show: false,
         files: [],
         index: 0,
-        // For file picker preview
-        showPreviewModal = true;
-        previewFiles = selectedFiles;
-        previewIndex = index;
+        videoCurrentTime: 0,
+        videoDuration: 0,
+        videoMuted: true,
+        hoverTime: null,
 
-        // For attachments preview
-        showPreviewModal = true;
-        previewFiles = message.attachments;
-        previewIndex = index;
+        formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return "00:00";
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        },
 
         open(files, startIndex = 0) {
             this.files = files;
