@@ -748,71 +748,64 @@
                         </div>
                     </template>
 
-                    <template x-if="showMediaScreen">
-                        <div class="flex flex-col flex-1 overflow-hidden bg-white">
-                            <!-- Sticky Chat Header (same as chat, with back arrow) -->
-                            <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <button @click="showMediaScreen = false"
-                                        class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 mr-2 text-pink-600 text-lg"
-                                        title="Back to Chat">
-                                        ←
-                                    </button>
-                                    <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-pink-200 flex items-center justify-center text-pink-600 text-sm sm:text-base">
-                                        <span x-text="$store.messaging.receiver.username.charAt(0).toUpperCase()"></span>
-                                    </div>
-                                    <span class="font-semibold text-pink-600 text-base sm:text-lg truncate max-w-[60vw] sm:max-w-none"
-                                        x-text="'@' + $store.messaging.receiver.username"></span>
-                                </div>
-                            </div>
-                            <!-- Media Tabs -->
-                            <div class="flex justify-center gap-2 border-b bg-white py-2">
-                                <button
-                                    @click="mediaTab = 'sent'"
-                                    :class="mediaTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                                    class="px-4 py-2 transition"
-                                >Sent Media</button>
-                                <button
-                                    @click="mediaTab = 'received'"
-                                    :class="mediaTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
-                                    class="px-4 py-2 transition"
-                                >Received Media</button>
-                            </div>
-                            <!-- Media Grid -->
-                            <div class="flex-1 overflow-y-auto p-4 grid gap-4"
-                                style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-<template x-for="(media, mediaIdx) in $store.messaging.messages.filter(m =>
-    m.attachments?.length &&
-    (mediaTab === 'sent'
-        ? m.sender_id === $store.messaging.authUser.id
-        : m.sender_id !== $store.messaging.authUser.id)
-).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i})))" :key="`${media._msgId}-${media._idx}`">
-    <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
-        @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
-            m.attachments?.length &&
-            (mediaTab === 'sent'
-                ? m.sender_id === $store.messaging.authUser.id
-                : m.sender_id !== $store.messaging.authUser.id)
-        ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i}))), index: mediaIdx })">
-                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
-                                            <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
-                                        </template>
-                                        <template x-if="['mp4','mov','webm'].includes(media.extension)">
-                                            <video :src="media.url || media.file_path || media.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
-                                        </template>
-                                    </div>
-                                </template>
-                                <template x-if="$store.messaging.messages.filter(m =>
-                                    m.attachments?.length &&
-                                    (mediaTab === 'sent'
-                                        ? m.sender_id === $store.messaging.authUser.id
-                                        : m.sender_id !== $store.messaging.authUser.id)
-                                ).flatMap(m => m.attachments).length === 0">
-                                    <div class="text-center text-gray-400 text-sm py-4 col-span-full">No media found.</div>
-                                </template>
-                            </div>
-                        </div>
+<!-- Media Screen Template -->
+<template x-if="showMediaScreen">
+    <div class="flex flex-col flex-1 overflow-hidden bg-white">
+        <!-- Header: Back arrow + Media Tabs on same line, no username -->
+        <div class="sticky top-0 z-10 px-3 py-2 sm:px-4 sm:py-3 border-b bg-gradient-to-r from-pink-50 to-purple-50 flex items-center">
+            <button @click="showMediaScreen = false"
+                class="flex items-center justify-center w-8 h-8 bg-white/90 hover:bg-pink-100 rounded-full shadow-sm border border-gray-200 text-pink-600 text-lg mr-4"
+                title="Back to Chat">
+                ←
+            </button>
+            <div class="flex gap-2">
+                <button
+                    @click="mediaTab = 'sent'"
+                    :class="mediaTab === 'sent' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                    class="px-4 py-2 transition"
+                >Sent Media</button>
+                <button
+                    @click="mediaTab = 'received'"
+                    :class="mediaTab === 'received' ? 'text-pink-600 font-bold border-b-2 border-pink-500' : 'text-gray-500'"
+                    class="px-4 py-2 transition"
+                >Received Media</button>
+            </div>
+        </div>
+        <!-- Media Grid -->
+        <div class="flex-1 overflow-y-auto p-4 grid gap-4"
+            style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
+            <template x-for="(media, mediaIdx) in $store.messaging.messages.filter(m =>
+                m.attachments?.length &&
+                (mediaTab === 'sent'
+                    ? m.sender_id === $store.messaging.authUser.id
+                    : m.sender_id !== $store.messaging.authUser.id)
+            ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i})))" :key="`${media._msgId}-${media._idx}`">
+                <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
+                    @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
+                        m.attachments?.length &&
+                        (mediaTab === 'sent'
+                            ? m.sender_id === $store.messaging.authUser.id
+                            : m.sender_id !== $store.messaging.authUser.id)
+                    ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i}))), index: mediaIdx })">
+                    <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
+                        <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
                     </template>
+                    <template x-if="['mp4','mov','webm'].includes(media.extension)">
+                        <video :src="media.url || media.file_path || media.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
+                    </template>
+                </div>
+            </template>
+            <template x-if="$store.messaging.messages.filter(m =>
+                m.attachments?.length &&
+                (mediaTab === 'sent'
+                    ? m.sender_id === $store.messaging.authUser.id
+                    : m.sender_id !== $store.messaging.authUser.id)
+            ).flatMap(m => m.attachments).length === 0">
+                <div class="text-center text-gray-400 text-sm py-4 col-span-full">No media found.</div>
+            </template>
+        </div>
+    </div>
+</template>
 
                     <!-- Message Input -->
                     <div class="sticky bottom-0 z-10 p-3 border-t bg-white">
