@@ -3,7 +3,6 @@
 @section('content')
 <div x-data="messageInbox()" x-init="init()" @open-preview-modal.window="openPreviewModal($event.detail.files, $event.detail.index)" class="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
 
-<!-- Unified File Preview Modal (images, videos, files) -->
 <template x-if="showPreviewModal && previewFiles && previewFiles.length > 0 && typeof previewIndex === 'number'">
     <div 
         class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center"
@@ -11,7 +10,6 @@
             videoCurrentTime: 0,
             videoDuration: 0,
             videoMuted: true,
-            hoverTime: null,
             formatTime(seconds) {
                 if (!seconds || isNaN(seconds)) return '00:00';
                 const m = Math.floor(seconds / 60);
@@ -19,93 +17,72 @@
                 return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             }
         }"
-        @keydown.escape.window="showPreviewModal = false"
     >
-        <!-- Close Button -->
         <button @click="showPreviewModal = false" class="absolute top-4 right-4 text-white text-xl sm:text-2xl hover:text-pink-300 transition">×</button>
-        
         <template x-if="previewFiles[previewIndex]">
-            <div class="relative group flex items-center justify-center w-full h-full">
+            <div class="relative group">
                 <!-- Video Preview -->
                 <template x-if="previewFiles[previewIndex].extension && previewFiles[previewIndex].extension.match(/^(mp4|mov|webm)$/i)">
-                    <div class="relative flex flex-col items-center justify-center w-full h-full">
+                    <div class="relative group">
                         <video
                             x-ref="previewVideo"
                             :src="previewFiles[previewIndex].url || previewFiles[previewIndex].path || previewFiles[previewIndex].file_path"
-                            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
-                            :muted="videoMuted"
-                            playsinline
-                            preload="metadata"
-                            @contextmenu.prevent
                             @timeupdate="videoCurrentTime = $refs.previewVideo.currentTime"
                             @loadedmetadata="videoDuration = $refs.previewVideo.duration"
                             @volumechange="videoMuted = $refs.previewVideo.muted"
+                            class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl bg-black"
+                            x-init="videoCurrentTime = 0; videoDuration = 0; videoMuted = $refs.previewVideo.muted"
+                            controlslist="nodownload noremoteplayback"
+                            @contextmenu.prevent
                             @ended="videoCurrentTime = 0"
                         ></video>
-                        <!-- Timers above the bar -->
-                        <div class="absolute left-1/2 -translate-x-1/2 w-[60%] flex justify-between px-2 pointer-events-none select-none z-10" style="bottom: 64px;">
-                            <span class="text-xs font-mono text-white" x-text="formatTime(videoCurrentTime)"></span>
-                            <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
-                        </div>
-                        <!-- Progress Bar -->
-                        <div class="absolute left-1/2 -translate-x-1/2 w-[60%] z-10" style="bottom: 48px;">
-                            <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
-                                @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
-                                @mouseleave="hoverTime = null"
-                                @click="
-                                    if ($refs.previewVideo && videoDuration) {
-                                        const percent = $event.offsetX / $event.target.offsetWidth;
-                                        $refs.previewVideo.currentTime = percent * videoDuration;
-                                        videoCurrentTime = $refs.previewVideo.currentTime;
-                                    }
-                                ">
-                                <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
-                                    :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
-                                <!-- Hover time indicator -->
-                                <template x-if="hoverTime !== null">
-                                    <div class="absolute -top-6 left-0 text-xs text-white font-mono px-2 py-1 bg-black/80 rounded"
-                                        :style="`left: calc(${(hoverTime / videoDuration) * 100}% - 24px);`"
-                                        x-text="formatTime(hoverTime)">
-                                    </div>
-                                </template>
+                        <!-- Custom Progress Bar & Controls -->
+                        <div class="absolute bottom-0 left-0 w-full bg-black/70 text-white px-4 py-2 flex items-center justify-between gap-3 rounded-b-lg">
+                            <div class="flex items-center gap-3">
+                                <button
+                                    @click="
+                                        if ($refs.previewVideo.src && !$refs.previewVideo.src.endsWith('/')) {
+                                            if ($refs.previewVideo.paused) {
+                                                $refs.previewVideo.play();
+                                            } else {
+                                                $refs.previewVideo.pause();
+                                            }
+                                        }
+                                    "
+                                    class="px-1 hover:text-pink-400"
+                                >
+                                    <template x-if="$refs.previewVideo && $refs.previewVideo.paused">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><polygon points="6,4 18,10 6,16" /></svg>
+                                    </template>
+                                    <template x-if="$refs.previewVideo && !$refs.previewVideo.paused">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="4" width="3" height="12" /><rect x="11" y="4" width="3" height="12" /></svg>
+                                    </template>
+                                </button>
+                                <button @click="$refs.previewVideo.muted = !$refs.previewVideo.muted" class="px-1 hover:text-pink-400">
+                                    <template x-if="!videoMuted">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/></svg>
+                                    </template>
+                                    <template x-if="videoMuted">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="2"/></svg>
+                                    </template>
+                                </button>
+                                <span class="text-xs font-mono min-w-[48px]" x-text="formatTime(videoCurrentTime)"></span>
                             </div>
+                            <div class="flex-1 mx-3">
+                                <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
+                                     @click="$refs.previewVideo.currentTime = (videoDuration * ($event.offsetX / $event.target.offsetWidth))">
+                                    <div class="absolute top-0 left-0 h-2 bg-pink-500 rounded-full"
+                                         :style="`width: ${(videoCurrentTime / videoDuration) * 100 || 0}%`"></div>
+                                </div>
+                            </div>
+                            <span class="text-xs font-mono min-w-[48px]" x-text="formatTime(videoDuration)"></span>
                         </div>
-                        <!-- Play/Pause Button (bottom left) -->
-                        <button
-                            @click="
-                                if ($refs.previewVideo.paused) {
-                                    $refs.previewVideo.play();
-                                } else {
-                                    $refs.previewVideo.pause();
-                                }
-                            "
-                            class="absolute bottom-8 left-8 bg-black/70 text-white rounded-full p-3 hover:text-pink-400 z-10"
-                        >
-                            <template x-if="$refs.previewVideo && $refs.previewVideo.paused">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><polygon points="6,4 18,10 6,16" /></svg>
-                            </template>
-                            <template x-if="$refs.previewVideo && !$refs.previewVideo.paused">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><rect x="6" y="4" width="3" height="12" /><rect x="11" y="4" width="3" height="12" /></svg>
-                            </template>
-                        </button>
-                        <!-- Mute Button (bottom right) -->
-                        <button
-                            @click="$refs.previewVideo.muted = !$refs.previewVideo.muted"
-                            class="absolute bottom-8 right-8 bg-black/70 text-white rounded-full p-3 hover:text-pink-400 z-10"
-                        >
-                            <template x-if="!videoMuted">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/></svg>
-                            </template>
-                            <template x-if="videoMuted">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7 text-red-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9 7H5a1 1 0 00-1 1v4a1 1 0 001 1h4l4 4V3l-4 4z"/><line x1="16" y1="4" x2="4" y2="16" stroke="currentColor" stroke-width="2"/></svg>
-                            </template>
-                        </button>
                     </div>
                 </template>
                 <!-- Image Preview -->
                 <template x-if="previewFiles[previewIndex].extension && previewFiles[previewIndex].extension.match(/^(jpg|jpeg|png|gif|webp)$/i)">
                     <img :src="previewFiles[previewIndex].url || previewFiles[previewIndex].path || previewFiles[previewIndex].file_path"
-                        class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl object-contain" @contextmenu.prevent />
+                        class="max-w-[90vw] max-h-[80vh] rounded-lg shadow-xl object-contain">
                 </template>
                 <!-- Fallback for other files -->
                 <template x-if="!previewFiles[previewIndex].extension || !previewFiles[previewIndex].extension.match(/^(jpg|jpeg|png|gif|webp|mp4|mov|webm)$/i)">
@@ -592,89 +569,124 @@
                                         ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
                                         : 'bg-white border border-gray-200 rounded-bl-none'">
 
-                                    <!-- 📌 Attachments Preview (Modern, Taller, Unified for Images & Videos) -->
-                                    <template x-if="message.attachments?.length">
-                                        <div class="relative mt-3 group cursor-pointer w-full max-w-full" x-data="{ index: 0 }">
-                                            <template x-if="message.attachments[index]">
-                                                <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;" @click.stop="$dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
-                                                    <!-- Spinner for pending attachments -->
-                                                    <template x-if="message.attachments[index].pending">
-                                                        <div class="flex items-center justify-center h-full">
-                                                            <svg class="animate-spin h-10 w-10 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                                                            </svg>
-                                                        </div>
-                                                    </template>
-                                                    <!-- Image Preview (robust for all sources) -->
-                                                    <template x-if="!message.attachments[index].pending && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                        <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
-                                                    </template>
-                                                    <!-- Video Thumbnail Preview (robust for all sources) -->
-                                                    <template x-if="!message.attachments[index].pending && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                        <div class="relative w-full h-full">
-                                                            <video
-                                                                :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
-                                                                class="object-cover w-full h-full rounded-lg mb-2"
-                                                                style="height: 320px;"
-                                                                autoplay="false"
-                                                                muted
-                                                                playsinline
-                                                                @play="$event.target.pause()"
-                                                            ></video>
-                                                            <!-- Play button overlay -->
-                                                            <button
-                                                                type="button"
-                                                                class="absolute inset-0 flex items-center justify-center"
-                                                                style="pointer-events: none;"
-                                                                tabindex="-1"
-                                                            >
-                                                                <svg class="h-16 w-16 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
-                                                                    <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
-                                                                    <polygon points="26,20 50,32 26,44" fill="white"/>
-                                                                </svg>
-                                                            </button>
-                                                        </div>
-                                                    </template>
-                                                    <!-- Fallback for other files (robust for all sources) -->
-                                                    <template x-if="!message.attachments[index].pending && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                        <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
-                                                            <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
-                                                            <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
-                                                        </div>
-                                                    </template>
-                                                </div>
-                                            </template>
-
-                                            <!-- ◀️▶️ Navigation Arrows -->
-                                            <button @click.stop="index = index > 0 ? index - 1 : index"
-                                                    :disabled="index === 0"
-                                                    :class="index === 0 ? 'opacity-30 cursor-not-allowed' : ''"
-                                                    class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-                                                ‹
-                                            </button>
-
-                                            <button @click.stop="index = index < message.attachments.length - 1 ? index + 1 : index"
-                                                    :disabled="index === message.attachments.length - 1"
-                                                    :class="index === message.attachments.length - 1 ? 'opacity-30 cursor-not-allowed' : ''"
-                                                    class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-                                                ›
-                                            </button>
-
-                                            <!-- 📌 File Info -->
-                                            <template x-if="message.attachments[index]">
-                                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
-                                                    <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                        <span class="text-pink-500">🖼️</span>
-                                                    </template>
-                                                    <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                        <span class="text-purple-500">🎬</span>
-                                                    </template>
-                                                    <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
+                                    <!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
+<template x-if="message.attachments?.length">
+    <div class="relative mt-3 group w-full max-w-full" x-data="{
+        index: 0,
+        loading: true,
+        loadedFiles: [],
+        minLoadingTime: 5000,
+        startLoading() {
+            this.loading = true;
+            this.loadedFiles = Array(message.attachments.length).fill(false);
+            const start = Date.now();
+            Promise.all(message.attachments.map((file, i) => {
+                return new Promise(resolve => {
+                    const ext = (file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : ''));
+                    if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+                        const img = new Image();
+                        img.onload = () => { this.loadedFiles[i] = true; resolve(); };
+                        img.onerror = () => { this.loadedFiles[i] = true; resolve(); };
+                        img.src = file.url || file.file_path || file.path;
+                    } else if (['mp4','mov','webm'].includes(ext)) {
+                        const video = document.createElement('video');
+                        video.onloadedmetadata = () => { this.loadedFiles[i] = true; resolve(); };
+                        video.onerror = () => { this.loadedFiles[i] = true; resolve(); };
+                        video.src = file.url || file.file_path || file.path;
+                    } else {
+                        this.loadedFiles[i] = true;
+                        resolve();
+                    }
+                });
+            })).then(() => {
+                const elapsed = Date.now() - start;
+                setTimeout(() => { this.loading = false; }, Math.max(0, this.minLoadingTime - elapsed));
+            });
+        }
+    }"
+    x-init="startLoading()"
+    >
+        <!-- Spinner Overlay -->
+        <template x-if="loading">
+            <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
+                <svg class="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+            </div>
+        </template>
+        <template x-if="message.attachments[index]">
+            <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;">
+                <!-- Image Preview -->
+                <template x-if="!loading && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                    <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
+                </template>
+                <!-- Video Thumbnail Preview -->
+                <template x-if="!loading && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                    <div class="relative w-full h-full">
+                        <video
+                            :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
+                            class="object-cover w-full h-full rounded-lg mb-2"
+                            style="height: 320px;"
+                            autoplay="false"
+                            muted
+                            playsinline
+                            @play="$event.target.pause()"
+                        ></video>
+                        <!-- Play button overlay (smaller) -->
+                        <button
+                            type="button"
+                            class="absolute inset-0 flex items-center justify-center"
+                            style="pointer-events: none;"
+                            tabindex="-1"
+                        >
+                            <svg class="h-10 w-10 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
+                                <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
+                                <polygon points="26,20 50,32 26,44" fill="white"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+                <!-- Fallback for other files -->
+                <template x-if="!loading && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
+                    <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
+                        <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
+                        <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
+                    </div>
+                </template>
+            </div>
+        </template>
+        <!-- Navigation Arrows (disabled while loading) -->
+        <button @click.stop="if(!loading) index = index > 0 ? index - 1 : index"
+                :disabled="loading || index === 0"
+                :class="(loading || index === 0) ? 'opacity-30 cursor-not-allowed' : ''"
+                class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+            ‹
+        </button>
+        <button @click.stop="if(!loading) index = index < message.attachments.length - 1 ? index + 1 : index"
+                :disabled="loading || index === message.attachments.length - 1"
+                :class="(loading || index === message.attachments.length - 1) ? 'opacity-30 cursor-not-allowed' : ''"
+                class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
+            ›
+        </button>
+        <!-- Click to open preview modal (disabled while loading) -->
+        <div class="absolute inset-0" :class="loading ? 'pointer-events-none' : ''"
+            @click.stop="if(!loading) $dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
+        </div>
+        <!-- File Info -->
+        <template x-if="message.attachments[index]">
+            <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
+                <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                    <span class="text-pink-500">🖼️</span>
+                </template>
+                <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
+                    <span class="text-purple-500">🎬</span>
+                </template>
+                <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
+            </div>
+        </template>
+    </div>
+</template>
 
                                     <template x-if="message.attachments?.length">
                                         <div class="my-2"></div>
