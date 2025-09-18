@@ -781,24 +781,19 @@
                             <!-- Media Grid -->
                             <div class="flex-1 overflow-y-auto p-4 grid gap-4"
                                 style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));">
-                                <template x-for="media in $store.messaging.messages.filter(m =>
-                                    m.attachments?.length &&
-                                    (mediaTab === 'sent'
-                                        ? m.sender_id === $store.messaging.authUser.id
-                                        : m.sender_id !== $store.messaging.authUser.id)
-                                ).flatMap(m => m.attachments)" :key="media.id">
-                                    <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
-                                        @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
-                                            m.attachments?.length &&
-                                            (mediaTab === 'sent'
-                                                ? m.sender_id === $store.messaging.authUser.id
-                                                : m.sender_id !== $store.messaging.authUser.id)
-                                        ).flatMap(m => m.attachments), index: $store.messaging.messages.filter(m =>
-                                            m.attachments?.length &&
-                                            (mediaTab === 'sent'
-                                                ? m.sender_id === $store.messaging.authUser.id
-                                                : m.sender_id !== $store.messaging.authUser.id)
-                                        ).flatMap(m => m.attachments).findIndex(a => a.id === media.id) })">
+<template x-for="(media, mediaIdx) in $store.messaging.messages.filter(m =>
+    m.attachments?.length &&
+    (mediaTab === 'sent'
+        ? m.sender_id === $store.messaging.authUser.id
+        : m.sender_id !== $store.messaging.authUser.id)
+).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i})))" :key="`${media._msgId}-${media._idx}`">
+    <div class="aspect-square bg-white border border-gray-300 rounded-xl overflow-hidden relative group cursor-pointer"
+        @click="$dispatch('open-preview-modal', { files: $store.messaging.messages.filter(m =>
+            m.attachments?.length &&
+            (mediaTab === 'sent'
+                ? m.sender_id === $store.messaging.authUser.id
+                : m.sender_id !== $store.messaging.authUser.id)
+        ).flatMap(m => m.attachments.map((a, i) => ({...a, _msgId: m.id, _idx: i}))), index: mediaIdx })">
                                         <template x-if="['jpg','jpeg','png','gif','webp'].includes(media.extension)">
                                             <img :src="media.url || media.file_path || media.path" class="w-full h-full object-cover" alt="">
                                         </template>
