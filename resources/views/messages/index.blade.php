@@ -511,10 +511,10 @@
                             <span x-text="$store.messaging.receiver.username.charAt(0).toUpperCase()"></span>
                         </div>
                         <!-- ✅ Clickable Username -->
-                        <a :href="`/space/${$store.messaging.receiver.username}`"
-                        class="font-semibold text-pink-600 text-base sm:text-lg hover:underline truncate max-w-[60vw] sm:max-w-none"
-                        x-text="'@' + $store.messaging.receiver.username">
-                        </a>
+                        <span
+                            class="font-semibold text-pink-600 text-base sm:text-lg truncate max-w-[60vw] sm:max-w-none"
+                            x-text="'@' + $store.messaging.receiver.username">
+                        </span>
                     </div>
 
                     <!-- Options Dropdown -->
@@ -527,9 +527,12 @@
                         <div x-show="showMenu" @click.away="showMenu = false" x-transition
                             class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg border z-50 py-2">
                             <!-- View Profile -->
-                            <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
-                                <span>View Profile</span>
-                            </button>
+                            <a
+    :href="`/space/${$store.messaging.receiver.username}`"
+    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+>
+    <span>View Profile</span>
+</a>
                             <!-- Follow/Unfollow -->
                             <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
                                 <span x-text="$store.messaging.receiver.is_following ? 'Unfollow' : 'Follow'"></span>
