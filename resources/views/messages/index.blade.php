@@ -86,7 +86,22 @@
 
 <!-- Fullscreen Preview Modal -->
 <template x-if="focusedPreviewFiles && focusedPreviewFiles.length > 0 && typeof focusedPreviewIndex === 'number'">
-    <div class="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center" style="backdrop-filter: blur(2px);">
+    <div 
+        class="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center"
+        style="backdrop-filter: blur(2px);"
+        x-data="{
+            videoCurrentTime: 0,
+            videoDuration: 0,
+            videoMuted: true,
+            hoverTime: null,
+            formatTime(seconds) {
+                if (!seconds || isNaN(seconds)) return '00:00';
+                const m = Math.floor(seconds / 60);
+                const s = Math.floor(seconds % 60);
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+        }"
+        >
         <button @click="focusedPreviewFiles = []; focusedPreviewIndex = null"
             class="absolute top-4 right-4 text-white text-3xl hover:text-pink-300 transition z-20">
             ×
@@ -179,6 +194,7 @@
                 class="absolute right-4 top-1/2 transform -translate-y-1/2 text-white text-3xl z-20">›</button>
     </div>
 </template>
+
     <!-- File Picker Modal (mirroring create.blade.php CSS/structure, but keeping logic) -->
     <div
         x-show="showMediaModal"
