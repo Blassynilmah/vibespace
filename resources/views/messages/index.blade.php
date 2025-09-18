@@ -3,6 +3,20 @@
 @section('content')
 <div x-data="messageInbox()" x-init="init()" @open-preview-modal.window="openPreviewModal($event.detail.files, $event.detail.index)" class="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
 
+<!-- Block Confirm Modal -->
+<template x-if="showBlockModal">
+    <div class="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center" x-cloak>
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
+            <h2 class="text-lg font-bold text-red-600 mb-2">Block User</h2>
+            <p class="mb-4 text-gray-700">Are you sure you want to block this user? You will not receive their messages after blocking.</p>
+            <div class="flex justify-end gap-2">
+                <button @click="showBlockModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button @click="blockUser()" class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Block</button>
+            </div>
+        </div>
+    </div>
+</template>
+
 <template x-if="showPreviewModal && previewFiles && previewFiles.length > 0 && typeof previewIndex === 'number'">
     <div 
         class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center"
@@ -549,20 +563,6 @@
                                     </svg>
                                     <span>Block User</span>
                                 </button>
-
-                                <!-- Block Confirm Modal -->
-                                <template x-if="showBlockModal">
-                                    <div class="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center" x-cloak>
-                                        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
-                                            <h2 class="text-lg font-bold text-red-600 mb-2">Block User</h2>
-                                            <p class="mb-4 text-gray-700">Are you sure you want to block this user? You will not receive their messages after blocking.</p>
-                                            <div class="flex justify-end gap-2">
-                                                <button @click="showBlockModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
-                                                <button @click="blockUser()" class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Block</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </template>
                                 <!-- Mute -->
                                 <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1383,6 +1383,7 @@ Alpine.data('messageInbox', () => ({
     previewIndex: null,
     showMediaScreen: false,
     mediaTab: 'sent', 
+    showBlockModal: false,
 
     openPreviewModal(files, index = 0) {
         this.showPreviewModal = true;
@@ -1446,6 +1447,34 @@ Alpine.data('messageInbox', () => ({
         setTimeout(() => {
             toast.remove();
         }, 3000);
+    },
+
+    async blockUser() {
+        if (!this.$store.messaging.receiver?.id) return;
+        try {
+            const res = await fetch('/block-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    blocked_id: this.$store.messaging.receiver.id,
+                    block_type: 'message'
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                this.showToast('User blocked successfully');
+                this.showBlockModal = false;
+                // Optionally update UI to reflect block state
+            } else {
+                this.showToast(data.error || 'Failed to block user');
+            }
+        } catch (e) {
+            this.showToast('Failed to block user');
+        }
     }
 }));
 
