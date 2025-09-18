@@ -130,7 +130,7 @@
                             <span class="text-xs font-mono text-white" x-text="formatTime(videoDuration)"></span>
                         </div>
                         <!-- Progress Bar -->
-                        <div class="absolute bottom-16 left-1/2 -translate-x-1/2 w-[80%] z-10">
+                        <div class="absolute bottom-16 left-1/2 -translate-x-1/2 w-[60%] z-10">
                             <div class="relative h-2 bg-gray-700 rounded-full cursor-pointer"
                                 @mousemove="hoverTime = videoDuration * ($event.offsetX / $event.target.offsetWidth)"
                                 @mouseleave="hoverTime = null"
