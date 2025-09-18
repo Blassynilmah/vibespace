@@ -584,4 +584,32 @@ public function recentChats()
             ],
         ]);
     }
+
+    public function blockUser(Request $request)
+    {
+        $user = auth()->user();
+        $blockedId = $request->input('blocked_id');
+        $blockType = $request->input('block_type', 'message');
+
+        if (!$blockedId || !in_array($blockType, ['message', 'profile'])) {
+            return response()->json(['success' => false, 'error' => 'Invalid request'], 400);
+        }
+
+        if ($blockedId == $user->id) {
+            return response()->json(['success' => false, 'error' => 'You cannot block yourself'], 400);
+        }
+
+        $block = \App\Models\Block::updateOrCreate(
+            [
+                'blocker_id' => $user->id,
+                'blocked_id' => $blockedId,
+            ],
+            [
+                'block_type' => $blockType,
+                'blocked_at' => now(),
+            ]
+        );
+
+        return response()->json(['success' => true]);
+    }
 }
