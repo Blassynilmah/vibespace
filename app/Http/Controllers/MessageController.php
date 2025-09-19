@@ -513,21 +513,72 @@ public function recentChats()
     }
 
 
-    protected function getRecentContacts($authId)
-    {
-        $recentMessages = Message::where('sender_id', $authId)
-            ->orWhere('receiver_id', $authId)
-            ->latest()
-            ->get();
+protected function getRecentContacts($authId)
+{
+    // Get all messages involving the user
+    $recentMessages = Message::where('sender_id', $authId)
+        ->orWhere('receiver_id', $authId)
+        ->latest()
+        ->get();
 
-        $contactIds = collect();
-        foreach ($recentMessages as $msg) {
-            $contactIds->push($msg->sender_id === $authId ? $msg->receiver_id : $msg->sender_id);
-        }
-        $contactIds = $contactIds->unique()->take(20);
-
-        return User::whereIn('id', $contactIds)->get();
+    // Get unique contact IDs
+    $contactIds = collect();
+    foreach ($recentMessages as $msg) {
+        $contactIds->push($msg->sender_id === $authId ? $msg->receiver_id : $msg->sender_id);
     }
+    $contactIds = $contactIds->unique()->take(20);
+
+    // Fetch contacts
+    $contacts = User::whereIn('id', $contactIds)->get();
+
+    // Group messages by contact
+    $groupedMessages = $recentMessages->groupBy(function ($msg) use ($authId) {
+        return $msg->sender_id === $authId ? $msg->receiver_id : $msg->sender_id;
+    });
+
+    // Attach block state and correct last_message for each contact
+    $contacts->transform(function ($u) use ($groupedMessages, $authId) {
+        $messages = $groupedMessages[$u->id] ?? collect();
+
+        // Check block state
+        $block = Block::where('blocker_id', $authId)
+            ->where('blocked_id', $u->id)
+            ->where('block_type', 'message')
+            ->first();
+
+        $blockedBy = Block::where('blocker_id', $u->id)
+            ->where('blocked_id', $authId)
+            ->where('block_type', 'message')
+            ->first();
+
+        // Filter messages for last_message according to block logic
+        if ($block) {
+            // If viewer is the blocker, only show messages sent before block date (from blocked user)
+            $filtered = $messages->filter(function ($msg) use ($authId, $u, $block) {
+                // Show all messages sent by viewer
+                if ($msg->sender_id == $authId) return true;
+                // Show messages sent by contact before block date
+                if ($msg->sender_id == $u->id && $msg->created_at < $block->blocked_at) return true;
+                return false;
+            });
+            $lastMsg = $filtered->first();
+        } elseif ($blockedBy) {
+            // If viewer is the blocked, show all messages
+            $lastMsg = $messages->first();
+        } else {
+            // No block, show all messages
+            $lastMsg = $messages->first();
+        }
+
+        $u->is_blocked = (bool) $block;
+        $u->blocked_by = (bool) $blockedBy;
+        $u->last_message = $lastMsg;
+
+        return $u;
+    });
+
+    return $contacts;
+}
 
 
     public function sendWithFiles(Request $request)
