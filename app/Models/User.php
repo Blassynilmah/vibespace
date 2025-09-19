@@ -130,4 +130,14 @@ public function teasers()
 {
     return $this->hasMany(Teaser::class);
 }
+
+public function blocks()
+{
+    return $this->hasMany(Block::class, 'blocker_id');
+}
+
+public function blockedBy()
+{
+    return $this->hasMany(Block::class, 'blocked_id');
+}
 }

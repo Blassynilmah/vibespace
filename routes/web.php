@@ -54,6 +54,7 @@ Route::post('/seen-content', [SeenContentController::class, 'store'])->middlewar
 
 Route::get('/messages/unread-conversations-count', [MessageController::class, 'unreadConversationsCount'])->middleware('auth');
 
+Route::post('/block-user', [MessageController::class, 'blockUser'])->middleware('auth');
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)
