@@ -787,4 +787,20 @@ class MessageController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function unmuteUser(Request $request)
+    {
+        $user = auth()->user();
+        $mutedId = $request->input('muted_id');
+
+        if (!$mutedId || $mutedId == $user->id) {
+            return response()->json(['success' => false, 'error' => 'Invalid request'], 400);
+        }
+
+        $deleted = \App\Models\Mute::where('muter_id', $user->id)
+            ->where('muted_id', $mutedId)
+            ->delete();
+
+        return response()->json(['success' => $deleted > 0]);
+    }
 }
