@@ -1438,7 +1438,35 @@ Alpine.store('messaging', {
 
     removeFile(index) {
         this.selectedFiles.splice(index, 1);
-    }
+    }, 
+
+    async unmuteUser() {
+        if (!this.$store.messaging.receiver?.id) return;
+        try {
+            const res = await fetch('/unmute-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    muted_id: this.$store.messaging.receiver.id
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                this.showToast('User unmuted successfully');
+                this.showMuteModal = false;
+                this.$store.messaging.receiver.is_muted = false;
+                this.$store.messaging.receiver.muted_until = null;
+            } else {
+                this.showToast(data.error || 'Failed to unmute user');
+            }
+        } catch (e) {
+            this.showToast('Failed to unmute user');
+        }
+    },
 });
 
 Alpine.data('messageInbox', () => ({
@@ -1491,6 +1519,34 @@ Alpine.data('messageInbox', () => ({
             }
         } catch (e) {
             this.showToast('Failed to mute user');
+        }
+    },
+
+    async unmuteUser() {
+        if (!this.$store.messaging.receiver?.id) return;
+        try {
+            const res = await fetch('/unmute-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    muted_id: this.$store.messaging.receiver.id
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                this.showToast('User unmuted successfully');
+                this.showMuteModal = false;
+                this.$store.messaging.receiver.is_muted = false;
+                this.$store.messaging.receiver.muted_until = null;
+            } else {
+                this.showToast(data.error || 'Failed to unmute user');
+            }
+        } catch (e) {
+            this.showToast('Failed to unmute user');
         }
     },
 
@@ -1605,6 +1661,7 @@ Alpine.data('messageInbox', () => ({
         get showModal() {
             return Alpine.store('filePicker').showModal;
         },
+
         set showModal(value) {
             Alpine.store('filePicker').showModal = value;
         },
