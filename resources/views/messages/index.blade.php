@@ -668,10 +668,11 @@
                             <template x-for="message in $store.messaging.messages" :key="message.id">
 
                                 <div class="flex" :class="message.sender_id === $store.messaging.authUser.id ? 'justify-end' : 'justify-start'">
-                                    <div class="w-full max-w-[75%] sm:max-w-[60%] px-3 py-2 rounded-xl text-sm shadow relative"
-                                        :class="message.sender_id === $store.messaging.authUser.id 
-                                            ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
-                                            : 'bg-white border border-gray-200 rounded-bl-none'">
+<div class="w-full max-w-[75%] sm:max-w-[60%] px-3 py-2 rounded-xl text-sm shadow relative"
+    :class="message.sender_id === $store.messaging.authUser.id 
+        ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
+        : ':bg-gradient-to-r from-gray-50 to-gray-100 border-l-4 border-blue-400'">
+
 
                                         <!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
                                         <template x-if="message.attachments?.length">
