@@ -140,4 +140,14 @@ public function blockedBy()
 {
     return $this->hasMany(Block::class, 'blocked_id');
 }
+
+public function mutes()
+{
+    return $this->hasMany(Mute::class, 'muter_id');
+}
+
+public function mutedBy()
+{
+    return $this->hasMany(Mute::class, 'muted_id');
+}
 }
