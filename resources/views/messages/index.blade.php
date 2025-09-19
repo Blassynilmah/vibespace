@@ -35,6 +35,26 @@
     </div>
 </template>
 
+<!-- Mute Confirm Modal -->
+<template x-if="showMuteModal">
+    <div class="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center" x-cloak>
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
+            <h2 class="text-lg font-bold text-yellow-600 mb-2">Mute User</h2>
+            <p class="mb-4 text-gray-700">How long do you want to mute this user?</p>
+            <select x-model="muteDuration" class="w-full mb-4 border rounded px-2 py-1">
+                <option value="8h">8 hours</option>
+                <option value="24h">24 hours</option>
+                <option value="1w">1 week</option>
+                <option value="forever">Forever</option>
+            </select>
+            <div class="flex justify-end gap-2">
+                <button @click="showMuteModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button @click="muteUser()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">Mute</button>
+            </div>
+        </div>
+    </div>
+</template>
+
 <template x-if="showPreviewModal && previewFiles && previewFiles.length > 0 && typeof previewIndex === 'number'">
     <div 
         class="fixed inset-0 bg-black/80 z-[1999] flex items-center justify-center"
@@ -582,7 +602,9 @@
                                     </svg>
                                 </button>
                                 <!-- Mute -->
-                                <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
+                                <button type="button"
+                                    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+                                    @click="showMuteModal = true; showMenu = false">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
                                     </svg>
@@ -1408,6 +1430,42 @@ Alpine.data('messageInbox', () => ({
     showMediaScreen: false,
     mediaTab: 'sent', 
     showBlockModal: false,
+    showMuteModal: false,
+    muteDuration: '8h',
+
+    async muteUser() {
+        if (!this.$store.messaging.receiver?.id) return;
+        let duration = this.muteDuration;
+        let until = null;
+        if (duration === '8h') until = dayjs().add(8, 'hour').toISOString();
+        else if (duration === '24h') until = dayjs().add(24, 'hour').toISOString();
+        else if (duration === '1w') until = dayjs().add(7, 'day').toISOString();
+        // 'forever' means until stays null
+
+        try {
+            const res = await fetch('/mute-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                },
+                body: JSON.stringify({
+                    muted_id: this.$store.messaging.receiver.id,
+                    mute_until: until
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.success) {
+                this.showToast('User muted successfully');
+                this.showMuteModal = false;
+            } else {
+                this.showToast(data.error || 'Failed to mute user');
+            }
+        } catch (e) {
+            this.showToast('Failed to mute user');
+        }
+    },
 
     openPreviewModal(files, index = 0) {
         this.showPreviewModal = true;
@@ -1443,8 +1501,6 @@ Alpine.data('messageInbox', () => ({
         console.log('[CHAT SELECTED] User:', user);
         this.$store.messaging.loadInitialMessages(user.id);
         this.showRecentChats = false;
-    // Do not reload filePicker lists/files here; only load when file picker modal is opened
-        // Use a valid route for pushState (adjust as needed for your backend)
         history.pushState(null, null, `/messages?receiver_id=${user.id}`);
     },
 

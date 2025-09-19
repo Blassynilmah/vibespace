@@ -739,4 +739,29 @@ class MessageController extends Controller
 
             return response()->json(['success' => $deleted > 0]);
         }
+
+
+    public function muteUser(Request $request)
+        {
+            $user = auth()->user();
+            $mutedId = $request->input('muted_id');
+            $muteUntil = $request->input('mute_until'); // ISO string or null
+
+            if (!$mutedId || $mutedId == $user->id) {
+                return response()->json(['success' => false, 'error' => 'Invalid request'], 400);
+            }
+
+            $mute = \App\Models\Mute::updateOrCreate(
+                [
+                    'muter_id' => $user->id,
+                    'muted_id' => $mutedId,
+                ],
+                [
+                    'muted_at' => now(),
+                    'mute_until' => $muteUntil ? Carbon::parse($muteUntil) : null,
+                ]
+            );
+
+            return response()->json(['success' => true]);
+        }
 }
