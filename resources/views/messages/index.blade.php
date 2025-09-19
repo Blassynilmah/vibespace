@@ -557,11 +557,11 @@
                                 <!-- Block User Button -->
                                 <button type="button"
                                     class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2 text-red-500"
-                                    @click="showBlockModal = true; showMenu = false">
+                                    @click="showBlockModal = true; showMenu = false"
+                                    x-text="$store.messaging.receiver.is_blocked ? 'Unblock User' : 'Block User'">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
                                     </svg>
-                                    <span>Block User</span>
                                 </button>
                                 <!-- Mute -->
                                 <button type="button" class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2">
@@ -1451,8 +1451,9 @@ Alpine.data('messageInbox', () => ({
 
     async blockUser() {
         if (!this.$store.messaging.receiver?.id) return;
+        const isBlocked = this.$store.messaging.receiver.is_blocked;
         try {
-            const res = await fetch('/block-user', {
+            const res = await fetch(isBlocked ? '/unblock-user' : '/block-user', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1466,14 +1467,15 @@ Alpine.data('messageInbox', () => ({
             });
             const data = await res.json();
             if (res.ok && data.success) {
-                this.showToast('User blocked successfully');
+                this.showToast(isBlocked ? 'User unblocked successfully' : 'User blocked successfully');
                 this.showBlockModal = false;
-                // Optionally update UI to reflect block state
+                // Update block state in UI
+                this.$store.messaging.receiver.is_blocked = !isBlocked;
             } else {
-                this.showToast(data.error || 'Failed to block user');
+                this.showToast(data.error || 'Failed to update block state');
             }
         } catch (e) {
-            this.showToast('Failed to block user');
+            this.showToast('Failed to update block state');
         }
     }
 }));
