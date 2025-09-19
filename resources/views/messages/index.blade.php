@@ -864,76 +864,83 @@
                     <template x-if="!showMediaScreen">
                         <div class="sticky bottom-0 z-10 p-3 border-t bg-white">
                             <!-- File Previews -->
-                            <div 
-                                x-show="$store.messaging.selectedFiles.length > 0" 
-                                class="flex flex-row gap-2 overflow-x-auto mb-2"
-                                style="padding-bottom: 2px;"
-                            >
-                                <template x-for="(file, index) in $store.messaging.selectedFiles" :key="file.id || index">
-                                    <div class="relative group flex-shrink-0 w-20 h-20 rounded-lg border border-gray-200 bg-white overflow-hidden"
-                                        @click="$dispatch('open-preview-modal', { files: $store.messaging.selectedFiles, index })">
-                                        <!-- File Type Icon (top right, no bg, only 3 types) -->
-                                        <div class="absolute top-1 right-1 z-20 text-xl select-none">
-                                            <template x-if="['jpg','jpeg','png','gif','webp'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
-                                                <span title="Image">🖼️</span>
-                                            </template>
-                                            <template x-if="['mp4','mov','webm'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
-                                                <span title="Video">🎬</span>
-                                            </template>
-                                            <template x-if="['mp3','wav','ogg'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
-                                                <span title="Audio">🎵</span>
-                                            </template>
-                                        </div>
-                                        <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp4','mov','webm'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
-                                            <video :src="file.url || file.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
-                                        </template>
-                                        <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['jpg','jpeg','png','gif','webp'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
-                                            <img :src="file.url || file.path" class="w-full h-full object-cover" alt="">
-                                        </template>
-                                        <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp3','wav','ogg'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
-                                            <div class="flex flex-col items-center justify-center w-full h-full text-blue-500">
-                                                <span class="text-4xl">🎵</span>
-                                                <audio :src="file.url || file.path" controls class="w-full mt-1"></audio>
+                            <template x-if="!$store.messaging.receiver.is_blocked">
+                                <div 
+                                    x-show="$store.messaging.selectedFiles.length > 0" 
+                                    class="flex flex-row gap-2 overflow-x-auto mb-2"
+                                    style="padding-bottom: 2px;"
+                                >
+                                    <template x-for="(file, index) in $store.messaging.selectedFiles" :key="file.id || index">
+                                        <div class="relative group flex-shrink-0 w-20 h-20 rounded-lg border border-gray-200 bg-white overflow-hidden"
+                                            @click="$dispatch('open-preview-modal', { files: $store.messaging.selectedFiles, index })">
+                                            <!-- File Type Icon (top right, no bg, only 3 types) -->
+                                            <div class="absolute top-1 right-1 z-20 text-xl select-none">
+                                                <template x-if="['jpg','jpeg','png','gif','webp'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                                    <span title="Image">🖼️</span>
+                                                </template>
+                                                <template x-if="['mp4','mov','webm'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                                    <span title="Video">🎬</span>
+                                                </template>
+                                                <template x-if="['mp3','wav','ogg'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')))">
+                                                    <span title="Audio">🎵</span>
+                                                </template>
                                             </div>
-                                        </template>
-                                        <button 
-                                            @click="$store.messaging.removeFile(index)" 
-                                            class="absolute top-1 left-1 bg-white/80 hover:bg-white text-red-500 rounded-full p-1 text-xs shadow"
-                                            title="Remove"
-                                        >×</button>
-                                    </div>
-                                </template>
-                            </div>
+                                            <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp4','mov','webm'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                                <video :src="file.url || file.path" muted playsinline preload="metadata" class="w-full h-full object-cover bg-black"></video>
+                                            </template>
+                                            <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['jpg','jpeg','png','gif','webp'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                                <img :src="file.url || file.path" class="w-full h-full object-cover" alt="">
+                                            </template>
+                                            <template x-if="(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '')) && ['mp3','wav','ogg'].includes(file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : ''))">
+                                                <div class="flex flex-col items-center justify-center w-full h-full text-blue-500">
+                                                    <span class="text-4xl">🎵</span>
+                                                    <audio :src="file.url || file.path" controls class="w-full mt-1"></audio>
+                                                </div>
+                                            </template>
+                                            <button 
+                                                @click="$store.messaging.removeFile(index)" 
+                                                class="absolute top-1 left-1 bg-white/80 hover:bg-white text-red-500 rounded-full p-1 text-xs shadow"
+                                                title="Remove"
+                                            >×</button>
+                                        </div>
+                                    </template>
+                                </div>
 
-                            <form @submit.prevent="handleSend" class="flex items-center gap-2">
-                                <button type="button" 
-                                    @click="showMediaModal = true"
-                                    :disabled="$store.messaging.selectedFiles.length >= 20"
-                                    class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-pink-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Add files (max 20)">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                    </svg>
-                                </button>
+                                <form @submit.prevent="handleSend" class="flex items-center gap-2">
+                                    <button type="button" 
+                                        @click="showMediaModal = true"
+                                        :disabled="$store.messaging.selectedFiles.length >= 20"
+                                        class="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-pink-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Add files (max 20)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                        </svg>
+                                    </button>
 
-                                <textarea 
-                                    x-model="newMessage"
-                                    placeholder="Type a message..."
-                                    rows="1"
-                                    class="flex-1 px-4 py-2 border rounded-full text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 max-h-[6.5rem] overflow-y-auto"
-                                    @input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 104) + 'px'"
-                                ></textarea>
+                                    <textarea 
+                                        x-model="newMessage"
+                                        placeholder="Type a message..."
+                                        rows="1"
+                                        class="flex-1 px-4 py-2 border rounded-full text-sm resize-none focus:outline-none focus:ring-2 focus:ring-pink-500 max-h-[6.5rem] overflow-y-auto"
+                                        @input="$el.style.height = 'auto'; $el.style.height = Math.min($el.scrollHeight, 104) + 'px'"
+                                    ></textarea>
 
-                                <button type="submit"
-                                    class="bg-pink-500 text-white px-4 py-2 rounded-full text-sm hover:bg-pink-600 transition flex items-center gap-1"
-                                    :disabled="(!newMessage.trim() && $store.messaging.selectedFiles.length === 0) || $store.messaging.isLoading">
-                                    <span x-show="!$store.messaging.isLoading">Send</span>
-                                    <span x-show="$store.messaging.isLoading">Sending...</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                                    </svg>
-                                </button>
-                            </form>
+                                    <button type="submit"
+                                        class="bg-pink-500 text-white px-4 py-2 rounded-full text-sm hover:bg-pink-600 transition flex items-center gap-1"
+                                        :disabled="(!newMessage.trim() && $store.messaging.selectedFiles.length === 0) || $store.messaging.isLoading">
+                                        <span x-show="!$store.messaging.isLoading">Send</span>
+                                        <span x-show="$store.messaging.isLoading">Sending...</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </template>
+                            <template x-if="$store.messaging.receiver.is_blocked">
+                                <div class="text-center text-red-500 py-4 font-semibold">
+                                    You have blocked this user. Unblock to continue messaging.
+                                </div>
+                            </template>
                         </div>
                     </template>
                 </div>
