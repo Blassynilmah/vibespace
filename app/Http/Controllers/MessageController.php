@@ -64,6 +64,16 @@ class MessageController extends Controller
             $u->is_friend = $isFriend;
             $u->has_messaged = $hasMessaged;
 
+            $u->is_blocked = Block::where('blocker_id', $auth->id)
+                ->where('blocked_id', $u->id)
+                ->where('block_type', 'message')
+                ->exists();
+
+            $u->blocked_by = Block::where('blocker_id', $u->id)
+                ->where('blocked_id', $auth->id)
+                ->where('block_type', 'message')
+                ->exists();
+
             if ($lastMsg) {
                 // Count unread messages where auth is receiver and contact is sender
                 if ($lastMsg->sender_id !== $auth->id) {
