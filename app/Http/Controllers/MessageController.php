@@ -387,6 +387,17 @@ class MessageController extends Controller
                     ->where('block_type', 'message')
                     ->first();
 
+                // Mute state
+                $mute = Mute::where('muter_id', $user->id)
+                    ->where('muted_id', $u->id)
+                    ->where(function ($q) {
+                        $q->whereNull('mute_until')->orWhere('mute_until', '>', now());
+                    })
+                    ->first();
+
+                $u->is_muted = (bool) $mute;
+                $u->muted_until = $mute ? $mute->mute_until : null;
+
                 // Select last_message according to block logic
                 if ($block) {
                     // If viewer is the blocker, only show messages sent before block date (from blocked user)
@@ -532,6 +543,16 @@ class MessageController extends Controller
                 ->where('blocked_id', $userId)
                 ->where('block_type', 'message')
                 ->exists();
+
+            $mute = Mute::where('muter_id', $userId)
+                ->where('muted_id', $receiverId)
+                ->where(function ($q) {
+                    $q->whereNull('mute_until')->orWhere('mute_until', '>', now());
+                })
+                ->first();
+
+            $receiver->is_muted = (bool) $mute;
+            $receiver->muted_until = $mute ? $mute->mute_until : null;
 
             if (request()->expectsJson()) {
                 return response()->json([
