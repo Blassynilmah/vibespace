@@ -1493,9 +1493,10 @@ Alpine.data('messageInbox', () => ({
         if (!this.$store.messaging.receiver?.id) return;
         let duration = this.muteDuration;
         let until = null;
-        if (duration === '8h') until = dayjs().add(8, 'hour').toISOString();
-        else if (duration === '24h') until = dayjs().add(24, 'hour').toISOString();
-        else if (duration === '1w') until = dayjs().add(7, 'day').toISOString();
+        const now = new Date();
+        if (duration === '8h') until = new Date(now.getTime() + 8 * 60 * 60 * 1000).toISOString();
+        else if (duration === '24h') until = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        else if (duration === '1w') until = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
         // 'forever' means until stays null
 
         try {
@@ -1515,6 +1516,8 @@ Alpine.data('messageInbox', () => ({
             if (res.ok && data.success) {
                 this.showToast('User muted successfully');
                 this.showMuteModal = false;
+                this.$store.messaging.receiver.is_muted = true;
+                this.$store.messaging.receiver.muted_until = until;
             } else {
                 this.showToast(data.error || 'Failed to mute user');
             }
@@ -1524,12 +1527,7 @@ Alpine.data('messageInbox', () => ({
     },
 
     async unmuteUser() {
-        if (!this.$store.messaging.receiver?.id) {
-            console.warn('[UNMUTE] No receiver selected, aborting.');
-            return;
-        }
-        console.log('[UNMUTE] Attempting to unmute user:', this.$store.messaging.receiver.id);
-
+        if (!this.$store.messaging.receiver?.id) return;
         try {
             const res = await fetch('/unmute-user', {
                 method: 'POST',
@@ -1542,24 +1540,17 @@ Alpine.data('messageInbox', () => ({
                     muted_id: this.$store.messaging.receiver.id
                 })
             });
-            console.log('[UNMUTE] Fetch response status:', res.status);
-
             const data = await res.json();
-            console.log('[UNMUTE] Response data:', data);
-
             if (res.ok && data.success) {
                 this.showToast('User unmuted successfully');
-                this.showUnmuteModal = false; // <-- Close the unmute modal here
+                this.showUnmuteModal = false;
                 this.$store.messaging.receiver.is_muted = false;
                 this.$store.messaging.receiver.muted_until = null;
-                console.log('[UNMUTE] User unmuted and UI updated.');
             } else {
                 this.showToast(data.error || 'Failed to unmute user');
-                console.warn('[UNMUTE] Backend error:', data.error || 'Unknown error');
             }
         } catch (e) {
             this.showToast('Failed to unmute user');
-            console.error('[UNMUTE] Exception:', e);
         }
     },
 
