@@ -35,48 +35,48 @@
     </div>
 </template>
 
-<!-- Mute Confirm Modal -->
+<!-- Mute Modal -->
 <template x-if="showMuteModal">
     <div class="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center" x-cloak>
         <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
-            <template x-if="!$store.messaging.receiver.is_muted">
-                <div>
-                    <h2 class="text-lg font-bold text-yellow-600 mb-2">Mute User</h2>
-                    <p class="mb-4 text-gray-700">How long do you want to mute this user?</p>
-                    <div class="mb-4 flex flex-col gap-2">
-                        <label class="flex items-center gap-2">
-                            <input type="radio" name="muteDuration" value="8h" x-model="muteDuration">
-                            <span>8 hours</span>
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <input type="radio" name="muteDuration" value="24h" x-model="muteDuration">
-                            <span>24 hours</span>
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <input type="radio" name="muteDuration" value="1w" x-model="muteDuration">
-                            <span>1 week</span>
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <input type="radio" name="muteDuration" value="forever" x-model="muteDuration">
-                            <span>Forever</span>
-                        </label>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button @click="showMuteModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
-                        <button @click="muteUser()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">Mute</button>
-                    </div>
-                </div>
-            </template>
-            <template x-if="$store.messaging.receiver.is_muted">
-                <div>
-                    <h2 class="text-lg font-bold text-green-600 mb-2">Unmute User</h2>
-                    <p class="mb-4 text-gray-700">Are you sure you want to unmute this user?</p>
-                    <div class="flex justify-end gap-2">
-                        <button @click="showMuteModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
-                        <button @click="unmuteUser()" class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">Unmute</button>
-                    </div>
-                </div>
-            </template>
+            <h2 class="text-lg font-bold text-yellow-600 mb-2">Mute User</h2>
+            <p class="mb-4 text-gray-700">How long do you want to mute this user?</p>
+            <div class="mb-4 flex flex-col gap-2">
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="8h" x-model="muteDuration">
+                    <span>8 hours</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="24h" x-model="muteDuration">
+                    <span>24 hours</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="1w" x-model="muteDuration">
+                    <span>1 week</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="forever" x-model="muteDuration">
+                    <span>Forever</span>
+                </label>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button @click="showMuteModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button @click="muteUser()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">Mute</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Unmute Modal -->
+<template x-if="showUnmuteModal">
+    <div class="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center" x-cloak>
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
+            <h2 class="text-lg font-bold text-green-600 mb-2">Unmute User</h2>
+            <p class="mb-4 text-gray-700">Are you sure you want to unmute this user?</p>
+            <div class="flex justify-end gap-2">
+                <button @click="showUnmuteModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button @click="unmuteUser()" class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">Unmute</button>
+            </div>
         </div>
     </div>
 </template>
@@ -627,15 +627,15 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
                                     </svg>
                                 </button>
-                                <!-- Mute/Unmute Button -->
-                                <button type="button"
-                                    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
-                                    @click="showMuteModal = true; showMenu = false"
-                                    x-text="$store.messaging.receiver.is_muted ? 'Unmute User' : 'Mute User'">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
-                                    </svg>
-                                </button>
+<!-- Mute/Unmute Button -->
+<button type="button"
+    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+    @click="$store.messaging.receiver.is_muted ? showUnmuteModal = true : showMuteModal = true; showMenu = false"
+    x-text="$store.messaging.receiver.is_muted ? 'Unmute User' : 'Mute User'">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
+    </svg>
+</button>
                             </div>
                         </div>
                     </div>
@@ -1486,6 +1486,7 @@ Alpine.data('messageInbox', () => ({
     mediaTab: 'sent', 
     showBlockModal: false,
     showMuteModal: false,
+    showUnmuteModal: false,
     muteDuration: '8h',
 
     async muteUser() {
