@@ -486,6 +486,17 @@ public function recentChats()
             throw new \Exception("Receiver not found (ID: $receiverId)");
         }
 
+        // Add block state to receiver object
+        $receiver->is_blocked = Block::where('blocker_id', $userId)
+            ->where('blocked_id', $receiverId)
+            ->where('block_type', 'message')
+            ->exists();
+
+        $receiver->blocked_by = Block::where('blocker_id', $receiverId)
+            ->where('blocked_id', $userId)
+            ->where('block_type', 'message')
+            ->exists();
+
         if (request()->expectsJson()) {
             return response()->json([
                 'messages' => $mappedMessages,
