@@ -627,15 +627,15 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-12.728 12.728M5.636 5.636l12.728 12.728" />
                                     </svg>
                                 </button>
-<!-- Mute/Unmute Button -->
-<button type="button"
-    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
-    @click="$store.messaging.receiver.is_muted ? showUnmuteModal = true : showMuteModal = true; showMenu = false"
-    x-text="$store.messaging.receiver.is_muted ? 'Unmute User' : 'Mute User'">
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
-    </svg>
-</button>
+                                <!-- Mute/Unmute Button -->
+                                <button type="button"
+                                    class="w-full text-left px-4 py-2 hover:bg-pink-50 flex items-center gap-2"
+                                    @click="$store.messaging.receiver.is_muted ? showUnmuteModal = true : showMuteModal = true; showMenu = false"
+                                    x-text="$store.messaging.receiver.is_muted ? 'Unmute User' : 'Mute User'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14l11-7z" />
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -1524,7 +1524,12 @@ Alpine.data('messageInbox', () => ({
     },
 
     async unmuteUser() {
-        if (!this.$store.messaging.receiver?.id) return;
+        if (!this.$store.messaging.receiver?.id) {
+            console.warn('[UNMUTE] No receiver selected, aborting.');
+            return;
+        }
+        console.log('[UNMUTE] Attempting to unmute user:', this.$store.messaging.receiver.id);
+
         try {
             const res = await fetch('/unmute-user', {
                 method: 'POST',
@@ -1537,17 +1542,24 @@ Alpine.data('messageInbox', () => ({
                     muted_id: this.$store.messaging.receiver.id
                 })
             });
+            console.log('[UNMUTE] Fetch response status:', res.status);
+
             const data = await res.json();
+            console.log('[UNMUTE] Response data:', data);
+
             if (res.ok && data.success) {
                 this.showToast('User unmuted successfully');
-                this.showMuteModal = false;
+                this.showUnmuteModal = false; // <-- Close the unmute modal here
                 this.$store.messaging.receiver.is_muted = false;
                 this.$store.messaging.receiver.muted_until = null;
+                console.log('[UNMUTE] User unmuted and UI updated.');
             } else {
                 this.showToast(data.error || 'Failed to unmute user');
+                console.warn('[UNMUTE] Backend error:', data.error || 'Unknown error');
             }
         } catch (e) {
             this.showToast('Failed to unmute user');
+            console.error('[UNMUTE] Exception:', e);
         }
     },
 
