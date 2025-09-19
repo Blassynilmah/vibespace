@@ -3,16 +3,34 @@
 @section('content')
 <div x-data="messageInbox()" x-init="init()" @open-preview-modal.window="openPreviewModal($event.detail.files, $event.detail.index)" class="flex flex-col lg:flex-row h-[100dvh] overflow-hidden">
 
-<!-- Block Confirm Modal -->
+<!-- Block/Unblock Confirm Modal -->
 <template x-if="showBlockModal">
     <div class="fixed inset-0 z-[9999] bg-black/60 flex items-center justify-center" x-cloak>
         <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
-            <h2 class="text-lg font-bold text-red-600 mb-2">Block User</h2>
-            <p class="mb-4 text-gray-700">Are you sure you want to block this user? You will not receive their messages after blocking.</p>
-            <div class="flex justify-end gap-2">
-                <button @click="showBlockModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
-                <button @click="blockUser()" class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Block</button>
-            </div>
+            <template x-if="!$store.messaging.receiver.is_blocked">
+                <div>
+                    <h2 class="text-lg font-bold text-red-600 mb-2">Block User</h2>
+                    <p class="mb-4 text-gray-700">
+                        Are you sure you want to block this user? You will not receive their messages after blocking.
+                    </p>
+                    <div class="flex justify-end gap-2">
+                        <button @click="showBlockModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                        <button @click="blockUser()" class="px-4 py-2 rounded bg-red-500 text-white hover:bg-red-600">Block</button>
+                    </div>
+                </div>
+            </template>
+            <template x-if="$store.messaging.receiver.is_blocked">
+                <div>
+                    <h2 class="text-lg font-bold text-green-600 mb-2">Unblock User</h2>
+                    <p class="mb-4 text-gray-700">
+                        You have already blocked this user. Do you want to unblock and resume messaging?
+                    </p>
+                    <div class="flex justify-end gap-2">
+                        <button @click="showBlockModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
+                        <button @click="blockUser()" class="px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600">Unblock</button>
+                    </div>
+                </div>
+            </template>
         </div>
     </div>
 </template>

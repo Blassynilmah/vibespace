@@ -633,4 +633,26 @@ public function recentChats()
 
         return response()->json(['success' => true]);
     }
+
+public function unblockUser(Request $request)
+{
+    $user = auth()->user();
+    $blockedId = $request->input('blocked_id');
+    $blockType = $request->input('block_type', 'message');
+
+    if (!$blockedId || !in_array($blockType, ['message', 'profile'])) {
+        return response()->json(['success' => false, 'error' => 'Invalid request'], 400);
+    }
+
+    if ($blockedId == $user->id) {
+        return response()->json(['success' => false, 'error' => 'You cannot unblock yourself'], 400);
+    }
+
+    $deleted = \App\Models\Block::where('blocker_id', $user->id)
+        ->where('blocked_id', $blockedId)
+        ->where('block_type', $blockType)
+        ->delete();
+
+    return response()->json(['success' => $deleted > 0]);
+}
 }
