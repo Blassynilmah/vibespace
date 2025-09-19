@@ -1167,6 +1167,7 @@ Alpine.store('messaging', {
             }
 
             const data = await res.json();
+            console.log('[Backend Data for Clicked User]:', data);
             this.receiver = data.receiver;
             this.messages = data.messages;
             this.offset = this.messages.length;
