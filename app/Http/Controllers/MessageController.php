@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Collection;
 use App\Models\Block;
+use App\Models\Mute;
 
 class MessageController extends Controller
 {
