@@ -41,12 +41,24 @@
         <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full">
             <h2 class="text-lg font-bold text-yellow-600 mb-2">Mute User</h2>
             <p class="mb-4 text-gray-700">How long do you want to mute this user?</p>
-            <select x-model="muteDuration" class="w-full mb-4 border rounded px-2 py-1">
-                <option value="8h">8 hours</option>
-                <option value="24h">24 hours</option>
-                <option value="1w">1 week</option>
-                <option value="forever">Forever</option>
-            </select>
+            <div class="mb-4 flex flex-col gap-2">
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="8h" x-model="muteDuration">
+                    <span>8 hours</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="24h" x-model="muteDuration">
+                    <span>24 hours</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="1w" x-model="muteDuration">
+                    <span>1 week</span>
+                </label>
+                <label class="flex items-center gap-2">
+                    <input type="radio" name="muteDuration" value="forever" x-model="muteDuration">
+                    <span>Forever</span>
+                </label>
+            </div>
             <div class="flex justify-end gap-2">
                 <button @click="showMuteModal = false" class="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300">Cancel</button>
                 <button @click="muteUser()" class="px-4 py-2 rounded bg-yellow-500 text-white hover:bg-yellow-600">Mute</button>
