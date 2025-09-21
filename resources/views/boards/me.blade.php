@@ -215,7 +215,7 @@
 
         {{-- 🎨 Moodboards Feed --}}
         <template x-if="activeTab === 'moodboards'">
-            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container" style="height:80vh; overflow-y:auto;">
+            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container">
                 <div class="ml-auto relative flex flex-row items-center gap-2 flex-wrap sm:flex-nowrap">
                     <a href="{{ route('boards.create') }}"
                             class="group relative h-7 rounded-full bg-white text-pink-600 overflow-hidden shadow transition-[width,opacity] duration-700 ease-in-out w-7 sm:hover:w-44 whitespace-nowrap">
@@ -2149,7 +2149,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         // Fetch function
-       async fetchTeasers() {
+        async fetchTeasers() {
             this.loadingTeasers = true;
             try {
                 console.log('[fetchTeasers] Fetching teasers from /my-teasers...');
@@ -2369,26 +2369,26 @@ document.addEventListener('alpine:init', () => {
         },
 
         get filteredFiles() {
-        let files = this.userFiles.filter(file => {
-            const matchesType =
-            this.fileTypeFilter === 'all' ||
-            (this.fileTypeFilter === 'image' && file.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ||
-            (this.fileTypeFilter === 'video' && file.path.match(/\.(mp4|mov|avi|webm)$/i));
+            let files = this.userFiles.filter(file => {
+                const matchesType =
+                this.fileTypeFilter === 'all' ||
+                (this.fileTypeFilter === 'image' && file.path.match(/\.(jpg|jpeg|png|gif|webp)$/i)) ||
+                (this.fileTypeFilter === 'video' && file.path.match(/\.(mp4|mov|avi|webm)$/i));
 
-            const matchesContent =
-                this.contentTypeFilter === 'all' ||
-                file.content_type === this.contentTypeFilter;
+                const matchesContent =
+                    this.contentTypeFilter === 'all' ||
+                    file.content_type === this.contentTypeFilter;
 
-            return matchesType && matchesContent;
-        });
+                return matchesType && matchesContent;
+            });
 
-        if (this.sortOrder === 'latest') {
-            files.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        } else {
-            files.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        }
+            if (this.sortOrder === 'latest') {
+                files.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            } else {
+                files.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+            }
 
-        return files;
+            return files;
         },
 
         cancelUpload() {
@@ -2624,6 +2624,33 @@ document.addEventListener('alpine:init', () => {
             msg.textContent = message;
             msg.className = `px-4 py-2 rounded shadow-lg text-white text-sm font-medium bg-gray-600`;
             box.classList.remove('hidden');
+        }, 
+
+        async handleWindowScroll() {
+            console.groupCollapsed('[handleWindowScroll] Window scroll event triggered');
+            if (this.loading) {
+                console.log('[handleWindowScroll] Already loading, aborting.');
+                console.groupEnd();
+                return;
+            }
+            if (!this.hasMoreBoards) {
+                console.log('[handleWindowScroll] No more boards to load, aborting.');
+                console.groupEnd();
+                return;
+            }
+
+            const scrollPosition = window.scrollY + window.innerHeight;
+            const threshold = document.body.scrollHeight - 300; // 300px from bottom
+
+            console.log('[handleWindowScroll] scrollPosition:', scrollPosition, 'threshold:', threshold);
+
+            if (scrollPosition >= threshold) {
+                console.log('[handleWindowScroll] Near bottom, loading next page:', this.nextPage);
+                await this.loadBoards(this.nextPage, 10, true);
+            } else {
+                console.log('[handleWindowScroll] Not near bottom, no action.');
+            }
+            console.groupEnd();
         }
     }));
 });
