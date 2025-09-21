@@ -2761,7 +2761,224 @@ document.addEventListener('alpine:init', () => {
                 this.loading = true; // Set loading immediately to block further calls
                 await this.loadBoards(this.nextPage, 10, true);
             }
-        }
+        },
+
+        reactToTeaser(teaserId, reaction) {
+            const now = Date.now();
+            const teaser = this.items.find(t => t.id === teaserId && t.type === 'teaser');
+            if (!teaser) return;
+
+            // Cooldown check
+            if (this.teaserReactionCooldowns[teaserId] && now < this.teaserReactionCooldowns[teaserId]) {
+                this.showToast("Too many reactions! Please wait a bit.", "error");
+                return;
+            }
+
+            // Track click timestamps
+            if (!this.teaserReactionClicks[teaserId]) this.teaserReactionClicks[teaserId] = [];
+            // Remove timestamps older than 1 minute
+            this.teaserReactionClicks[teaserId] = this.teaserReactionClicks[teaserId].filter(ts => now - ts < 60000);
+            this.teaserReactionClicks[teaserId].push(now);
+
+            if (this.teaserReactionClicks[teaserId].length > 4) {
+                // Set 30s cooldown
+                this.teaserReactionCooldowns[teaserId] = now + 30000;
+                this.showToast("Reaction limit reached! Try again in 30 seconds.", "error");
+                return;
+            }
+
+            if (teaser.reacting) return;
+            teaser.reacting = true;
+
+            // If already reacted, remove reaction
+            const isRemoving = teaser.user_teaser_reaction === reaction;
+            fetch('/teasers/react', {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({
+                    teaser_id: teaserId,
+                    reaction,
+                    remove: isRemoving ? 1 : 0
+                }),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                ['fire','love','boring'].forEach(r => {
+                    teaser[r + '_count'] = data[r + '_count'] || 0;
+                });
+                teaser.user_teaser_reaction = data.user_reaction;
+            })
+            .catch(() => this.showToast("Failed to react", 'error'))
+            .finally(() => { teaser.reacting = false; });
+        },
+
+        async openTeaserComments(teaser) {
+            this.activeTeaserComments = teaser;
+            this.showTeaserComments = true;
+            if (!teaser.comments) {
+                try {
+                    const res = await fetch(`/teasers/${teaser.id}/comments`);
+                    teaser.comments = res.ok ? await res.json() : [];
+                } catch {
+                    teaser.comments = [];
+                }
+            }
+        },
+
+        closeTeaserComments() {
+            this.showTeaserComments = false;
+            this.activeTeaserComments = null;
+        },
+
+        async postTeaserComment(teaser) {
+            if (!teaser.newComment || !teaser.newComment.trim()) return;
+            if (teaser.commenting) return;
+            teaser.commenting = true;
+
+            try {
+                const res = await fetch('/teasers/comments', {
+                    method: 'POST',
+                    headers: this._headers(),
+                    body: JSON.stringify({
+                        teaser_id: teaser.id,
+                        body: teaser.newComment.trim(),
+                    }),
+                });
+                if (!res.ok) throw new Error('Failed to post comment');
+                const comment = await res.json();
+
+                // Ensure comments array exists
+                if (!teaser.comments) teaser.comments = [];
+                // Add new comment at the top
+                teaser.comments.unshift(comment);
+                teaser.comment_count = (teaser.comment_count || 0) + 1;
+                teaser.newComment = '';
+                this.showToast('Comment posted! 🎉');
+            } catch (e) {
+                this.showToast('Failed to post comment', 'error');
+            } finally {
+                teaser.commenting = false;
+            }
+        },
+
+        likeComment(comment) {
+            if (comment.liking) return;
+            comment.liking = true;
+            const url = `/teasers/comments/${comment.id}/like`;
+            const payload = { reaction_type: 'like' };
+            console.log('[likeComment] Sending:', { url, payload });
+
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[likeComment] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[likeComment] Error response:', text);
+                    throw new Error(text || 'Failed to like');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[likeComment] Success data:', data);
+                comment.like_count = data.like_count;
+                comment.dislike_count = data.dislike_count;
+            })
+            .catch(err => {
+                console.error('[likeComment] Exception:', err);
+                this.showToast('Failed to like', 'error');
+            })
+            .finally(() => { comment.liking = false; });
+        },
+
+        dislikeComment(comment) {
+            if (comment.disliking) return;
+            comment.disliking = true;
+            const url = `/teasers/comments/${comment.id}/dislike`;
+            const payload = { reaction_type: 'dislike' };
+            console.log('[dislikeComment] Sending:', { url, payload });
+
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[dislikeComment] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[dislikeComment] Error response:', text);
+                    throw new Error(text || 'Failed to dislike');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[dislikeComment] Success data:', data);
+                comment.like_count = data.like_count;
+                comment.dislike_count = data.dislike_count;
+            })
+            .catch(err => {
+                console.error('[dislikeComment] Exception:', err);
+                this.showToast('Failed to dislike', 'error');
+            })
+            .finally(() => { comment.disliking = false; });
+        },
+
+        sendReply(comment) {
+            if (!comment.replyText || !comment.replyText.trim()) return;
+            const url = `/teasers/comments/${comment.id}/reply`;
+            const payload = { body: comment.replyText.trim() };
+            console.log('[sendReply] Sending:', { url, payload });
+
+            fetch(url, {
+                method: 'POST',
+                headers: this._headers(),
+                credentials: 'include',
+                body: JSON.stringify(payload),
+            })
+            .then(async res => {
+                console.log('[sendReply] Response status:', res.status);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('[sendReply] Error response:', text);
+                    throw new Error(text || 'Failed to reply');
+                }
+                return res.json();
+            })
+            .then(data => {
+                console.log('[sendReply] Success data:', data);
+                comment.reply_count = data.reply_count;
+                comment.replyText = '';
+                comment.showReply = false;
+                this.showToast('Reply sent!');
+            })
+            .catch(err => {
+                console.error('[sendReply] Exception:', err);
+                this.showToast('Failed to reply', 'error');
+            });
+        },
+
+        toggleReplies(comment) {
+            if (comment.showReplies) {
+                this.hideReplies(comment);
+                return;
+            }
+            comment.showReplies = true;
+            if (!comment.repliesToShow) comment.repliesToShow = [];
+            if (comment.repliesToShow.length === 0) {
+                this.fetchReplies(comment, 0, 5);
+            }
+        },
+
+        hideReplies(comment) {
+            comment.showReplies = false;
+            comment.repliesToShow = [];
+        },
     }));
 });
 </script>
