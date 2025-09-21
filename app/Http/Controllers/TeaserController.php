@@ -120,16 +120,42 @@ public function myTeasers(Request $request)
                     $like_count = $comment->reactions()->where('reaction_type', 'like')->count();
                     $dislike_count = $comment->reactions()->where('reaction_type', 'dislike')->count();
                     return [
-                        'id' => $comment->id,
-                        'body' => $comment->body,
-                        'created_at' => $comment->created_at,
+                        'description' => $teaser->description ?? '',
+                        'created_at' => $teaser->created_at,
+                        'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
+                        'hashtags' => $teaser->hashtags ?? '',
+                        'username' => $teaser->user->username ?? '',
                         'user' => [
-                            'id' => $comment->user->id,
-                            'username' => $comment->user->username,
+                            'id' => $teaser->user->id,
+                            'username' => $teaser->user->username,
                         ],
-                        'reply_count' => $reply_count,
-                        'like_count' => $like_count,
-                        'dislike_count' => $dislike_count,
+                        'comment_count' => $teaser->comments_count ?? 0,
+                        'expires_on' => $teaser->expires_on ?? null,
+                        'expires_after' => $teaser->expires_after ?? null,
+                        'teaser_mood' => $teaser->teaser_mood,
+                        'fire_count' => $teaser->reactions()->where('reaction', 'fire')->count(),
+                        'love_count' => $teaser->reactions()->where('reaction', 'love')->count(),
+                        'boring_count' => $teaser->reactions()->where('reaction', 'boring')->count(),
+                        'user_teaser_reaction' => $viewerId ? $teaser->reactions()->where('user_id', $viewerId)->value('reaction') : null,
+                        'type' => 'teaser',
+                        'comments' => $teaser->comments->map(function ($comment) {
+                            $latestReplies = $comment->replies
+                                ->sortByDesc('created_at')
+                                ->take(5);
+
+                            return [
+                                'id' => $comment->id,
+                                'body' => $comment->body,
+                                'created_at' => $comment->created_at,
+                                'user' => [
+                                    'id' => $comment->user->id,
+                                    'username' => $comment->user->username,
+                                ],
+                                'like_count' => $comment->reactions->where('reaction_type', 'like')->count(),
+                                'dislike_count' => $comment->reactions->where('reaction_type', 'dislike')->count(),
+                                'reply_count' => $comment->replies->count(),
+                            ];
+                        }),
                     ];
                 });
 
