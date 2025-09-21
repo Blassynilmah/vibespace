@@ -256,11 +256,27 @@ class BoardController extends Controller
         ]);
     }
 
-    public function myBoards(Request $request)
-    {
+public function myBoards(Request $request)
+{
+    try {
+        \Log::info('[myBoards] Fetching moodboards for user', [
+            'user_id' => $request->user()->id,
+            'query' => $request->query(),
+        ]);
+
         $user = $request->user();
 
-        $boards = MoodBoard::where('user_id', $user->id)
+        // Get page and perPage from query, default to 1 and 20
+        $page = (int) $request->query('page', 1);
+        $perPage = (int) $request->query('per_page', 20);
+
+        \Log::debug('[myBoards] Pagination params', [
+            'page' => $page,
+            'perPage' => $perPage,
+        ]);
+
+        // Paginate moodboards
+        $moodboards = MoodBoard::where('user_id', $user->id)
             ->with([
                 'user.profilePicture',
                 'favorites' => fn($q) => $q->where('user_id', $user->id),
@@ -272,10 +288,46 @@ class BoardController extends Controller
                 'saves as is_saved' => fn($q) => $q->where('user_id', $user->id),
             ])
             ->latest()
-            ->get();
+            ->paginate($perPage, ['*'], 'page', $page);
 
-        return response()->json($boards->map(fn($board) => $this->formatBoard($board)));
+        \Log::info('[myBoards] Moodboards paginated', [
+            'total' => $moodboards->total(),
+            'count' => $moodboards->count(),
+            'current_page' => $moodboards->currentPage(),
+            'last_page' => $moodboards->lastPage(),
+        ]);
+
+        // Format each board for frontend
+        $formattedBoards = collect($moodboards->items())->map(fn($board) => $this->formatBoard($board))->values();
+
+        // Prepare response structure for frontend
+        $response = [
+            'moodboards' => $formattedBoards,
+            'next_page_url' => $moodboards->nextPageUrl(),
+            'current_page' => $moodboards->currentPage(),
+            'last_page' => $moodboards->lastPage(),
+        ];
+
+        \Log::info('[myBoards] Returning JSON response', [
+            'moodboards_count' => count($formattedBoards),
+            'next_page_url' => $moodboards->nextPageUrl(),
+            'current_page' => $moodboards->currentPage(),
+            'last_page' => $moodboards->lastPage(),
+        ]);
+
+        return response()->json($response);
+
+    } catch (\Exception $e) {
+        \Log::error('[myBoards] Error fetching moodboards', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'success' => false,
+            'error' => 'Failed to fetch moodboards: ' . $e->getMessage(),
+        ], 500);
     }
+}
 
     private function formatBoard($board)
     {
