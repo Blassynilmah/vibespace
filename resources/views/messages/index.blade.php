@@ -690,7 +690,7 @@
 
 <!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
 <template x-if="message.attachments?.length">
-    <div class="relative mt-3 group w-full max-w-full" x-data="{
+    <div class="relative mt-3 group w-full max-w-full rounded-lg bg-purple-50 border border-purple-200 px-2 py-2" x-data="{
         loading: true,
         loadedFiles: [],
         minLoadingTime: 5000,
