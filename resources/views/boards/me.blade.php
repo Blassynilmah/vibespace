@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="meBoards()" x-init="loadBoards">
+<div x-data="meBoards()">
 
 <div
   :class="(showRenameModal || showDeleteModal || showCopyModal || showMoveModal || showDeleteFilesModal || uploadProgressModal || showCreateListModal) ? 'filter blur-sm pointer-events-none select-none' : ''"
@@ -1790,14 +1790,39 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-        async handleScroll() {
-            if (this.loading || !this.hasMoreBoards) return;
-            const scrollContainer = document.querySelector('.your-scroll-container-selector');
-            if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100) {
-                // Load next page (10 boards)
-                await this.loadBoards(this.nextPage, 10);
-            }
-        },
+async handleScroll() {
+    console.groupCollapsed('[handleScroll] Scroll event triggered');
+    if (this.loading) {
+        console.log('[handleScroll] Already loading, aborting.');
+        console.groupEnd();
+        return;
+    }
+    if (!this.hasMoreBoards) {
+        console.log('[handleScroll] No more boards to load, aborting.');
+        console.groupEnd();
+        return;
+    }
+
+    const scrollContainer = document.querySelector('.your-scroll-container-selector');
+    if (!scrollContainer) {
+        console.error('[handleScroll] Scroll container not found!');
+        console.groupEnd();
+        return;
+    }
+
+    const scrollPosition = scrollContainer.scrollTop + scrollContainer.clientHeight;
+    const threshold = scrollContainer.scrollHeight - 100;
+
+    console.log('[handleScroll] scrollPosition:', scrollPosition, 'threshold:', threshold);
+
+    if (scrollPosition >= threshold) {
+        console.log('[handleScroll] Near bottom, loading next page:', this.nextPage);
+        await this.loadBoards(this.nextPage, 10, true);
+    } else {
+        console.log('[handleScroll] Not near bottom, no action.');
+    }
+    console.groupEnd();
+},
 
         async refreshUserFilesView() {
             console.log("🔄 Refreshing user file view...");
