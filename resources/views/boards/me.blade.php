@@ -1675,6 +1675,8 @@ document.addEventListener('alpine:init', () => {
         hasMoreBoards: true,
         showTeaserComments: false,
         activeTeaserComments: null,
+        teaserReactionClicks: {},
+        teaserReactionCooldowns: {},
 
         async fetchTeasers() {
             this.loadingTeasers = true;
