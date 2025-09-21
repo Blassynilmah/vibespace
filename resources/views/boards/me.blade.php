@@ -1673,7 +1673,9 @@ document.addEventListener('alpine:init', () => {
         currentPlayingTeaserId: null,
         nextPage: 2,
         hasMoreBoards: true,
-
+        showTeaserComments: false,
+        activeTeaserComments: null,
+        
         async fetchTeasers() {
             this.loadingTeasers = true;
             try {
