@@ -1737,8 +1737,10 @@ document.addEventListener('alpine:init', () => {
                 });
 
                 if (append && page > 1) {
-                    console.log(`[loadBoards] Appending ${boards.length} boards to existing list`);
-                    this.boards.push(...boards);
+                    const existingIds = new Set(this.boards.map(b => b.id));
+                    const newBoards = boards.filter(b => !existingIds.has(b.id));
+                    console.log(`[loadBoards] Appending ${newBoards.length} new boards to existing list`);
+                    this.boards.push(...newBoards);
                 } else {
                     console.log(`[loadBoards] Setting boards list to ${boards.length} boards`);
                     this.boards = boards;
