@@ -29,6 +29,9 @@ use App\Http\Controllers\SeenContentController;
 |--------------------------------------------------------------------------
 */
 
+// Make sure this route comes BEFORE any resource routes like /boards/{id}
+Route::middleware('auth:sanctum')->get('/boards/me', [BoardController::class, 'myBoards']);
+
 // Landing → login
 Route::get('/', fn () => redirect()->route('login'));
 
