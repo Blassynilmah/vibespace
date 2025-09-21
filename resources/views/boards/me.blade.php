@@ -1517,6 +1517,8 @@ document.addEventListener('alpine:init', () => {
         fastForwardInterval: null,
         showStickyTabs: false,
         currentPlayingTeaserId: null,
+        nextPage: 2,
+        hasMoreBoards: true,
 
         // Fetch function
         async fetchTeasers() {
@@ -1564,11 +1566,13 @@ document.addEventListener('alpine:init', () => {
             });
             this.currentPlayingTeaserId = id;
         },
+
         handlePause(id) {
             if (this.currentPlayingTeaserId === id) {
                 this.currentPlayingTeaserId = null;
             }
         },
+
         togglePlay(videoEl) {
             if (!videoEl) return;
             if (videoEl.paused) {
@@ -1655,110 +1659,110 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-        async loadBoards() {
+        async loadBoards(page = 1, perPage = 20, append = false) {
             this.loading = true;
-            const t0 = performance.now();
             const viewerId = window.auth?.user?.id ?? null;
 
-            console.groupCollapsed('%cBoards load', 'color:#6b7280; font-weight:600');
-            console.log('Viewer ID (global):', viewerId ?? '(unknown)');
-
             try {
-                const res = await fetch('/api/boards/me', {
-                credentials: 'include',
-                headers: { Accept: 'application/json' }
+                const res = await fetch(`/api/boards/me?page=${page}&per_page=${perPage}`, {
+                    credentials: 'include',
+                    headers: { Accept: 'application/json' }
                 });
-                console.log('GET /api/boards/me =>', res.status, res.ok ? 'OK' : 'ERROR');
+                console.log('GET /api/boards/me', { page, perPage }, '=>', res.status, res.ok ? 'OK' : 'ERROR');
 
                 if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                console.error('Response not OK. Body:', text);
-                throw new Error(`Failed to load boards: ${res.status}`);
+                    const text = await res.text().catch(() => '');
+                    console.error('Response not OK. Body:', text);
+                    throw new Error(`Failed to load boards: ${res.status}`);
                 }
 
                 const data = await res.json();
-                console.log('Boards received:', Array.isArray(data) ? data.length : '(not an array)');
+                console.log('Boards response:', data);
 
                 const normalizePath = (p) => {
-                if (!p) return null;
-                if (p.startsWith('http')) return p;
-                const cleaned = p.replace(/^\/?storage\//, '');
-                return `/storage/${cleaned}`;
+                    if (!p) return null;
+                    if (p.startsWith('http')) return p;
+                    const cleaned = p.replace(/^\/?storage\//, '');
+                    return `/storage/${cleaned}`;
                 };
 
                 const isFavorite = (b) => Boolean(
-                b.is_favorite ??
-                b.isFavourite ??
-                b.is_favorited ??
-                b.favorite ??
-                b.favorited ??
-                b.pivot?.favorite ??
-                false
+                    b.is_favorite ??
+                    b.isFavourite ??
+                    b.is_favorited ??
+                    b.favorite ??
+                    b.favorited ??
+                    b.pivot?.favorite ??
+                    false
                 );
 
-                const boards = (Array.isArray(data) ? data : []).map((board) => {
-                let files = [];
+                const boards = (Array.isArray(data.moodboards) ? data.moodboards : []).map((board) => {
+                    let files = [];
 
-                // Images
-                let imgs = board.images ?? board.image ?? null;
-                if (typeof imgs === 'string') {
-                    try { imgs = JSON.parse(imgs); } catch { /* keep as string */ }
-                }
+                    // Images
+                    let imgs = board.images ?? board.image ?? null;
+                    if (typeof imgs === 'string') {
+                        try { imgs = JSON.parse(imgs); } catch { /* keep as string */ }
+                    }
 
-                if (Array.isArray(imgs)) {
-                    files.push(...imgs.map(path => ({ path: normalizePath(path), type: 'image' })));
-                } else if (typeof imgs === 'string' && imgs.trim() !== '') {
-                    files.push({ path: normalizePath(imgs), type: 'image' });
-                }
+                    if (Array.isArray(imgs)) {
+                        files.push(...imgs.map(path => ({ path: normalizePath(path), type: 'image' })));
+                    } else if (typeof imgs === 'string' && imgs.trim() !== '') {
+                        files.push({ path: normalizePath(imgs), type: 'image' });
+                    }
 
-                // Video
-                if (board.video) {
-                    files.push({ path: normalizePath(board.video), type: 'video' });
-                }
+                    // Video
+                    if (board.video) {
+                        files.push({ path: normalizePath(board.video), type: 'video' });
+                    }
 
-                // Dedupe
-                const seen = new Set();
-                files = files.filter(f => {
-                    if (!f?.path) return false;
-                    if (seen.has(f.path)) return false;
-                    seen.add(f.path);
-                    return true;
+                    // Dedupe
+                    const seen = new Set();
+                    files = files.filter(f => {
+                        if (!f?.path) return false;
+                        if (seen.has(f.path)) return false;
+                        seen.add(f.path);
+                        return true;
+                    });
+
+                    return {
+                        ...board,
+                        files,
+                        favorite: isFavorite(board),
+                        newComment: '',
+                        comment_count: board.comment_count ?? 0,
+                    };
                 });
 
-                return {
-                    ...board,
-                    files,
-                    favorite: isFavorite(board),
-                    newComment: '',
-                    comment_count: board.comment_count ?? 0,
-                };
-            });
+                if (append && page > 1) {
+                    this.boards.push(...boards);
+                } else {
+                    this.boards = boards;
+                }
 
-                this.boards = boards;
+                // Track pagination state
+                this.nextPage = data.next_page_url ? page + 1 : null;
+                this.hasMoreBoards = !!data.next_page_url;
 
-                // Table now includes viewerId
+                // Debug info
                 console.table(boards.map(b => ({
-                id: b.id,
-                favorite: b.favorite,
-                files: b.files.length,
-                viewerId
+                    id: b.id,
+                    favorite: b.favorite,
+                    files: b.files.length,
+                    viewerId
                 })));
 
-                // Per-board logs
                 boards.forEach(b => {
-                console.groupCollapsed(`Board #${b.id} ${b.title ?? ''}`.trim());
-                console.log('Viewer ID:', viewerId ?? '(unknown)');
-                console.log('Favorite:', b.favorite);
-                console.log('Files:', b.files);
-                console.groupEnd();
+                    console.groupCollapsed(`Board #${b.id} ${b.title ?? ''}`.trim());
+                    console.log('Viewer ID:', viewerId ?? '(unknown)');
+                    console.log('Favorite:', b.favorite);
+                    console.log('Files:', b.files);
+                    console.groupEnd();
                 });
 
             } catch (error) {
                 console.error('Failed to load boards', error);
             } finally {
-                const t1 = performance.now();
-                console.log(`Boards load finished in ${(t1 - t0).toFixed(0)} ms`);
-                console.groupEnd();
                 this.loading = false;
             }
         },
@@ -1773,6 +1777,15 @@ document.addEventListener('alpine:init', () => {
                 );
                 return moodMatch && typeMatch && searchMatch;
             });
+        },
+
+        async handleScroll() {
+            if (this.loading || !this.hasMoreBoards) return;
+            const scrollContainer = document.querySelector('.your-scroll-container-selector');
+            if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 100) {
+                // Load next page (10 boards)
+                await this.loadBoards(this.nextPage, 10);
+            }
         },
 
         async refreshUserFilesView() {
