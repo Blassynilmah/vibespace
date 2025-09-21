@@ -215,7 +215,7 @@
 
         {{-- 🎨 Moodboards Feed --}}
         <template x-if="activeTab === 'moodboards'">
-            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container">
+            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container" style="overflow-y:auto;">
                 <div class="ml-auto relative flex flex-row items-center gap-2 flex-wrap sm:flex-nowrap">
                     <a href="{{ route('boards.create') }}"
                             class="group relative h-7 rounded-full bg-white text-pink-600 overflow-hidden shadow transition-[width,opacity] duration-700 ease-in-out w-7 sm:hover:w-44 whitespace-nowrap">
