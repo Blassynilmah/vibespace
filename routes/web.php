@@ -74,7 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // MoodBoards
     Route::resource('boards', BoardController::class);
-    Route::get('/api/boards/me', [ApiBoardController::class, 'myBoards']);
+    Route::get('boards/me', [ApiBoardController::class, 'myBoards']);
     Route::post('/toggle-favorite', [BoardController::class, 'toggleFavorite']);
     Route::post('/moodboards/toggle-save', [BoardController::class, 'toggleSave'])->name('moodboards.toggleSave');
 
