@@ -215,7 +215,7 @@
 
         {{-- 🎨 Moodboards Feed --}}
         <template x-if="activeTab === 'moodboards'">
-            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
+            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container">
                 <div class="ml-auto relative flex flex-row items-center gap-2 flex-wrap sm:flex-nowrap">
                     <a href="{{ route('boards.create') }}"
                             class="group relative h-7 rounded-full bg-white text-pink-600 overflow-hidden shadow transition-[width,opacity] duration-700 ease-in-out w-7 sm:hover:w-44 whitespace-nowrap">
@@ -1790,39 +1790,39 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-async handleScroll() {
-    console.groupCollapsed('[handleScroll] Scroll event triggered');
-    if (this.loading) {
-        console.log('[handleScroll] Already loading, aborting.');
-        console.groupEnd();
-        return;
-    }
-    if (!this.hasMoreBoards) {
-        console.log('[handleScroll] No more boards to load, aborting.');
-        console.groupEnd();
-        return;
-    }
+        async handleScroll() {
+            console.groupCollapsed('[handleScroll] Scroll event triggered');
+            if (this.loading) {
+                console.log('[handleScroll] Already loading, aborting.');
+                console.groupEnd();
+                return;
+            }
+            if (!this.hasMoreBoards) {
+                console.log('[handleScroll] No more boards to load, aborting.');
+                console.groupEnd();
+                return;
+            }
 
-    const scrollContainer = document.querySelector('.your-scroll-container-selector');
-    if (!scrollContainer) {
-        console.error('[handleScroll] Scroll container not found!');
-        console.groupEnd();
-        return;
-    }
+            const scrollContainer = document.querySelector('.your-scroll-container-selector');
+            if (!scrollContainer) {
+                console.error('[handleScroll] Scroll container not found!');
+                console.groupEnd();
+                return;
+            }
 
-    const scrollPosition = scrollContainer.scrollTop + scrollContainer.clientHeight;
-    const threshold = scrollContainer.scrollHeight - 100;
+            const scrollPosition = scrollContainer.scrollTop + scrollContainer.clientHeight;
+            const threshold = scrollContainer.scrollHeight - 100;
 
-    console.log('[handleScroll] scrollPosition:', scrollPosition, 'threshold:', threshold);
+            console.log('[handleScroll] scrollPosition:', scrollPosition, 'threshold:', threshold);
 
-    if (scrollPosition >= threshold) {
-        console.log('[handleScroll] Near bottom, loading next page:', this.nextPage);
-        await this.loadBoards(this.nextPage, 10, true);
-    } else {
-        console.log('[handleScroll] Not near bottom, no action.');
-    }
-    console.groupEnd();
-},
+            if (scrollPosition >= threshold) {
+                console.log('[handleScroll] Near bottom, loading next page:', this.nextPage);
+                await this.loadBoards(this.nextPage, 10, true);
+            } else {
+                console.log('[handleScroll] Not near bottom, no action.');
+            }
+            console.groupEnd();
+        },
 
         async refreshUserFilesView() {
             console.log("🔄 Refreshing user file view...");
@@ -2129,6 +2129,12 @@ async handleScroll() {
             if (this.activeTab === 'files') {
                 this.loadFileLists();
                 this.loadUserFiles();
+            }
+
+            const scrollContainer = document.getElementById('moodboards-scroll-container');
+            if (scrollContainer) {
+                scrollContainer.addEventListener('scroll', this.handleScroll.bind(this));
+                console.log('[init] Scroll handler attached to moodboards-scroll-container');
             }
 
             // Watch for tab changes
