@@ -215,7 +215,7 @@
 
         {{-- 🎨 Moodboards Feed --}}
         <template x-if="activeTab === 'moodboards'">
-            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container">
+            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container" style="height:80vh; overflow-y:auto;">
                 <div class="ml-auto relative flex flex-row items-center gap-2 flex-wrap sm:flex-nowrap">
                     <a href="{{ route('boards.create') }}"
                             class="group relative h-7 rounded-full bg-white text-pink-600 overflow-hidden shadow transition-[width,opacity] duration-700 ease-in-out w-7 sm:hover:w-44 whitespace-nowrap">
@@ -230,7 +230,7 @@
                     </button>
                 </div>
                 <template x-for="board in filteredBoards" :key="board.id + '-' + board.created_at">
-                    <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" id="moodboards-scroll-container" style="transition: box-shadow .25s ease, transform .18s ease; height:80vh; overflow-y:auto;" x-data="{ expanded: false }">
+                    <div class="relative bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 group overflow-hidden" style="transition: box-shadow .25s ease, transform .18s ease;" x-data="{ expanded: false }">
                         <button
                             @click.prevent="toggleFavorite(board.id)"
                             class="absolute top-3 right-3 z-20 transition bg-white rounded-full p-1 shadow-md"
