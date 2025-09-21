@@ -1675,7 +1675,7 @@ document.addEventListener('alpine:init', () => {
         hasMoreBoards: true,
         showTeaserComments: false,
         activeTeaserComments: null,
-        
+
         async fetchTeasers() {
             this.loadingTeasers = true;
             try {
@@ -2771,7 +2771,7 @@ document.addEventListener('alpine:init', () => {
 
         reactToTeaser(teaserId, reaction) {
             const now = Date.now();
-            const teaser = this.items.find(t => t.id === teaserId && t.type === 'teaser');
+            const teaser = this.teasers.find(t => t.id === teaserId);
             if (!teaser) return;
 
             // Cooldown check
