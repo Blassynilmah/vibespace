@@ -1662,6 +1662,11 @@ document.addEventListener('alpine:init', () => {
         async loadBoards(page = 1, perPage = 20, append = false) {
             this.loading = true;
             const viewerId = window.auth?.user?.id ?? null;
+            const t0 = performance.now();
+
+            console.groupCollapsed('%c[loadBoards] Fetching boards', 'color:#6b7280; font-weight:600');
+            console.log('Viewer ID:', viewerId ?? '(unknown)');
+            console.log('Page:', page, 'PerPage:', perPage, 'Append:', append);
 
             try {
                 const res = await fetch(`/api/boards/me?page=${page}&per_page=${perPage}`, {
@@ -1677,7 +1682,7 @@ document.addEventListener('alpine:init', () => {
                 }
 
                 const data = await res.json();
-                console.log('Boards response:', data);
+                console.log('[loadBoards] Boards response:', data);
 
                 const normalizePath = (p) => {
                     if (!p) return null;
@@ -1735,14 +1740,17 @@ document.addEventListener('alpine:init', () => {
                 });
 
                 if (append && page > 1) {
+                    console.log(`[loadBoards] Appending ${boards.length} boards to existing list`);
                     this.boards.push(...boards);
                 } else {
+                    console.log(`[loadBoards] Setting boards list to ${boards.length} boards`);
                     this.boards = boards;
                 }
 
                 // Track pagination state
                 this.nextPage = data.next_page_url ? page + 1 : null;
                 this.hasMoreBoards = !!data.next_page_url;
+                console.log('[loadBoards] nextPage:', this.nextPage, 'hasMoreBoards:', this.hasMoreBoards);
 
                 // Debug info
                 console.table(boards.map(b => ({
@@ -1753,7 +1761,7 @@ document.addEventListener('alpine:init', () => {
                 })));
 
                 boards.forEach(b => {
-                    console.groupCollapsed(`Board #${b.id} ${b.title ?? ''}`.trim());
+                    console.groupCollapsed(`[Board #${b.id}] ${b.title ?? ''}`.trim());
                     console.log('Viewer ID:', viewerId ?? '(unknown)');
                     console.log('Favorite:', b.favorite);
                     console.log('Files:', b.files);
@@ -1761,8 +1769,11 @@ document.addEventListener('alpine:init', () => {
                 });
 
             } catch (error) {
-                console.error('Failed to load boards', error);
+                console.error('[loadBoards] Failed to load boards:', error);
             } finally {
+                const t1 = performance.now();
+                console.log(`[loadBoards] Finished in ${(t1 - t0).toFixed(0)} ms`);
+                console.groupEnd();
                 this.loading = false;
             }
         },

@@ -310,43 +310,81 @@ class BoardController extends Controller
 
     public function me(Request $request)
     {
-        $user = auth()->user();
+        try {
+            \Log::info('[me] Fetching moodboards for user', [
+                'user_id' => auth()->id(),
+                'query' => $request->query(),
+            ]);
 
-        // Get page and perPage from query, default to 1 and 20
-        $page = (int) $request->query('page', 1);
-        $perPage = (int) $request->query('per_page', 20);
+            $user = auth()->user();
 
-        // Paginate moodboards
-        $moodboards = MoodBoard::where('user_id', $user->id)
-            ->latest()
-            ->paginate($perPage, ['*'], 'page', $page);
+            // Get page and perPage from query, default to 1 and 20
+            $page = (int) $request->query('page', 1);
+            $perPage = (int) $request->query('per_page', 20);
 
-        // Prepare images and video for each board
-        foreach ($moodboards as $board) {
-            // Decode images
-            $decoded = [];
-            if ($board->image) {
-                $decoded = json_decode($board->image, true);
-                $decoded = is_array($decoded) ? $decoded : [$decoded];
-            }
-            $board->images = $decoded;
+            \Log::debug('[me] Pagination params', [
+                'page' => $page,
+                'perPage' => $perPage,
+            ]);
 
-            // Prepare video path (relative, for Alpine)
-            $board->video = $board->video ? $board->video : null;
-        }
+            // Paginate moodboards
+            $moodboards = MoodBoard::where('user_id', $user->id)
+                ->latest()
+                ->paginate($perPage, ['*'], 'page', $page);
 
-        // If AJAX, return JSON for infinite scroll
-        if ($request->wantsJson()) {
-            return response()->json([
-                'moodboards' => $moodboards->items(),
-                'next_page_url' => $moodboards->nextPageUrl(),
+            \Log::info('[me] Moodboards paginated', [
+                'total' => $moodboards->total(),
+                'count' => $moodboards->count(),
                 'current_page' => $moodboards->currentPage(),
                 'last_page' => $moodboards->lastPage(),
             ]);
-        }
 
-        // Otherwise, render the Blade view with the first page
-        return view('boards.me', compact('moodboards'));
+            // Prepare images and video for each board
+            foreach ($moodboards as $board) {
+                // Decode images
+                $decoded = [];
+                if ($board->image) {
+                    $decoded = json_decode($board->image, true);
+                    $decoded = is_array($decoded) ? $decoded : [$decoded];
+                }
+                $board->images = $decoded;
+
+                // Prepare video path (relative, for Alpine)
+                $board->video = $board->video ? $board->video : null;
+            }
+
+            // If AJAX, return JSON for infinite scroll
+            if ($request->wantsJson()) {
+                \Log::info('[me] Returning JSON response', [
+                    'moodboards_count' => count($moodboards->items()),
+                    'next_page_url' => $moodboards->nextPageUrl(),
+                    'current_page' => $moodboards->currentPage(),
+                    'last_page' => $moodboards->lastPage(),
+                ]);
+                return response()->json([
+                    'moodboards' => $moodboards->items(),
+                    'next_page_url' => $moodboards->nextPageUrl(),
+                    'current_page' => $moodboards->currentPage(),
+                    'last_page' => $moodboards->lastPage(),
+                ]);
+            }
+
+            // Otherwise, render the Blade view with the first page
+            \Log::info('[me] Returning Blade view', [
+                'view' => 'boards.me',
+                'moodboards_count' => $moodboards->count(),
+            ]);
+            return view('boards.me', compact('moodboards'));
+        } catch (\Exception $e) {
+            \Log::error('[me] Error fetching moodboards', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to fetch moodboards: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function toggleFavorite(Request $request)
