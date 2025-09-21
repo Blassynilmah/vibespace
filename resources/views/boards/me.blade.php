@@ -2598,32 +2598,18 @@ document.addEventListener('alpine:init', () => {
             box.classList.remove('hidden');
         }, 
 
-        async handleWindowScroll() {
-            console.groupCollapsed('[handleWindowScroll] Window scroll event triggered');
-            if (this.loading) {
-                console.log('[handleWindowScroll] Already loading, aborting.');
-                console.groupEnd();
-                return;
-            }
-            if (!this.hasMoreBoards) {
-                console.log('[handleWindowScroll] No more boards to load, aborting.');
-                console.groupEnd();
-                return;
-            }
+async handleWindowScroll() {
+    if (this.loading) return;
+    if (!this.hasMoreBoards) return;
 
-            const scrollPosition = window.scrollY + window.innerHeight;
-            const threshold = document.body.scrollHeight - 300; // 300px from bottom
+    const scrollPosition = window.scrollY + window.innerHeight;
+    const threshold = document.body.scrollHeight - 300;
 
-            console.log('[handleWindowScroll] scrollPosition:', scrollPosition, 'threshold:', threshold);
-
-            if (scrollPosition >= threshold) {
-                console.log('[handleWindowScroll] Near bottom, loading next page:', this.nextPage);
-                await this.loadBoards(this.nextPage, 10, true);
-            } else {
-                console.log('[handleWindowScroll] Not near bottom, no action.');
-            }
-            console.groupEnd();
-        }
+    if (scrollPosition >= threshold) {
+        this.loading = true; // Set loading immediately to block further calls
+        await this.loadBoards(this.nextPage, 10, true);
+    }
+}
     }));
 });
 </script>
