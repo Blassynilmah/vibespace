@@ -84,7 +84,7 @@ public function store(Request $request)
     }
 }
 
-public function myTeasers()
+public function myTeasers(Request $request)
 {
     try {
         $user = Auth::user();
@@ -96,20 +96,17 @@ public function myTeasers()
 
         \Log::info('myTeasers: Fetching teasers for user', ['user_id' => $user->id]);
 
-        $teasers = Teaser::where('user_id', $user->id)
+        $teasers = Teaser::with('user:id,username')
+            ->where('user_id', $user->id)
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate(20);
 
-        $teasers->transform(function ($teaser) use ($user) {
-            $teaser->username = $user->username;
-            return $teaser;
-        });
-
-        \Log::info('myTeasers: Successfully retrieved teasers', ['count' => $teasers->count()]);
-
+        // Each teaser will have a 'user' relation with 'id' and 'username'
         return response()->json([
-            'teasers' => $teasers,
-            'username' => $user->username,
+            'teasers' => $teasers->items(),
+            'current_page' => $teasers->currentPage(),
+            'last_page' => $teasers->lastPage(),
+            'total' => $teasers->total(),
         ]);
     } catch (\Exception $e) {
         \Log::error('myTeasers: Failed to fetch teasers', [
@@ -136,72 +133,70 @@ public function myTeasers()
         ]);
     }
 
-public function react(Request $request)
-{
-    $request->validate([
-        'teaser_id' => 'required|exists:teasers,id',
-        'reaction' => 'required|in:fire,love,boring',
-        'remove' => 'sometimes|boolean',
-    ]);
-    $user = $request->user();
+    public function react(Request $request)
+    {
+        $request->validate([
+            'teaser_id' => 'required|exists:teasers,id',
+            'reaction' => 'required|in:fire,love,boring',
+            'remove' => 'sometimes|boolean',
+        ]);
+        $user = $request->user();
 
-    $query = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
-        ->where('user_id', $user->id);
+        $query = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
+            ->where('user_id', $user->id);
 
-    if ($request->boolean('remove')) {
-        $query->delete();
-        $userReaction = null;
-    } else {
-        \App\Models\TeaserReaction::updateOrCreate(
-            ['teaser_id' => $request->teaser_id, 'user_id' => $user->id],
-            ['reaction' => $request->reaction]
-        );
-        $userReaction = $request->reaction;
+        if ($request->boolean('remove')) {
+            $query->delete();
+            $userReaction = null;
+        } else {
+            \App\Models\TeaserReaction::updateOrCreate(
+                ['teaser_id' => $request->teaser_id, 'user_id' => $user->id],
+                ['reaction' => $request->reaction]
+            );
+            $userReaction = $request->reaction;
+        }
+
+        // Get updated counts
+        $counts = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
+            ->selectRaw("count(*) filter (where reaction = 'fire') as fire_count")
+            ->selectRaw("count(*) filter (where reaction = 'love') as love_count")
+            ->selectRaw("count(*) filter (where reaction = 'boring') as boring_count")
+            ->first();
+
+        return response()->json([
+            'fire_count' => $counts->fire_count,
+            'love_count' => $counts->love_count,
+            'boring_count' => $counts->boring_count,
+            'user_reaction' => $userReaction,
+        ]);
     }
 
-    // Get updated counts
-    $counts = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
-        ->selectRaw("count(*) filter (where reaction = 'fire') as fire_count")
-        ->selectRaw("count(*) filter (where reaction = 'love') as love_count")
-        ->selectRaw("count(*) filter (where reaction = 'boring') as boring_count")
-        ->first();
+    public function postComment(Request $request)
+    {
+        $request->validate([
+            'teaser_id' => 'required|exists:teasers,id',
+            'body' => 'required|string|max:1000',
+        ]);
+        $comment = \App\Models\TeaserComment::create([
+            'teaser_id' => $request->teaser_id,
+            'user_id' => $request->user()->id,
+            'body' => $request->body,
+        ]);
+        $comment->load('user:id,username');
+        return response()->json($comment);
+    }
 
-    return response()->json([
-        'fire_count' => $counts->fire_count,
-        'love_count' => $counts->love_count,
-        'boring_count' => $counts->boring_count,
-        'user_reaction' => $userReaction,
-    ]);
-}
+    public function getComments($teaserId)
+    {
+        $comments = \App\Models\TeaserComment::with('user:id,username')
+            ->where('teaser_id', $teaserId)
+            ->orderByDesc('created_at')
+            ->take(50)
+            ->get();
+        return response()->json($comments);
+    }
 
-// Post a comment
-public function postComment(Request $request)
-{
-    $request->validate([
-        'teaser_id' => 'required|exists:teasers,id',
-        'body' => 'required|string|max:1000',
-    ]);
-    $comment = \App\Models\TeaserComment::create([
-        'teaser_id' => $request->teaser_id,
-        'user_id' => $request->user()->id,
-        'body' => $request->body,
-    ]);
-    $comment->load('user:id,username');
-    return response()->json($comment);
-}
-
-// Fetch comments for a teaser (latest first)
-public function getComments($teaserId)
-{
-    $comments = \App\Models\TeaserComment::with('user:id,username')
-        ->where('teaser_id', $teaserId)
-        ->orderByDesc('created_at')
-        ->take(50)
-        ->get();
-    return response()->json($comments);
-}
-
-public function toggle(Request $request)
+    public function toggle(Request $request)
     {
         $request->validate([
             'teaser_id' => 'required|exists:teasers,id',
@@ -223,71 +218,71 @@ public function toggle(Request $request)
         return response()->json(['is_saved' => $isSaved]);
     }
 
-public function reactComment(Request $request, $comment)
-{
-    $request->validate([
-        'reaction_type' => 'required|in:like,dislike',
-    ]);
-    $user = $request->user();
+    public function reactComment(Request $request, $comment)
+    {
+        $request->validate([
+            'reaction_type' => 'required|in:like,dislike',
+        ]);
+        $user = $request->user();
 
-    \App\Models\TeaserCommentReaction::updateOrCreate(
-        ['comment_id' => $comment, 'user_id' => $user->id],
-        ['reaction_type' => $request->reaction_type]
-    );
+        \App\Models\TeaserCommentReaction::updateOrCreate(
+            ['comment_id' => $comment, 'user_id' => $user->id],
+            ['reaction_type' => $request->reaction_type]
+        );
 
-    $counts = \App\Models\TeaserCommentReaction::where('comment_id', $comment)
-        ->selectRaw("count(*) filter (where reaction_type = 'like') as like_count")
-        ->selectRaw("count(*) filter (where reaction_type = 'dislike') as dislike_count")
-        ->first();
+        $counts = \App\Models\TeaserCommentReaction::where('comment_id', $comment)
+            ->selectRaw("count(*) filter (where reaction_type = 'like') as like_count")
+            ->selectRaw("count(*) filter (where reaction_type = 'dislike') as dislike_count")
+            ->first();
 
-    return response()->json([
-        'like_count' => $counts->like_count,
-        'dislike_count' => $counts->dislike_count,
-    ]);
-}
+        return response()->json([
+            'like_count' => $counts->like_count,
+            'dislike_count' => $counts->dislike_count,
+        ]);
+    }
 
-public function replyComment(Request $request, $comment)
-{
-    $request->validate([
-        'body' => 'required|string|max:1000',
-    ]);
-    $reply = \App\Models\TeaserCommentReply::create([
-        'comment_id' => $comment,
-        'user_id' => $request->user()->id,
-        'body' => $request->body,
-    ]);
+    public function replyComment(Request $request, $comment)
+    {
+        $request->validate([
+            'body' => 'required|string|max:1000',
+        ]);
+        $reply = \App\Models\TeaserCommentReply::create([
+            'comment_id' => $comment,
+            'user_id' => $request->user()->id,
+            'body' => $request->body,
+        ]);
 
-    $reply_count = \App\Models\TeaserCommentReply::where('comment_id', $comment)->count();
+        $reply_count = \App\Models\TeaserCommentReply::where('comment_id', $comment)->count();
 
-    return response()->json([
-        'reply_count' => $reply_count,
-    ]);
-}
+        return response()->json([
+            'reply_count' => $reply_count,
+        ]);
+    }
 
-public function getCommentReplies(Request $request, $commentId)
-{
-    $offset = (int) $request->query('offset', 0);
-    $limit = (int) $request->query('limit', 5);
+    public function getCommentReplies(Request $request, $commentId)
+    {
+        $offset = (int) $request->query('offset', 0);
+        $limit = (int) $request->query('limit', 5);
 
-    $replies = \App\Models\TeaserCommentReply::where('comment_id', $commentId)
-        ->orderBy('created_at', 'desc')
-        ->skip($offset)
-        ->take($limit)
-        ->with('user')
-        ->get()
-        ->map(function ($reply) {
-            return [
-                'id' => $reply->id,
-                'body' => $reply->body,
-                'created_at' => $reply->created_at,
-                'user' => [
-                    'id' => $reply->user->id,
-                    'username' => $reply->user->username,
-                    'profile_picture' => $reply->user->profilePicture->path ?? null,
-                ],
-            ];
-        });
+        $replies = \App\Models\TeaserCommentReply::where('comment_id', $commentId)
+            ->orderBy('created_at', 'desc')
+            ->skip($offset)
+            ->take($limit)
+            ->with('user')
+            ->get()
+            ->map(function ($reply) {
+                return [
+                    'id' => $reply->id,
+                    'body' => $reply->body,
+                    'created_at' => $reply->created_at,
+                    'user' => [
+                        'id' => $reply->user->id,
+                        'username' => $reply->user->username,
+                        'profile_picture' => $reply->user->profilePicture->path ?? null,
+                    ],
+                ];
+            });
 
-    return response()->json($replies);
-}
+        return response()->json($replies);
+    }
 }
