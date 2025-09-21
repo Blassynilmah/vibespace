@@ -61,6 +61,8 @@ Route::get('/messages/unread-conversations-count', [MessageController::class, 'u
 Route::post('/block-user', [MessageController::class, 'blockUser'])->middleware('auth');
 
 Route::post('/unblock-user', [MessageController::class, 'unblockUser'])->middleware('auth');
+
+Route::middleware('auth:sanctum')->get('/api/boards/me', [ApiBoardController::class, 'myBoards']);
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)
