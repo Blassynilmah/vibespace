@@ -8,6 +8,8 @@ use App\Http\Controllers\FileController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\TeaserController;
 
+Route::middleware('auth:sanctum')->get('/boards/me', [ApiBoardController::class, 'myBoards']);
+
 // 🔑 Standard Sanctum SPA bootstrap route
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
