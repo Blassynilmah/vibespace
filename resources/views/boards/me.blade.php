@@ -563,7 +563,7 @@
 
                             <video
                                 x-show="!item.teaserError"
-                                :src="item.video"
+                                :src="`/storage/${item.video}`"
                                 playsinline
                                 data-teaser
                                 loop
