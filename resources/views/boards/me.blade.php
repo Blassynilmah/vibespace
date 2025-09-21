@@ -1520,7 +1520,6 @@ document.addEventListener('alpine:init', () => {
         nextPage: 2,
         hasMoreBoards: true,
 
-        // Fetch function
         async fetchTeasers() {
             this.loadingTeasers = true;
             try {
@@ -1551,7 +1550,6 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Determines if a teaser should autoplay
         isCenterStage(teaser) {
             return true; // Replace with actual logic
         },
@@ -1582,7 +1580,6 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Fast-forward logic
         startFastForward(videoEl) {
             if (!videoEl) return;
             this.fastForwardInterval = setInterval(() => {
@@ -2123,7 +2120,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         init() {
-            // Optionally, load the default tab's data
+            // Load data for the default tab
             if (this.activeTab === 'moodboards') this.loadBoards();
             if (this.activeTab === 'teasers') this.fetchTeasers();
             if (this.activeTab === 'files') {
@@ -2131,52 +2128,27 @@ document.addEventListener('alpine:init', () => {
                 this.loadUserFiles();
             }
 
-            const scrollContainer = document.getElementById('moodboards-scroll-container');
-            if (scrollContainer) {
-                scrollContainer.addEventListener('scroll', this.handleScroll.bind(this));
-                console.log('[init] Scroll handler attached to moodboards-scroll-container');
+            // Attach window scroll handler for infinite scroll in moodboards tab
+            if (this.activeTab === 'moodboards') {
+                window.addEventListener('scroll', this.handleWindowScroll.bind(this));
+                console.log('[init] Window scroll handler attached for moodboards');
             }
 
             // Watch for tab changes
             this.$watch('activeTab', (tab) => {
-                if (tab === 'moodboards') this.loadBoards();
+                // Remove previous scroll handler
+                window.removeEventListener('scroll', this.handleWindowScroll.bind(this));
+                if (tab === 'moodboards') {
+                    this.loadBoards();
+                    window.addEventListener('scroll', this.handleWindowScroll.bind(this));
+                    console.log('[tab] Window scroll handler attached for moodboards');
+                }
                 if (tab === 'teasers') this.fetchTeasers();
                 if (tab === 'files') {
                     this.loadFileLists();
                     this.loadUserFiles(true); // true = reset
                 }
             });
-        },
-
-        // Fetch function
-        async fetchTeasers() {
-            this.loadingTeasers = true;
-            try {
-                console.log('[fetchTeasers] Fetching teasers from /my-teasers...');
-                const res = await fetch('/my-teasers', {
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                console.log('[fetchTeasers] Response status:', res.status);
-
-                if (!res.ok) {
-                    const text = await res.text().catch(() => '');
-                    console.error(`[fetchTeasers] Server responded with error: ${res.status}`, text);
-                    throw new Error(`Failed to fetch teasers: ${res.status}`);
-                }
-
-                const data = await res.json();
-                console.log('[fetchTeasers] Teasers data received:', data);
-
-                this.teasers = data.teasers || [];
-            } catch (err) {
-                console.error('[fetchTeasers] Failed to fetch teasers:', err);
-                this.teasers = [];
-                this.showToast('Could not load teasers. Please try again.', 'error');
-            } finally {
-                this.loadingTeasers = false;
-                console.log('[fetchTeasers] Loading state set to false');
-            }
         },
 
         async loadFileLists() {
