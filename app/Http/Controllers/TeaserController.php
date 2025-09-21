@@ -101,7 +101,6 @@ public function myTeasers(Request $request)
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        // Add counts to each teaser
         $teasers->getCollection()->transform(function ($teaser) use ($user) {
             $teaser->fire_count = $teaser->reactions()->where('reaction', 'fire')->count();
             $teaser->love_count = $teaser->reactions()->where('reaction', 'love')->count();
@@ -109,6 +108,31 @@ public function myTeasers(Request $request)
             $teaser->comment_count = $teaser->comments()->count();
             $teaser->user_teaser_reaction = $teaser->reactions()->where('user_id', $user->id)->value('reaction');
             $teaser->is_saved = $teaser->saves()->where('user_id', $user->id)->exists();
+
+            // Latest five comments with reply counts and like/dislike counts
+            $teaser->latest_comments = $teaser->comments()
+                ->with('user:id,username')
+                ->orderByDesc('created_at')
+                ->take(5)
+                ->get()
+                ->map(function ($comment) {
+                    $reply_count = $comment->replies()->count();
+                    $like_count = $comment->reactions()->where('reaction_type', 'like')->count();
+                    $dislike_count = $comment->reactions()->where('reaction_type', 'dislike')->count();
+                    return [
+                        'id' => $comment->id,
+                        'body' => $comment->body,
+                        'created_at' => $comment->created_at,
+                        'user' => [
+                            'id' => $comment->user->id,
+                            'username' => $comment->user->username,
+                        ],
+                        'reply_count' => $reply_count,
+                        'like_count' => $like_count,
+                        'dislike_count' => $dislike_count,
+                    ];
+                });
+
             return $teaser;
         });
 
