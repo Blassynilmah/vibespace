@@ -215,7 +215,7 @@
 
         {{-- 🎨 Moodboards Feed --}}
         <template x-if="activeTab === 'moodboards'">
-            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container" style="overflow-y:auto;">
+            <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3" id="moodboards-scroll-container" style="height:80vh;overflow-y:auto;">
                 <div class="ml-auto relative flex flex-row items-center gap-2 flex-wrap sm:flex-nowrap">
                     <a href="{{ route('boards.create') }}"
                             class="group relative h-7 rounded-full bg-white text-pink-600 overflow-hidden shadow transition-[width,opacity] duration-700 ease-in-out w-7 sm:hover:w-44 whitespace-nowrap">
@@ -1824,33 +1824,6 @@ document.addEventListener('alpine:init', () => {
             console.groupEnd();
         },
 
-        async handleWindowScroll() {
-            console.groupCollapsed('[handleWindowScroll] Window scroll event triggered');
-            if (this.loading) {
-                console.log('[handleWindowScroll] Already loading, aborting.');
-                console.groupEnd();
-                return;
-            }
-            if (!this.hasMoreBoards) {
-                console.log('[handleWindowScroll] No more boards to load, aborting.');
-                console.groupEnd();
-                return;
-            }
-
-            const scrollPosition = window.scrollY + window.innerHeight;
-            const threshold = document.body.scrollHeight - 100;
-
-            console.log('[handleWindowScroll] scrollPosition:', scrollPosition, 'threshold:', threshold);
-
-            if (scrollPosition >= threshold) {
-                console.log('[handleWindowScroll] Near bottom, loading next page:', this.nextPage);
-                await this.loadBoards(this.nextPage, 10, true);
-            } else {
-                console.log('[handleWindowScroll] Not near bottom, no action.');
-            }
-            console.groupEnd();
-        },
-
         async refreshUserFilesView() {
             console.log("🔄 Refreshing user file view...");
             this.fileOffset = 0;
@@ -2166,23 +2139,13 @@ document.addEventListener('alpine:init', () => {
 
             // Watch for tab changes
             this.$watch('activeTab', (tab) => {
-                if (tab === 'moodboards') {
-                    window.addEventListener('scroll', this.handleWindowScroll.bind(this));
-                    this.loadBoards();
-                } else {
-                    window.removeEventListener('scroll', this.handleWindowScroll.bind(this));
-                }
+                if (tab === 'moodboards') this.loadBoards();
                 if (tab === 'teasers') this.fetchTeasers();
                 if (tab === 'files') {
                     this.loadFileLists();
                     this.loadUserFiles(true); // true = reset
                 }
             });
-
-            // Optionally, attach on initial load if default tab is moodboards
-            if (this.activeTab === 'moodboards') {
-                window.addEventListener('scroll', this.handleWindowScroll.bind(this));
-            }
         },
 
         // Fetch function
