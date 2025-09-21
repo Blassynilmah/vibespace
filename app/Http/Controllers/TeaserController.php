@@ -123,10 +123,9 @@ public function myTeasers(Request $request)
                 'love_count' => $teaser->reactions()->where('reaction', 'love')->count(),
                 'boring_count' => $teaser->reactions()->where('reaction', 'boring')->count(),
                 'user_teaser_reaction' => $teaser->reactions()->where('user_id', $viewerId)->value('reaction'),
-                'is_saved' => $teaser->saves()->where('user_id', $viewerId)->exists(),
                 'type' => 'teaser',
                 'comments' => $teaser->comments()
-                    ->with(['user:id,username', 'reactions', 'replies.user:id,username,profilePicture'])
+                    ->with(['user:id,username', 'reactions', 'replies.user:id,username'])
                     ->orderByDesc('created_at')
                     ->take(5)
                     ->get()
@@ -153,7 +152,6 @@ public function myTeasers(Request $request)
                                         'user' => [
                                             'id' => $reply->user->id,
                                             'username' => $reply->user->username,
-                                            'profile_picture' => $reply->user->profilePicture->path ?? null,
                                         ],
                                     ];
                                 })->values(),
