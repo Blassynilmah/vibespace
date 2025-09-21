@@ -703,15 +703,20 @@
                                 <div class="mb-8">
 
                                     <!-- Date Label -->
-                                    <div class="text-xs font-bold text-pink-600 mb-2 uppercase tracking-wide" x-text="group.label"></div>
+                                    <div class="flex items-center my-6">
+                                        <div class="flex-1 h-px bg-gray-200"></div>
+                                        <div class="mx-4 px-3 py-1 rounded-full bg-white border border-pink-200 text-xs font-bold text-pink-600 uppercase tracking-wide shadow"
+                                            x-text="group.label"></div>
+                                        <div class="flex-1 h-px bg-gray-200"></div>
+                                    </div>
         
                                     <!-- Messages for this date -->
                                     <template x-for="message in group.items" :key="message.id">
-                                        <div class="flex" :class="message.sender_id === $store.messaging.authUser.id ? 'justify-end' : 'justify-start'">
+                                        <div class="flex mb-4" :class="message.sender_id === $store.messaging.authUser.id ? 'justify-end' : 'justify-start'">
                                             <div class="w-full max-w-[75%] sm:max-w-[60%] px-3 py-2 rounded-xl text-sm shadow relative"
                                                 :class="message.sender_id === $store.messaging.authUser.id 
                                                     ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-br-none' 
-                                                    : ':bg-gradient-to-r from-gray-50 to-gray-100 border-l-4 border-blue-400'">
+                                                    : 'bg-gradient-to-r from-gray-50 to-gray-100 border-l-4 border-blue-400'">
 
                                                 <!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
                                                 <template x-if="message.attachments?.length">
