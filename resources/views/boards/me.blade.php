@@ -2770,9 +2770,11 @@ document.addEventListener('alpine:init', () => {
         },
 
         reactToTeaser(teaserId, reaction) {
-            const now = Date.now();
             const teaser = this.teasers.find(t => t.id === teaserId);
-            if (!teaser) return;
+            if (!teaser) {
+                console.warn('Teaser not found for id:', teaserId);
+                return;
+            }
 
             // Cooldown check
             if (this.teaserReactionCooldowns[teaserId] && now < this.teaserReactionCooldowns[teaserId]) {
