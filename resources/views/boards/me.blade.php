@@ -2771,7 +2771,13 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
+        loadMoreReplies(comment) {
+            const offset = (comment.repliesToShow || []).length;
+            this.fetchReplies(comment, offset, 5);
+        },
+
         reactToTeaser(teaserId, reaction) {
+            const now = Date.now();
             const teaser = this.teasers.find(t => t.id === teaserId);
             if (!teaser) {
                 console.warn('Teaser not found for id:', teaserId);
