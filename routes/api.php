@@ -28,7 +28,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/messages/unread-conversations-count', [MessageController::class, 'unreadConversationsCount']);
 });
 
-Route::post('/block-user', [MessageController::class, 'blockUser'])->middleware('auth:sanctum');
 // 🌍 Public boards (no auth)
 Route::get('/saved-boards', [\App\Http\Controllers\BoardController::class, 'savedBoards']);
 
