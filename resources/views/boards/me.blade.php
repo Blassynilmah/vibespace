@@ -1803,7 +1803,7 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const scrollContainer = document.querySelector('.your-scroll-container-selector');
+            const scrollContainer = document.getElementById('moodboards-scroll-container');
             if (!scrollContainer) {
                 console.error('[handleScroll] Scroll container not found!');
                 console.groupEnd();
