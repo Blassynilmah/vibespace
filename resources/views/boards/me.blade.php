@@ -517,6 +517,15 @@
                         </div>
                     </div>
                 </template>
+                
+                <!-- Spinner at the bottom -->
+                <div class="flex justify-center py-6" x-show="loading" x-transition>
+                    <svg class="animate-spin h-8 w-8 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                </div>
             </div>
         </template>
 
@@ -2600,18 +2609,18 @@ document.addEventListener('alpine:init', () => {
             box.classList.remove('hidden');
         }, 
 
-async handleWindowScroll() {
-    if (this.loading) return;
-    if (!this.hasMoreBoards) return;
+        async handleWindowScroll() {
+            if (this.loading) return;
+            if (!this.hasMoreBoards) return;
 
-    const scrollPosition = window.scrollY + window.innerHeight;
-    const threshold = document.body.scrollHeight - 300;
+            const scrollPosition = window.scrollY + window.innerHeight;
+            const threshold = document.body.scrollHeight - 300;
 
-    if (scrollPosition >= threshold) {
-        this.loading = true; // Set loading immediately to block further calls
-        await this.loadBoards(this.nextPage, 10, true);
-    }
-}
+            if (scrollPosition >= threshold) {
+                this.loading = true; // Set loading immediately to block further calls
+                await this.loadBoards(this.nextPage, 10, true);
+            }
+        }
     }));
 });
 </script>
