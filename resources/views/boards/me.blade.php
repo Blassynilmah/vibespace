@@ -1669,7 +1669,7 @@ document.addEventListener('alpine:init', () => {
             console.log('Page:', page, 'PerPage:', perPage, 'Append:', append);
 
             try {
-                const res = await fetch(`boards/me?page=${page}&per_page=${perPage}`, {
+                const res = await fetch(`/boards/me?page=${page}&per_page=${perPage}`, {
                     credentials: 'include',
                     headers: { Accept: 'application/json' }
                 });
