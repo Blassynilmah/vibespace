@@ -13,6 +13,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::middleware('auth:sanctum')->get('boards/me', [ApiBoardController::class, 'myBoards']);
 
 // 👤 Alternative alias (optional, same result)
 Route::middleware('auth:sanctum')->get('/me', fn (Request $r) => $r->user());
