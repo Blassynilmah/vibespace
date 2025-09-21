@@ -101,7 +101,17 @@ public function myTeasers(Request $request)
             ->orderByDesc('created_at')
             ->paginate(20);
 
-        // Each teaser will have a 'user' relation with 'id' and 'username'
+        // Add counts to each teaser
+        $teasers->getCollection()->transform(function ($teaser) use ($user) {
+            $teaser->fire_count = $teaser->reactions()->where('reaction', 'fire')->count();
+            $teaser->love_count = $teaser->reactions()->where('reaction', 'love')->count();
+            $teaser->boring_count = $teaser->reactions()->where('reaction', 'boring')->count();
+            $teaser->comment_count = $teaser->comments()->count();
+            $teaser->user_teaser_reaction = $teaser->reactions()->where('user_id', $user->id)->value('reaction');
+            $teaser->is_saved = $teaser->saves()->where('user_id', $user->id)->exists();
+            return $teaser;
+        });
+
         return response()->json([
             'teasers' => $teasers->items(),
             'current_page' => $teasers->currentPage(),
