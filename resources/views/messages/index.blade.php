@@ -688,123 +688,83 @@
                                             : ':bg-gradient-to-r from-gray-50 to-gray-100 border-l-4 border-blue-400'">
 
 
-                                        <!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
-                                        <template x-if="message.attachments?.length">
-                                            <div class="relative mt-3 group w-full max-w-full" x-data="{
-                                                index: 0,
-                                                loading: true,
-                                                loadedFiles: [],
-                                                minLoadingTime: 5000,
-                                                startLoading() {
-                                                    this.loading = true;
-                                                    this.loadedFiles = Array(message.attachments.length).fill(false);
-                                                    const start = Date.now();
-                                                    Promise.all(message.attachments.map((file, i) => {
-                                                        return new Promise(resolve => {
-                                                            const ext = (file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : ''));
-                                                            if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
-                                                                const img = new Image();
-                                                                img.onload = () => { this.loadedFiles[i] = true; resolve(); };
-                                                                img.onerror = () => { this.loadedFiles[i] = true; resolve(); };
-                                                                img.src = file.url || file.file_path || file.path;
-                                                            } else if (['mp4','mov','webm'].includes(ext)) {
-                                                                const video = document.createElement('video');
-                                                                video.onloadedmetadata = () => { this.loadedFiles[i] = true; resolve(); };
-                                                                video.onerror = () => { this.loadedFiles[i] = true; resolve(); };
-                                                                video.src = file.url || file.file_path || file.path;
-                                                            } else {
-                                                                this.loadedFiles[i] = true;
-                                                                resolve();
-                                                            }
-                                                        });
-                                                    })).then(() => {
-                                                        const elapsed = Date.now() - start;
-                                                        setTimeout(() => { this.loading = false; }, Math.max(0, this.minLoadingTime - elapsed));
-                                                    });
-                                                }
-                                            }"
-                                            x-init="startLoading()"
-                                            >
-                                                <!-- Spinner Overlay -->
-                                                <template x-if="loading">
-                                                    <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-0">
-                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
-                                                        </svg>
-                                                    </div>
-                                                </template>
-                                                <template x-if="message.attachments[index]">
-                                                    <div class="relative w-full max-w-full overflow-hidden rounded-2xl shadow-lg border border-gray-200 bg-white" style="height: 320px;">
-                                                        <!-- Image Preview -->
-                                                        <template x-if="!loading && ['jpg','jpeg','png','gif','webp'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                            <img :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" class="object-cover w-full h-full transition-transform duration-200 group-hover:scale-105" style="height: 320px;" />
-                                                        </template>
-                                                        <!-- Video Thumbnail Preview -->
-                                                        <template x-if="!loading && ['mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                            <div class="relative w-full h-full">
-                                                                <video
-                                                                    :src="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path"
-                                                                    class="object-cover w-full h-full rounded-lg mb-2"
-                                                                    style="height: 320px;"
-                                                                    autoplay="false"
-                                                                    muted
-                                                                    playsinline
-                                                                    @play="$event.target.pause()"
-                                                                ></video>
-                                                                <!-- Play button overlay (smaller) -->
-                                                                <button
-                                                                    type="button"
-                                                                    class="absolute inset-0 flex items-center justify-center"
-                                                                    style="pointer-events: none;"
-                                                                    tabindex="-1"
-                                                                >
-                                                                    <svg class="h-10 w-10 text-white/80 drop-shadow-lg" fill="currentColor" viewBox="0 0 64 64">
-                                                                        <circle cx="32" cy="32" r="32" fill="black" fill-opacity="0.4"/>
-                                                                        <polygon points="26,20 50,32 26,44" fill="white"/>
-                                                                    </svg>
-                                                                </button>
-                                                            </div>
-                                                        </template>
-                                                        <!-- Fallback for other files -->
-                                                        <template x-if="!loading && !['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((message.attachments[index].extension || (message.attachments[index].filename ? message.attachments[index].filename.split('.').pop().toLowerCase() : '') || (message.attachments[index].mime_type ? message.attachments[index].mime_type.split('/').pop().toLowerCase() : '')))">
-                                                            <div class="flex flex-col items-center justify-center h-full p-6 text-xs italic text-gray-500 text-center">
-                                                                <span x-text="message.attachments[index].name || message.attachments[index].file_name || message.attachments[index].filename"></span><br>
-                                                                <a :href="message.attachments[index].url || message.attachments[index].file_path || message.attachments[index].path" target="_blank" class="text-blue-500 underline">Download</a>
-                                                            </div>
-                                                        </template>
-                                                    </div>
-                                                </template>
-                                                <!-- Navigation Arrows (disabled while loading) -->
-                                                <button @click.stop="if(!loading) index = index > 0 ? index - 1 : index"
-                                                        :disabled="loading || index === 0"
-                                                        :class="(loading || index === 0) ? 'opacity-30 cursor-not-allowed' : ''"
-                                                        class="absolute left-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-                                                    ‹
-                                                </button>
-                                                <button @click.stop="if(!loading) index = index < message.attachments.length - 1 ? index + 1 : index"
-                                                        :disabled="loading || index === message.attachments.length - 1"
-                                                        :class="(loading || index === message.attachments.length - 1) ? 'opacity-30 cursor-not-allowed' : ''"
-                                                        class="absolute right-0 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-pink-100 text-pink-500 p-2 rounded-full shadow-lg border border-pink-100 text-lg">
-                                                    ›
-                                                </button>
-                                                <!-- Click to open preview modal (disabled while loading) -->
-                                                <div class="absolute inset-0" :class="loading ? 'pointer-events-none' : ''"
-                                                    @click.stop="if(!loading) $dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index })">
-                                                </div>
-                                                <!-- File Info -->
-                                                <template x-if="message.attachments[index]">
-                                                    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white/90 text-xs px-3 py-1 rounded-t-xl shadow flex items-center gap-2 font-semibold">
-                                                        <template x-if="['jpg','jpeg','png','gif','webp'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                            <span class="text-pink-500">🖼️</span>
-                                                        </template>
-                                                        <template x-if="['mp4','mov','webm'].includes(message.attachments[index]?.extension?.toLowerCase())">
-                                                            <span class="text-purple-500">🎬</span>
-                                                        </template>
-                                                        <span x-text="`${index + 1} / ${message.attachments.length}`"></span>
-                                                    </div>
-                                                </template>
-                                            </div>
-                                        </template>
+<!-- Attachments Preview (Unified, Spinner until loaded, disables click/navigation while loading) -->
+<template x-if="message.attachments?.length">
+    <div class="relative mt-3 group w-full max-w-full" x-data="{
+        loading: true,
+        loadedFiles: [],
+        minLoadingTime: 5000,
+        startLoading() {
+            this.loading = true;
+            this.loadedFiles = Array(message.attachments.length).fill(false);
+            const start = Date.now();
+            Promise.all(message.attachments.map((file, i) => {
+                return new Promise(resolve => {
+                    const ext = (file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : ''));
+                    if (['jpg','jpeg','png','gif','webp'].includes(ext)) {
+                        const img = new Image();
+                        img.onload = () => { this.loadedFiles[i] = true; resolve(); };
+                        img.onerror = () => { this.loadedFiles[i] = true; resolve(); };
+                        img.src = file.url || file.file_path || file.path;
+                    } else if (['mp4','mov','webm'].includes(ext)) {
+                        const video = document.createElement('video');
+                        video.onloadedmetadata = () => { this.loadedFiles[i] = true; resolve(); };
+                        video.onerror = () => { this.loadedFiles[i] = true; resolve(); };
+                        video.src = file.url || file.file_path || file.path;
+                    } else {
+                        this.loadedFiles[i] = true;
+                        resolve();
+                    }
+                });
+            })).then(() => {
+                const elapsed = Date.now() - start;
+                setTimeout(() => { this.loading = false; }, Math.max(0, this.minLoadingTime - elapsed));
+            });
+        }
+    }"
+    x-init="startLoading()"
+    >
+        <!-- Spinner Overlay -->
+        <template x-if="loading">
+            <div class="absolute inset-0 flex items-center justify-center bg-white/80 z-0">
+                <svg class="animate-spin h-8 w-8 text-pink-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+            </div>
+        </template>
+        <!-- Show all attachments as thumbnails -->
+        <div class="flex gap-2 flex-wrap">
+            <template x-for="(file, idx) in message.attachments" :key="file.id || idx">
+                <div class="relative w-20 h-20 rounded-lg border border-gray-200 bg-white overflow-hidden cursor-pointer"
+                    @click="$dispatch('open-preview-modal', { files: message.attachments.map(a => ({...a, is_attachment: true})), index: idx })">
+                    <template x-if="['jpg','jpeg','png','gif','webp'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : '')))">
+                        <img :src="file.url || file.file_path || file.path" class="object-cover w-full h-full" />
+                    </template>
+                    <template x-if="['mp4','mov','webm'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : '')))">
+                        <video :src="file.url || file.file_path || file.path" class="object-cover w-full h-full" muted playsinline preload="metadata"></video>
+                    </template>
+                    <template x-if="!['jpg','jpeg','png','gif','webp','mp4','mov','webm'].includes((file.extension || (file.filename ? file.filename.split('.').pop().toLowerCase() : '') || (file.mime_type ? file.mime_type.split('/').pop().toLowerCase() : '')))">
+                        <div class="flex items-center justify-center h-full text-xs text-gray-500">File</div>
+                    </template>
+                </div>
+            </template>
+        </div>
+        <!-- Show count of images and videos -->
+        <div class="mt-2 text-xs text-gray-500 font-semibold flex gap-4">
+            <span>
+                <template x-if="message.attachments.filter(f => ['jpg','jpeg','png','gif','webp'].includes((f.extension || (f.filename ? f.filename.split('.').pop().toLowerCase() : '') || (f.mime_type ? f.mime_type.split('/').pop().toLowerCase() : '')))).length > 0">
+                    <span x-text="message.attachments.filter(f => ['jpg','jpeg','png','gif','webp'].includes((f.extension || (f.filename ? f.filename.split('.').pop().toLowerCase() : '') || (f.mime_type ? f.mime_type.split('/').pop().toLowerCase() : '')))).length + ' image(s)'"></span>
+                </template>
+            </span>
+            <span>
+                <template x-if="message.attachments.filter(f => ['mp4','mov','webm'].includes((f.extension || (f.filename ? f.filename.split('.').pop().toLowerCase() : '') || (f.mime_type ? f.mime_type.split('/').pop().toLowerCase() : '')))).length > 0">
+                    <span x-text="message.attachments.filter(f => ['mp4','mov','webm'].includes((f.extension || (f.filename ? f.filename.split('.').pop().toLowerCase() : '') || (f.mime_type ? f.mime_type.split('/').pop().toLowerCase() : '')))).length + ' video(s)'"></span>
+                </template>
+            </span>
+        </div>
+    </div>
+</template>
 
                                         <template x-if="message.attachments?.length">
                                             <div class="my-2"></div>
