@@ -14,7 +14,7 @@
     :class="fromLogin 
         ? 'fixed inset-0 flex flex-col items-center justify-center bg-white z-50'
         : 'fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-pink-700 z-50'"
-    x-show="initialLoading"
+    x-show="initialLoading && fromLogin"
     x-transition
 >
     <svg class="animate-spin h-16 w-16 text-pink-600 mb-8 drop-shadow-lg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -26,8 +26,6 @@
         VibeSpace
     </div>
 </div>
-
-<span x-text="fromLogin ? 'From login' : 'Not from login'"></span>
 
 <!-- Main Content -->
 <div x-show="!initialLoading" x-transition>
