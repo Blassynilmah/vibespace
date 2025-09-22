@@ -607,20 +607,23 @@
                                     </button>
                             </div>
 
-                            <!-- Save Button for Teaser -->
+                            <!-- Favorite (Save) Button for Teaser -->
                             <div class="absolute top-3 right-3 z-30">
                                 <button
                                     @click.prevent="toggleSaveTeaser(item)"
                                     :disabled="item.saving"
-                                    :class="[
-                                        'px-3 py-1 rounded-full text-xs font-semibold transition-all',
-                                        item.is_saved
-                                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-                                        item.saving ? 'opacity-50 cursor-not-allowed' : ''
-                                    ]"
+                                    class="transition bg-white rounded-full p-1 shadow-md"
+                                    :class="{
+                                        'text-gray-300 hover:text-gray-400': !item.is_saved,
+                                        'text-pink-600 hover:text-pink-700': item.is_saved,
+                                        'opacity-50 cursor-not-allowed': item.saving
+                                    }"
+                                    title="Save teaser"
                                 >
-                                    <span x-text="item.is_saved ? '✔️ Saved' : '💾 Save'"></span>
+                                    <!-- Heart Icon SVG -->
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                                    </svg>
                                 </button>
                             </div>
 
@@ -3015,6 +3018,23 @@ document.addEventListener('alpine:init', () => {
             .finally(() => {
                 comment.loadingReplies = false;
             });
+        },
+
+        toggleSaveTeaser(item) {
+            if (item.saving) return;
+            item.saving = true;
+            fetch('/teasers/save', {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({ teaser_id: item.id }),
+            })
+            .then(res => res.ok ? res.json() : Promise.reject())
+            .then(data => {
+                item.is_saved = !!data.is_saved;
+                this.showToast(item.is_saved ? 'Teaser saved to favorites!' : 'Teaser removed from favorites.', 'success');
+            })
+            .catch(() => this.showToast('Failed to save teaser', 'error'))
+            .finally(() => { item.saving = false; });
         },
     }));
 });
