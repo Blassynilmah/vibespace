@@ -74,13 +74,13 @@
                                 :class="group.notifications.some(n => !n.is_read) ? 'bg-yellow-400' : 'bg-gray-300'"></span>
                             <div class="flex-1">
                                 <!-- Notification type emoji/icon -->
-<span class="mr-2 text-lg">
-    <span x-show="group.type === 'follow'">➕</span>
-    <span x-show="group.type === 'unfollow'">➖</span>
-    <span x-show="group.type === 'reaction' || group.type === 'comment_reaction'">💖</span>
-    <span x-show="group.type === 'comment'">💬</span>
-    <span x-show="group.type === 'reply'">🔁</span>
-</span>
+                                <span class="mr-2 text-lg">
+                                    <span x-show="group.type === 'follow'">➕</span>
+                                    <span x-show="group.type === 'unfollow'">➖</span>
+                                    <span x-show="group.type === 'reaction' || group.type === 'comment_reaction'">💖</span>
+                                    <span x-show="group.type === 'comment'">💬</span>
+                                    <span x-show="group.type === 'reply'">🔁</span>
+                                </span>
                                 <!-- Notification text -->
                                 <span>
                                     <template x-if="group.type === 'reaction' || group.type === 'comment_reaction'">
