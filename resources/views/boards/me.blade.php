@@ -930,11 +930,13 @@
 
                 <!-- 📂 Scrollable File Grid -->
                 <div class="overflow-y-auto flex-1 min-h-[28rem] relative">
-                    <template x-if="loadingFiles">
-                        <div class="absolute inset-0 flex items-center justify-center text-gray-500 text-sm font-medium">
-                            ⏳ Loading your files...
-                        </div>
-                    </template>
+                   <div class="flex justify-center py-6" x-show="loadingFiles" x-transition>
+                        <svg class="animate-spin h-8 w-8 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                        </svg>
+                    </div>
 
                     <div class="px-2 py-4 sm:px-4 md:px-6 lg:px-8 grid gap-3 sm:gap-4"
                         style="grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));">
