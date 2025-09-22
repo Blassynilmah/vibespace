@@ -610,6 +610,7 @@
                             <!-- Favorite (Save) Button for Teaser -->
                             <div class="absolute top-3 right-3 z-30">
                                 <button
+                                    @click="console.log('clicked')"
                                     @click.prevent="toggleSaveTeaser(item)"
                                     :disabled="item.saving"
                                     class="transition bg-white rounded-full p-1 shadow-md"
