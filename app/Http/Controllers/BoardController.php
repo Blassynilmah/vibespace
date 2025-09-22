@@ -454,80 +454,98 @@ class BoardController extends Controller
         ]);
     }
 
-    public function toggleSave(Request $request)
-    {
-        Log::info('Toggle save: request received', [
-            'route'   => 'moodboards.toggle-save',
-            'user_id' => optional($request->user())->id,
-            'payload' => $request->only('mood_board_id'),
-            'ip'      => $request->ip(),
-            'ua'      => $request->userAgent(),
+public function toggleSave(Request $request)
+{
+    Log::info('Toggle save: request received', [
+        'route'   => 'moodboards.toggle-save',
+        'user_id' => optional($request->user())->id,
+        'payload' => $request->only('mood_board_id'),
+        'ip'      => $request->ip(),
+        'ua'      => $request->userAgent(),
+    ]);
+
+    try {
+        // Auth guard
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        // Validate input
+        $validated = $request->validate([
+            'mood_board_id' => ['required', 'integer', 'exists:mood_boards,id'],
         ]);
 
-        try {
-            // Auth guard
-            $user = $request->user();
-            if (! $user) {
-                return response()->json(['message' => 'Unauthorized'], 401);
-            }
+        $boardId = $validated['mood_board_id'];
 
-            // Validate input
-            $validated = $request->validate([
-                'mood_board_id' => ['required', 'integer', 'exists:mood_boards,id'],
-            ]);
+        DB::beginTransaction();
 
-            $boardId = $validated['mood_board_id'];
+        $board = \App\Models\MoodBoard::find($boardId);
 
-            DB::beginTransaction();
+        $existing = SavedMoodboard::where('user_id', $user->id)
+            ->where('mood_board_id', $boardId)
+            ->lockForUpdate()
+            ->first();
 
-            $existing = SavedMoodboard::where('user_id', $user->id)
-                ->where('mood_board_id', $boardId)
-                ->lockForUpdate()
-                ->first();
-
-            if ($existing) {
-                $existing->delete();
-                DB::commit();
-
-                Log::info('Toggle save: unsaved', [
-                    'user_id'       => $user->id,
-                    'mood_board_id' => $boardId,
-                ]);
-
-                return response()->json(['is_saved' => false]);
-            }
-
-            SavedMoodboard::create([
-                'user_id'       => $user->id,
-                'mood_board_id' => $boardId,
-            ]);
-
+        if ($existing) {
+            $existing->delete();
             DB::commit();
 
-            Log::info('Toggle save: saved', [
+            Log::info('Toggle save: unsaved', [
                 'user_id'       => $user->id,
                 'mood_board_id' => $boardId,
             ]);
 
-            return response()->json(['is_saved' => true]);
-
-        } catch (ValidationException $e) {
-            Log::warning('Toggle save: validation failed', [
-                'errors' => $e->errors(),
-            ]);
-            throw $e;
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            Log::error('Toggle save: exception', [
-                'user_id'       => optional($request->user())->id,
-                'mood_board_id' => $request->input('mood_board_id'),
-                'error'         => $e->getMessage(),
-            ]);
-            return response()->json([
-                'message' => 'Something went wrong while toggling save',
-            ], 500);
+            return response()->json(['is_saved' => false]);
         }
+
+        SavedMoodboard::create([
+            'user_id'       => $user->id,
+            'mood_board_id' => $boardId,
+        ]);
+
+        // Only log notification if saving someone else's moodboard
+        if ($board && $board->user_id != $user->id) {
+            \App\Models\Notification::create([
+                'user_id'   => $board->user_id, // owner of the moodboard
+                'reactor_id'=> $user->id,       // user who saved
+                'type'      => 'save',
+                'data'      => [
+                    'mood_board_id' => $boardId,
+                    'message' => "{$user->username} saved your moodboard.",
+                ],
+                'is_read'   => false,
+                'created_at'=> now(),
+                'updated_at'=> now(),
+            ]);
+        }
+
+        DB::commit();
+
+        Log::info('Toggle save: saved', [
+            'user_id'       => $user->id,
+            'mood_board_id' => $boardId,
+        ]);
+
+        return response()->json(['is_saved' => true]);
+
+    } catch (ValidationException $e) {
+        Log::warning('Toggle save: validation failed', [
+            'errors' => $e->errors(),
+        ]);
+        throw $e;
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('Toggle save: exception', [
+            'user_id'       => optional($request->user())->id,
+            'mood_board_id' => $request->input('mood_board_id'),
+            'error'         => $e->getMessage(),
+        ]);
+        return response()->json([
+            'message' => 'Something went wrong while toggling save',
+        ], 500);
     }
+}
 
     public function savedBoards(Request $request)
     {
