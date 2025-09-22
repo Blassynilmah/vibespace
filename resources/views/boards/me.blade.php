@@ -173,7 +173,7 @@
             </a>
 
             <!-- Settings -->
-            <a href="/settings"
+            <a href="{{ route('settings') }}"
             class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
                 ⚙️
                 <span class="text-[11px] mt-1 tracking-wide">Settings</span>
@@ -1138,7 +1138,7 @@
                class="block px-4 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-pink-100 transition">
                🔔 Notifications       
             </a>   
-            <a href="/settings"
+            <a href="{{ route('settings') }}"
                class="block px-4 py-2 rounded-lg font-medium text-sm text-gray-700 hover:bg-pink-100 transition">
                ⚙️ Settings
             </a>

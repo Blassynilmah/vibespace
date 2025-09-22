@@ -22,6 +22,7 @@ use App\Http\Controllers\SpaceController;
 use App\Http\Controllers\TeaserController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SeenContentController;
+use App\Http\Controllers\SettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -68,6 +69,8 @@ Route::post('/unblock-user', [MessageController::class, 'unblockUser'])->middlew
 Route::middleware('auth:sanctum')->get('/api/boards/me', [ApiBoardController::class, 'myBoards']);
 
 Route::post('/teasers/favorite', [TeaserController::class, 'toggleFavorite'])->middleware('auth');
+
+Route::get('/settings', [SettingsController::class, 'index'])->name('settings');
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)

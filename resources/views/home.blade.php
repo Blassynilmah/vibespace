@@ -106,7 +106,7 @@
                     </a>
 
                     <!-- Settings -->
-                    <a href="/settings"
+                    <a href="{{ route('settings') }}"
                     class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
                         ⚙️
                         <span class="text-[11px] mt-1 tracking-wide">Settings</span>
