@@ -13,11 +13,12 @@ use App\Models\TeaserSave;
 use App\Models\TeaserComment;
 use App\Models\TeaserCommentReaction;
 use App\Models\TeaserCommentReply;
+use App\Models\FavoriteTeaser;
 
 class TeaserController extends Controller
 {
 
-public function store(Request $request)
+    public function store(Request $request)
 {
     \Log::info('Teaser upload initiated', ['user_id' => Auth::id(), 'payload' => $request->all()]);
 
@@ -84,7 +85,7 @@ public function store(Request $request)
     }
 }
 
-public function myTeasers(Request $request)
+    public function myTeasers(Request $request)
 {
     try {
         $user = Auth::user();
@@ -342,5 +343,64 @@ public function myTeasers(Request $request)
             });
 
         return response()->json($replies);
+    }
+
+    public function toggleFavorite(Request $request)
+    {
+        $request->validate([
+            'teaser_id' => 'required|exists:teasers,id',
+        ]);
+        $user = $request->user();
+        $teaserId = $request->teaser_id;
+
+        // Only allow favoriting own teasers
+        $teaser = Teaser::where('id', $teaserId)->where('user_id', $user->id)->first();
+        if (!$teaser) {
+            return response()->json(['error' => 'You can only favorite your own teasers.'], 403);
+        }
+
+        $existing = FavoriteTeaser::where('teaser_id', $teaserId)->where('user_id', $user->id)->first();
+        if ($existing) {
+            $existing->delete();
+            $isFavorited = false;
+        } else {
+            FavoriteTeaser::create([
+                'teaser_id' => $teaserId,
+                'user_id' => $user->id,
+            ]);
+            $isFavorited = true;
+        }
+        return response()->json(['is_favorited' => $isFavorited]);
+    }
+
+    public function myFavoriteTeasers(Request $request)
+    {
+        $user = $request->user();
+
+        $favoriteTeasers = FavoriteTeaser::with('teaser.user')
+            ->where('user_id', $user->id)
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($fav) {
+                $teaser = $fav->teaser;
+                return [
+                    'id' => $teaser->id,
+                    'description' => $teaser->description ?? '',
+                    'created_at' => $teaser->created_at,
+                    'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
+                    'hashtags' => $teaser->hashtags ?? '',
+                    'username' => $teaser->user->username ?? '',
+                    'user' => [
+                        'id' => $teaser->user->id,
+                        'username' => $teaser->user->username,
+                    ],
+                    'teaser_mood' => $teaser->teaser_mood,
+                    // Add other fields as needed
+                ];
+            });
+
+        return response()->json([
+            'favorite_teasers' => $favoriteTeasers,
+        ]);
     }
 }
