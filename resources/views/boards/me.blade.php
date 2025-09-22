@@ -614,13 +614,12 @@
                                     :disabled="item.saving"
                                     class="transition bg-white rounded-full p-1 shadow-md"
                                     :class="{
-                                        'text-gray-300 hover:text-gray-400': !item.is_saved,
-                                        'text-pink-600 hover:text-pink-700': item.is_saved,
+                                        'text-gray-300 hover:text-gray-400': !item.is_favorited,
+                                        'text-pink-600 hover:text-pink-700': item.is_favorited,
                                         'opacity-50 cursor-not-allowed': item.saving
                                     }"
-                                    title="Save teaser"
+                                    title="Favorite teaser"
                                 >
-                                    <!-- Heart Icon SVG -->
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
                                         <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
                                     </svg>
@@ -3020,22 +3019,42 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-        toggleSaveTeaser(item) {
-            if (item.saving) return;
-            item.saving = true;
-            fetch('/teasers/save', {
-                method: 'POST',
-                headers: this._headers(),
-                body: JSON.stringify({ teaser_id: item.id }),
-            })
-            .then(res => res.ok ? res.json() : Promise.reject())
-            .then(data => {
-                item.is_saved = !!data.is_saved;
-                this.showToast(item.is_saved ? 'Teaser saved to favorites!' : 'Teaser removed from favorites.', 'success');
-            })
-            .catch(() => this.showToast('Failed to save teaser', 'error'))
-            .finally(() => { item.saving = false; });
-        },
+toggleSaveTeaser(item) {
+    if (item.saving) {
+        console.log('[toggleSaveTeaser] Already saving, abort.');
+        return;
+    }
+    console.log('[toggleSaveTeaser] Toggling save for teaser:', item.id);
+    item.saving = true;
+    fetch('/teasers/save', {
+        method: 'POST',
+        headers: this._headers(),
+        body: JSON.stringify({ teaser_id: item.id }),
+    })
+    .then(res => {
+        console.log('[toggleSaveTeaser] Response status:', res.status);
+        return res.ok ? res.json() : Promise.reject(res);
+    })
+    .then(data => {
+        console.log('[toggleSaveTeaser] Response data:', data);
+        item.is_saved = !!data.is_saved;
+        if (item.is_saved) {
+            this.showToast('Added to favorites! 💖', 'success');
+            console.log('[toggleSaveTeaser] Teaser saved.');
+        } else {
+            this.showToast('Removed from favorites 💔', 'success');
+            console.log('[toggleSaveTeaser] Teaser unsaved.');
+        }
+    })
+    .catch(err => {
+        console.error('[toggleSaveTeaser] Failed to update favorite status:', err);
+        this.showToast('Failed to update favorite status.', 'error');
+    })
+    .finally(() => {
+        item.saving = false;
+        console.log('[toggleSaveTeaser] Saving state reset.');
+    });
+},
     }));
 });
 </script>
