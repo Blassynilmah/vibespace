@@ -612,7 +612,7 @@
                                 <button
                                     @click="console.log('clicked')"
                                     @click.prevent="toggleSaveTeaser(item)"
-                                    :disabled="item.saving"
+                                    
                                     class="transition bg-white rounded-full p-1 shadow-md"
                                     :class="{
                                         'text-gray-300 hover:text-gray-400': !item.is_favorited,
