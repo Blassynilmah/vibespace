@@ -667,7 +667,7 @@
                             </div>
 
                             <!-- 🟣 Loading Full Chat -->
-                            <div class="flex justify-center py-8" x-show="loadingMessages" x-transition>
+                            <div class="flex justify-center py-8" x-show="$store.messaging.isLoading" x-transition>
                                 <svg class="animate-spin h-10 w-10 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor"
@@ -676,7 +676,7 @@
                             </div>
 
                             <!-- 🔵 Loading More Messages (Top) -->
-                            <div class="flex justify-center py-4" x-show="loadingMoreMessages" x-transition>
+                            <div class="flex justify-center py-4" x-show="$store.messaging.isFetchingMore" x-transition>
                                 <svg class="animate-spin h-6 w-6 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor"
