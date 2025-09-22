@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed" x-init="init">
+<div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed">
 <!-- Spinner Overlay -->
 <div class="flex justify-center py-8" x-show="initialLoading" x-transition>
     <svg class="animate-spin h-10 w-10 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -955,38 +955,42 @@ document.addEventListener('alpine:init', () => {
             this.items = [];
             this.allLoaded = false;
             this.nextThreshold = 10;
-            this.loadBoards().finally(() => {
-                this.initialLoading = false;
-                this.$nextTick(() => {
-                    console.log('filteredBoards after load:', JSON.parse(JSON.stringify(this.filteredBoards)));
-                });
-            });
-            window.addEventListener('scroll', this.scrollHandler.bind(this));
-            window.fb = this.filteredBoards;
 
-
-            // In your Alpine init() or after loading boards:
-            this.$nextTick(() => {
-                this.items.forEach(item => {
-                    if (item.type === 'teaser') {
-                        if (this.teaserPlayStates[item.id] === undefined) {
-                            this.teaserPlayStates[item.id] = false;
-                        }
-                    }
-                    if (item.type === 'board' && Array.isArray(item.files)) {
-                        item.files.forEach((file, idx) => {
-                            if (file.type === 'video') {
-                                const key = 'board-' + item.id + '-' + idx;
-                                if (this.teaserPlayStates[key] === undefined) {
-                                    this.teaserPlayStates[key] = false;
+            // Load all homepage data (boards, teasers, etc)
+            Promise.resolve(this.loadBoards())
+                .then(() => {
+                    // Any other async loaders can be added here as more Promises
+                    // Example: return Promise.all([this.loadBoards(), this.loadSomethingElse()]);
+                })
+                .finally(() => {
+                    this.initialLoading = false;
+                    this.$nextTick(() => {
+                        console.log('filteredBoards after load:', JSON.parse(JSON.stringify(this.filteredBoards)));
+                        // Setup play states and observers only after everything is loaded
+                        this.items.forEach(item => {
+                            if (item.type === 'teaser') {
+                                if (this.teaserPlayStates[item.id] === undefined) {
+                                    this.teaserPlayStates[item.id] = false;
                                 }
                             }
+                            if (item.type === 'board' && Array.isArray(item.files)) {
+                                item.files.forEach((file, idx) => {
+                                    if (file.type === 'video') {
+                                        const key = 'board-' + item.id + '-' + idx;
+                                        if (this.teaserPlayStates[key] === undefined) {
+                                            this.teaserPlayStates[key] = false;
+                                        }
+                                    }
+                                });
+                            }
                         });
-                    }
+                        this.initializePlayStates();
+                        this.setupVideoObservers();
+                    });
                 });
-            });
-            this.initializePlayStates();
-            this.setupVideoObservers();
+
+            window.addEventListener('scroll', this.scrollHandler.bind(this));
+            window.fb = this.filteredBoards;
         },
 
         scrollHandler() {
