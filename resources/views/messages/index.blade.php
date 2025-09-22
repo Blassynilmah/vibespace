@@ -667,18 +667,22 @@
                             </div>
 
                             <!-- 🟣 Loading Full Chat -->
-                            <template x-if="$store.messaging.isLoading">
-                                <div class="absolute inset-0 flex items-center justify-center bg-white/70 z-10">
-                                    <div class="text-center py-4 text-gray-400 text-sm">Loading chat...</div>
-                                </div>
-                            </template>
+                            <div class="flex justify-center py-8" x-show="loadingMessages" x-transition>
+                                <svg class="animate-spin h-10 w-10 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                            </div>
 
                             <!-- 🔵 Loading More Messages (Top) -->
-                            <template x-if="$store.messaging.isFetchingMore">
-                                <div class="sticky top-0 z-10 text-center text-xs py-2 text-gray-400 bg-gradient-to-b from-white to-transparent">
-                                    Loading more messages...
-                                </div>
-                            </template>
+                            <div class="flex justify-center py-4" x-show="loadingMoreMessages" x-transition>
+                                <svg class="animate-spin h-6 w-6 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor"
+                                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                </svg>
+                            </div>
 
                             <template x-for="(group, groupIdx) in (() => {
                                 // 1. Group messages by date label
@@ -1107,6 +1111,8 @@ Alpine.store('messaging', {
     unreadConversationsCount: 0,
     activeTab: 'messages',
     requestsSubTab: 'received',
+    loadingMessages: false,
+    loadingMoreMessages: false,
 
     async fetchUnreadConversationsCount() {
         try {
@@ -1480,6 +1486,8 @@ Alpine.data('messageInbox', () => ({
     showMuteModal: false,
     showUnmuteModal: false,
     muteDuration: '8h',
+    loadingMessages: false,
+    loadingMoreMessages: false,
 
     async muteUser() {
         if (!this.$store.messaging.receiver?.id) return;
