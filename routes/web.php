@@ -66,6 +66,8 @@ Route::post('/block-user', [MessageController::class, 'blockUser'])->middleware(
 Route::post('/unblock-user', [MessageController::class, 'unblockUser'])->middleware('auth');
 
 Route::middleware('auth:sanctum')->get('/api/boards/me', [ApiBoardController::class, 'myBoards']);
+
+Route::post('/teasers/favorite', [TeaserController::class, 'toggleFavorite'])->middleware('auth');
 /*
 |--------------------------------------------------------------------------
 | Protected Web App Routes (auth:sanctum)
