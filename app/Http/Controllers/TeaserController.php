@@ -204,6 +204,8 @@ class TeaserController extends Controller
         ]);
         $user = $request->user();
 
+        $teaser = \App\Models\Teaser::find($request->teaser_id);
+
         $query = \App\Models\TeaserReaction::where('teaser_id', $request->teaser_id)
             ->where('user_id', $user->id);
 
@@ -216,6 +218,23 @@ class TeaserController extends Controller
                 ['reaction' => $request->reaction]
             );
             $userReaction = $request->reaction;
+
+            // Only log notification if reacting to someone else's teaser
+            if ($teaser && $teaser->user_id != $user->id) {
+                \App\Models\Notification::create([
+                    'user_id'   => $teaser->user_id, // owner of the teaser
+                    'reactor_id'=> $user->id,        // user who reacted
+                    'type'      => 'teaser_reaction',
+                    'data'      => [
+                        'teaser_id' => $teaser->id,
+                        'reaction'  => $request->reaction,
+                        'message'   => "{$user->username} reacted '{$request->reaction}' to your teaser.",
+                    ],
+                    'is_read'   => false,
+                    'created_at'=> now(),
+                    'updated_at'=> now(),
+                ]);
+            }
         }
 
         // Get updated counts
@@ -239,12 +258,33 @@ class TeaserController extends Controller
             'teaser_id' => 'required|exists:teasers,id',
             'body' => 'required|string|max:1000',
         ]);
+        $user = $request->user();
+
         $comment = \App\Models\TeaserComment::create([
             'teaser_id' => $request->teaser_id,
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id,
             'body' => $request->body,
         ]);
         $comment->load('user:id,username');
+
+        // Log notification if commenting on someone else's teaser
+        $teaser = \App\Models\Teaser::find($request->teaser_id);
+        if ($teaser && $teaser->user_id != $user->id) {
+            \App\Models\Notification::create([
+                'user_id'   => $teaser->user_id, // owner of the teaser
+                'reactor_id'=> $user->id,        // user who commented
+                'type'      => 'teaser_comment',
+                'data'      => [
+                    'teaser_id' => $teaser->id,
+                    'comment_id'=> $comment->id,
+                    'message'   => "{$user->username} commented on your teaser.",
+                ],
+                'is_read'   => false,
+                'created_at'=> now(),
+                'updated_at'=> now(),
+            ]);
+        }
+
         return response()->json($comment);
     }
 
@@ -266,6 +306,8 @@ class TeaserController extends Controller
         $user = $request->user();
         $teaserId = $request->teaser_id;
 
+        $teaser = \App\Models\Teaser::find($teaserId);
+
         $existing = TeaserSave::where('teaser_id', $teaserId)->where('user_id', $user->id)->first();
         if ($existing) {
             $existing->delete();
@@ -276,6 +318,22 @@ class TeaserController extends Controller
                 'user_id' => $user->id,
             ]);
             $isSaved = true;
+
+            // Log notification if saving someone else's teaser
+            if ($teaser && $teaser->user_id != $user->id) {
+                \App\Models\Notification::create([
+                    'user_id'   => $teaser->user_id, // owner of the teaser
+                    'reactor_id'=> $user->id,        // user who saved
+                    'type'      => 'teaser_save',
+                    'data'      => [
+                        'teaser_id' => $teaserId,
+                        'message'   => "{$user->username} saved your teaser.",
+                    ],
+                    'is_read'   => false,
+                    'created_at'=> now(),
+                    'updated_at'=> now(),
+                ]);
+            }
         }
         return response()->json(['is_saved' => $isSaved]);
     }
@@ -291,6 +349,24 @@ class TeaserController extends Controller
             ['comment_id' => $comment, 'user_id' => $user->id],
             ['reaction_type' => $request->reaction_type]
         );
+
+        // Log notification if reacting to someone else's comment
+        $commentModel = \App\Models\TeaserComment::find($comment);
+        if ($commentModel && $commentModel->user_id != $user->id) {
+            \App\Models\Notification::create([
+                'user_id'   => $commentModel->user_id, // owner of the comment
+                'reactor_id'=> $user->id,              // user who reacted
+                'type'      => 'teaser_comment_reaction',
+                'data'      => [
+                    'comment_id' => $comment,
+                    'reaction_type' => $request->reaction_type,
+                    'message'   => "{$user->username} reacted '{$request->reaction_type}' to your comment.",
+                ],
+                'is_read'   => false,
+                'created_at'=> now(),
+                'updated_at'=> now(),
+            ]);
+        }
 
         $counts = \App\Models\TeaserCommentReaction::where('comment_id', $comment)
             ->selectRaw("count(*) filter (where reaction_type = 'like') as like_count")
@@ -308,11 +384,31 @@ class TeaserController extends Controller
         $request->validate([
             'body' => 'required|string|max:1000',
         ]);
+        $user = $request->user();
+
         $reply = \App\Models\TeaserCommentReply::create([
             'comment_id' => $comment,
-            'user_id' => $request->user()->id,
+            'user_id' => $user->id,
             'body' => $request->body,
         ]);
+
+        // Log notification if replying to someone else's comment
+        $commentModel = \App\Models\TeaserComment::find($comment);
+        if ($commentModel && $commentModel->user_id != $user->id) {
+            \App\Models\Notification::create([
+                'user_id'   => $commentModel->user_id, // owner of the comment
+                'reactor_id'=> $user->id,              // user who replied
+                'type'      => 'teaser_comment_reply',
+                'data'      => [
+                    'comment_id' => $comment,
+                    'reply_id'   => $reply->id,
+                    'message'    => "{$user->username} replied to your comment.",
+                ],
+                'is_read'   => false,
+                'created_at'=> now(),
+                'updated_at'=> now(),
+            ]);
+        }
 
         $reply_count = \App\Models\TeaserCommentReply::where('comment_id', $comment)->count();
 
