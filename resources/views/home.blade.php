@@ -2,8 +2,7 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed" x-init="init">
-    <!-- Global Loading Spinner Overlay -->
-
+<!-- Spinner Overlay -->
 <div class="flex justify-center py-8" x-show="initialLoading" x-transition>
     <svg class="animate-spin h-10 w-10 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -12,6 +11,8 @@
     </svg>
 </div>
 
+<!-- Main Content -->
+<div x-show="!initialLoading" x-transition>
     {{-- Left Sidebar --}}
     <div class="hidden lg:block w-1/5">
         <div class="sticky top-24">
@@ -879,6 +880,7 @@
            ⚙️ Settings
         </a>
     </div>
+</div>
 </div>
 </div>
 @endsection
