@@ -87,7 +87,7 @@ class NotificationController extends Controller
         $allReactorIds = array_unique($allReactorIds);
         $usernames = [];
         if (count($allReactorIds)) {
-            $usernames = \App\Models\User::whereIn('id', $allReactorIds)->pluck('name', 'id')->toArray();
+            $usernames = \App\Models\User::whereIn('id', $allReactorIds)->pluck('username', 'id')->toArray();
         }
 
         foreach ($notifications as $notification) {
