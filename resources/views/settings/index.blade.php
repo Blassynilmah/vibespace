@@ -46,23 +46,23 @@
     <div class="bg-white rounded-lg shadow p-6 space-y-6">
         <div>
             <h2 class="text-lg font-semibold mb-2">Profile</h2>
-            <a href="{{ route('profile.edit') }}" class="text-pink-500 hover:underline">Edit Profile</a>
+            <a href="" class="text-pink-500 hover:underline">Edit Profile</a>
         </div>
         <div>
             <h2 class="text-lg font-semibold mb-2">Account</h2>
-            <a href="{{ route('password.change') }}" class="text-pink-500 hover:underline">Change Password</a>
+            <a href="" class="text-pink-500 hover:underline">Change Password</a>
         </div>
         <div>
             <h2 class="text-lg font-semibold mb-2">Notifications</h2>
-            <a href="{{ route('notifications.settings') }}" class="text-pink-500 hover:underline">Notification Preferences</a>
+            <a href="" class="text-pink-500 hover:underline">Notification Preferences</a>
         </div>
         <div>
             <h2 class="text-lg font-semibold mb-2">Privacy</h2>
-            <a href="{{ route('privacy.settings') }}" class="text-pink-500 hover:underline">Privacy Settings</a>
+            <a href="" class="text-pink-500 hover:underline">Privacy Settings</a>
         </div>
         <div>
             <h2 class="text-lg font-semibold mb-2">Danger Zone</h2>
-            <a href="{{ route('account.delete') }}" class="text-red-500 hover:underline">Delete Account</a>
+            <a href="" class="text-red-500 hover:underline">Delete Account</a>
         </div>
     </div>
 </div>
