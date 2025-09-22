@@ -1,10 +1,19 @@
 @extends('layouts.app')
 
+@php
+    $fromLogin = session('from_login', false);
+@endphp
+
 @section('content')
-<div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed">
+
+<div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" 
+    x-data="vibeFeed"
+    x-init="fromLogin = {{ $fromLogin ? 'true' : 'false' }}">
 <!-- Spinner Overlay -->
 <div
-    class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50"
+    :class="fromLogin 
+        ? 'fixed inset-0 flex flex-col items-center justify-center bg-white z-50'
+        : 'fixed inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-purple-900 to-pink-700 z-50'"
     x-show="initialLoading"
     x-transition
 >
@@ -954,6 +963,7 @@ document.addEventListener('alpine:init', () => {
         showOlderPrompt: false,
         showOlderContent: false,
         trackSeenContent: true,
+        fromLogin: false,
 
         init() {
             console.log("Alpine vibeFeed initialized");
