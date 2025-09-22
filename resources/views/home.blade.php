@@ -3,12 +3,19 @@
 @section('content')
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed">
 <!-- Spinner Overlay -->
-<div class="flex justify-center py-8" x-show="initialLoading" x-transition>
-    <svg class="animate-spin h-10 w-10 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+<div
+    class="fixed inset-0 flex flex-col items-center justify-center bg-white z-50"
+    x-show="initialLoading"
+    x-transition
+>
+    <svg class="animate-spin h-16 w-16 text-pink-600 mb-8 drop-shadow-lg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor"
             d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
     </svg>
+    <div class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600 tracking-wide drop-shadow-lg">
+        VibeSpace
+    </div>
 </div>
 
 <!-- Main Content -->
