@@ -108,7 +108,7 @@ public function myTeasers(Request $request)
                 'id' => $teaser->id,
                 'description' => $teaser->description ?? '',
                 'created_at' => $teaser->created_at,
-                'video' => $teaser->video ? asset('storage/' . ltrim($teaser->video, '/')) : null,
+                'video' => $teaser->video ?? null,
                 'hashtags' => $teaser->hashtags ?? '',
                 'username' => $teaser->user->username ?? '',
                 'user' => [
