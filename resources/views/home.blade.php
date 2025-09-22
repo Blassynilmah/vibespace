@@ -3,16 +3,15 @@
 @section('content')
 <div class="max-w-7xl mx-auto flex gap-8 px-2 sm:px-4 pb-0" x-data="vibeFeed" x-init="init">
     <!-- Global Loading Spinner Overlay -->
-<div 
-    x-show="initialLoading"
-    style="position: fixed; inset: 0; z-index: 9999; background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center;"
-    x-transition.opacity
->
-    <div class="flex flex-col items-center">
-        <span class="animate-spin text-6xl text-pink-500">⏳</span>
-        <span class="mt-4 text-lg font-semibold text-pink-600">Loading...</span>
-    </div>
+
+<div class="flex justify-center py-8" x-show="initialLoading" x-transition>
+    <svg class="animate-spin h-10 w-10 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+    </svg>
 </div>
+
     {{-- Left Sidebar --}}
     <div class="hidden lg:block w-1/5">
         <div class="sticky top-24">
