@@ -531,6 +531,13 @@
 
         <template x-if="activeTab === 'teasers'">
             <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
+                <div class="flex justify-center py-6" x-show="loadingTeasers" x-transition>
+                    <svg class="animate-spin h-8 w-8 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                </div>
                 <template x-for="item in teasers" :key="item.id">
                     <div class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl">
                         <!-- Video Section -->
