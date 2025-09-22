@@ -68,53 +68,55 @@
 
     {{-- Main Feed --}}
     <div class="w-full lg:w-3/5 flex flex-col gap-6">
-        <div class="mb-10 bg-gradient-to-r from-pink-500 to-purple-600 text-white p-10 rounded-3xl shadow-xl text-center">
-            <h1 class="text-4xl sm:text-5xl font-extrabold mb-3">Welcome to VibeSpace</h1>
-            <p class="text-lg sm:text-xl">Drop a mood. Catch a vibe. Connect with your people.</p>
-        </div>
+        <div :class="(initialLoading && !fromLogin) ? 'filter blur-[2px] pointer-events-none select-none' : ''">
+            <div class="mb-10 bg-gradient-to-r from-pink-500 to-purple-600 text-white p-10 rounded-3xl shadow-xl text-center">
+                <h1 class="text-4xl sm:text-5xl font-extrabold mb-3">Welcome to VibeSpace</h1>
+                <p class="text-lg sm:text-xl">Drop a mood. Catch a vibe. Connect with your people.</p>
+            </div>
 
-        {{-- Mobile Top Nav (Visible on small screens only) --}}
-        <div class="lg:hidden sticky top-0 z-[999] bg-gradient-to-r from-pink-500 to-purple-600 shadow-md border-t border-white/20 border-b">
-            <div class="flex justify-around px-3 py-2 text-white text-sm">
-                <!-- Home -->
-                <a href="{{ route('home') }}"
-                class="flex flex-col items-center text-yellow-300 font-semibold transition duration-300 ease-in-out">
-                    🏠
-                    <span class="text-[11px] mt-1 tracking-wide">Home</span>
-                </a>
+            {{-- Mobile Top Nav (Visible on small screens only) --}}
+            <div class="lg:hidden sticky top-0 z-[999] bg-gradient-to-r from-pink-500 to-purple-600 shadow-md border-t border-white/20 border-b">
+                <div class="flex justify-around px-3 py-2 text-white text-sm">
+                    <!-- Home -->
+                    <a href="{{ route('home') }}"
+                    class="flex flex-col items-center text-yellow-300 font-semibold transition duration-300 ease-in-out">
+                        🏠
+                        <span class="text-[11px] mt-1 tracking-wide">Home</span>
+                    </a>
 
-                <!-- Messages -->
-                <a href="/messages"
-                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
-                    💌
-                    <span class="text-[11px] mt-1 tracking-wide">Messages</span>
-                </a>
+                    <!-- Messages -->
+                    <a href="/messages"
+                    class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                        💌
+                        <span class="text-[11px] mt-1 tracking-wide">Messages</span>
+                    </a>
 
-                <!-- Me -->
-                <a href="{{ route('boards.me') }}"
-                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
-                    💫
-                    <span class="text-[11px] mt-1 tracking-wide">Me</span>
-                </a>
+                    <!-- Me -->
+                    <a href="{{ route('boards.me') }}"
+                    class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                        💫
+                        <span class="text-[11px] mt-1 tracking-wide">Me</span>
+                    </a>
 
-                <!-- Alerts -->
-                <a href="/notifications"
-                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
-                    🔔
-                    <span class="text-[11px] mt-1 tracking-wide">Alerts</span>
-                </a>
+                    <!-- Alerts -->
+                    <a href="/notifications"
+                    class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                        🔔
+                        <span class="text-[11px] mt-1 tracking-wide">Alerts</span>
+                    </a>
 
-                <!-- Settings -->
-                <a href="/settings"
-                class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
-                    ⚙️
-                    <span class="text-[11px] mt-1 tracking-wide">Settings</span>
-                </a>
+                    <!-- Settings -->
+                    <a href="/settings"
+                    class="flex flex-col items-center transition duration-300 ease-in-out hover:text-yellow-300">
+                        ⚙️
+                        <span class="text-[11px] mt-1 tracking-wide">Settings</span>
+                    </a>
+                </div>
             </div>
         </div>
 
         <!-- Spinner Overlay (shows only if NOT from login and loading) -->
-        <div class="fixed inset-0 flex flex-col items-center justify-center z-50" x-show="initialLoading && !fromLogin" x-transition>
+        <div class="fixed inset-0 flex flex-col items-center justify-center z-[50]" x-show="initialLoading && !fromLogin" x-transition>
             <svg class="animate-spin h-16 w-16 text-pink-600 mb-8 drop-shadow-lg" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor"
