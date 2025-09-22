@@ -2995,6 +2995,27 @@ document.addEventListener('alpine:init', () => {
             comment.showReplies = false;
             comment.repliesToShow = [];
         },
+
+        fetchReplies(comment, offset = 0, limit = 5) {
+            // Set loading state if needed
+            comment.loadingReplies = true;
+            fetch(`/teasers/comments/${comment.id}/replies?offset=${offset}&limit=${limit}`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(res => res.ok ? res.json() : [])
+            .then(replies => {
+                // Initialize repliesToShow if not present
+                if (!comment.repliesToShow) comment.repliesToShow = [];
+                // Append new replies
+                comment.repliesToShow.push(...replies);
+            })
+            .catch(() => {
+                this.showToast('Failed to load replies', 'error');
+            })
+            .finally(() => {
+                comment.loadingReplies = false;
+            });
+        },
     }));
 });
 </script>
