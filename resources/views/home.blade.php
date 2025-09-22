@@ -1026,13 +1026,13 @@ document.addEventListener('alpine:init', () => {
                     if (video._observer) return;
                     const observer = new IntersectionObserver(entries => {
                         entries.forEach(entry => {
-                            if (entry.isIntersecting) {
+                            if (entry.intersectionRatio >= 0.6) {
                                 video.play().catch(() => {});
                             } else {
                                 video.pause();
                             }
                         });
-                    }, { threshold: 0.2 });
+                    }, { threshold: 0.6 });
                     observer.observe(video);
                     video._observer = observer;
                 });
@@ -1041,13 +1041,13 @@ document.addEventListener('alpine:init', () => {
                     if (video._observer) return;
                     const observer = new IntersectionObserver(entries => {
                         entries.forEach(entry => {
-                            if (entry.isIntersecting) {
+                            if (entry.intersectionRatio >= 0.6) {
                                 video.play().catch(() => {});
                             } else {
                                 video.pause();
                             }
                         });
-                    }, { threshold: 0.2 });
+                    }, { threshold: 0.6 });
                     observer.observe(video);
                     video._observer = observer;
                 });
