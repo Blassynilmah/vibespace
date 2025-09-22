@@ -3019,42 +3019,42 @@ document.addEventListener('alpine:init', () => {
             });
         },
 
-toggleSaveTeaser(item) {
-    if (item.saving) {
-        console.log('[toggleSaveTeaser] Already saving, abort.');
-        return;
-    }
-    console.log('[toggleSaveTeaser] Toggling save for teaser:', item.id);
-    item.saving = true;
-    fetch('/teasers/save', {
-        method: 'POST',
-        headers: this._headers(),
-        body: JSON.stringify({ teaser_id: item.id }),
-    })
-    .then(res => {
-        console.log('[toggleSaveTeaser] Response status:', res.status);
-        return res.ok ? res.json() : Promise.reject(res);
-    })
-    .then(data => {
-        console.log('[toggleSaveTeaser] Response data:', data);
-        item.is_saved = !!data.is_saved;
-        if (item.is_saved) {
-            this.showToast('Added to favorites! 💖', 'success');
-            console.log('[toggleSaveTeaser] Teaser saved.');
-        } else {
-            this.showToast('Removed from favorites 💔', 'success');
-            console.log('[toggleSaveTeaser] Teaser unsaved.');
-        }
-    })
-    .catch(err => {
-        console.error('[toggleSaveTeaser] Failed to update favorite status:', err);
-        this.showToast('Failed to update favorite status.', 'error');
-    })
-    .finally(() => {
-        item.saving = false;
-        console.log('[toggleSaveTeaser] Saving state reset.');
-    });
-},
+        toggleSaveTeaser(item) {
+            if (item.saving) {
+                console.log('[toggleSaveTeaser] Already saving, abort.');
+                return;
+            }
+            console.log('[toggleSaveTeaser] Toggling favorite for teaser:', item.id);
+            item.saving = true;
+            fetch('/teasers/favorite', {
+                method: 'POST',
+                headers: this._headers(),
+                body: JSON.stringify({ teaser_id: item.id }),
+            })
+            .then(res => {
+                console.log('[toggleSaveTeaser] Response status:', res.status);
+                return res.ok ? res.json() : Promise.reject(res);
+            })
+            .then(data => {
+                console.log('[toggleSaveTeaser] Response data:', data);
+                item.is_favorited = !!data.is_favorited;
+                if (item.is_favorited) {
+                    this.showToast('Added to favorites! 💖', 'success');
+                    console.log('[toggleSaveTeaser] Teaser favorited.');
+                } else {
+                    this.showToast('Removed from favorites 💔', 'success');
+                    console.log('[toggleSaveTeaser] Teaser unfavorited.');
+                }
+            })
+            .catch(err => {
+                console.error('[toggleSaveTeaser] Failed to update favorite status:', err);
+                this.showToast('Failed to update favorite status.', 'error');
+            })
+            .finally(() => {
+                item.saving = false;
+                console.log('[toggleSaveTeaser] Saving state reset.');
+            });
+        },
     }));
 });
 </script>
