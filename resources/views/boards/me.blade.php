@@ -696,8 +696,8 @@
                                                         </template>
                                                         <div class="flex gap-2 mt-1">
                                                             <button 
-                                                                x-show="comment.repliesToShow.length < comment.reply_count" 
-                                                                @click="loadMoreReplies(comment)" 
+                                                                x-show="(comment.repliesToShow || []).length < comment.reply_count" 
+                                                                @click="loadMoreReplies(comment)"
                                                                 class="text-blue-500 hover:underline text-xs font-medium"
                                                             >More</button>
                                                             <button 
