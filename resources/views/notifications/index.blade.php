@@ -59,69 +59,69 @@
                 <template x-if="!isLoading && notifications.length === 0">
                     <div class="p-4 text-gray-400 text-center">No notifications yet.</div>
                 </template>
-<template x-for="group in notifications" :key="group.type + '-' + (group.mood_board_id || '') + '-' + (group.reaction_type || '') + '-' + (group.comment_id || '') + '-' + (group.created_at || '')">
-    <div
-        @click="markAsRead(group)"
-        :class="[
-            'p-4 rounded-xl mb-4 shadow transition cursor-pointer border',
-            group.notifications.some(n => !n.is_read)
-                ? 'bg-yellow-50 border-yellow-300 animate-pulse'
-                : 'bg-white border-gray-200 hover:bg-pink-50'
-        ]"
-    >
-        <div class="flex items-center gap-3">
-            <span class="inline-block w-3 h-3 rounded-full"
-                  :class="group.notifications.some(n => !n.is_read) ? 'bg-yellow-400' : 'bg-gray-300'"></span>
-            <div class="flex-1">
-                <!-- Notification type emoji/icon -->
-                <span class="mr-2 text-lg">
-                    <template x-if="group.type === 'reaction' || group.type === 'comment_reaction'">💖</template>
-                    <template x-if="group.type === 'comment'">💬</template>
-                    <template x-if="group.type === 'reply'">🔁</template>
-                    <template x-if="group.type === 'follow'">➕</template>
-                    <template x-if="group.type === 'unfollow'">➖</template>
-                </span>
-                <!-- Notification text -->
-                <span>
-                    <template x-if="group.type === 'reaction' || group.type === 'comment_reaction'">
-                        <span>
-                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                            reacted with <span x-text="group.reaction_type"></span> to your mood board.
-                        </span>
-                    </template>
-                    <template x-if="group.type === 'comment'">
-                        <span>
-                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                            commented on your mood board.
-                        </span>
-                    </template>
-                    <template x-if="group.type === 'reply'">
-                        <span>
-                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                            replied to a comment on your mood board.
-                        </span>
-                    </template>
-                    <template x-if="group.type === 'follow'">
-                        <span>
-                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                            followed you.
-                        </span>
-                    </template>
-                    <template x-if="group.type === 'unfollow'">
-                        <span>
-                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
-                            unfollowed you.
-                        </span>
-                    </template>
-                    <template x-if="!['reaction','comment_reaction','comment','reply','follow','unfollow'].includes(group.type)">
-                        <span x-text="group.latest_message"></span>
-                    </template>
-                </span>
-            </div>
-            <div class="text-xs text-gray-500 ml-2" x-text="window.dayjs ? dayjs(group.created_at).fromNow() : group.created_at"></div>
-        </div>
-    </div>
-</template>
+                <template x-for="group in notifications" :key="group.type + '-' + (group.mood_board_id || '') + '-' + (group.reaction_type || '') + '-' + (group.comment_id || '') + '-' + (group.created_at || '')">
+                    <div
+                        @click="markAsRead(group)"
+                        :class="[
+                            'p-4 rounded-xl mb-4 shadow transition cursor-pointer border',
+                            group.notifications.some(n => !n.is_read)
+                                ? 'bg-yellow-50 border-yellow-300 animate-pulse'
+                                : 'bg-white border-gray-200 hover:bg-pink-50'
+                        ]"
+                    >
+                        <div class="flex items-center gap-3">
+                            <span class="inline-block w-3 h-3 rounded-full"
+                                :class="group.notifications.some(n => !n.is_read) ? 'bg-yellow-400' : 'bg-gray-300'"></span>
+                            <div class="flex-1">
+                                <!-- Notification type emoji/icon -->
+<span class="mr-2 text-lg">
+    <span x-show="group.type === 'follow'">➕</span>
+    <span x-show="group.type === 'unfollow'">➖</span>
+    <span x-show="group.type === 'reaction' || group.type === 'comment_reaction'">💖</span>
+    <span x-show="group.type === 'comment'">💬</span>
+    <span x-show="group.type === 'reply'">🔁</span>
+</span>
+                                <!-- Notification text -->
+                                <span>
+                                    <template x-if="group.type === 'reaction' || group.type === 'comment_reaction'">
+                                        <span>
+                                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                            reacted with <span x-text="group.reaction_type"></span> to your mood board.
+                                        </span>
+                                    </template>
+                                    <template x-if="group.type === 'comment'">
+                                        <span>
+                                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                            commented on your mood board.
+                                        </span>
+                                    </template>
+                                    <template x-if="group.type === 'reply'">
+                                        <span>
+                                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                            replied to a comment on your mood board.
+                                        </span>
+                                    </template>
+                                    <template x-if="group.type === 'follow'">
+                                        <span>
+                                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                            followed you.
+                                        </span>
+                                    </template>
+                                    <template x-if="group.type === 'unfollow'">
+                                        <span>
+                                            <span x-text="group.usernames.length > 1 ? group.usernames[0] + ' and ' + (group.usernames.length - 1) + ' other' + (group.usernames.length - 1 > 1 ? 's' : '') : group.usernames[0]"></span>
+                                            unfollowed you.
+                                        </span>
+                                    </template>
+                                    <template x-if="!['reaction','comment_reaction','comment','reply','follow','unfollow'].includes(group.type)">
+                                        <span x-text="group.latest_message"></span>
+                                    </template>
+                                </span>
+                            </div>
+                            <div class="text-xs text-gray-500 ml-2" x-text="window.dayjs ? dayjs(group.created_at).fromNow() : group.created_at"></div>
+                        </div>
+                    </div>
+                </template>
             </div>
             <div class="mt-4 flex justify-center">
                 <button @click="fetchNotifications(page+1)" x-show="hasMore" class="px-4 py-2 rounded bg-pink-500 hover:bg-pink-600 text-white font-semibold shadow transition">Load more</button>
