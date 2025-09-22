@@ -456,18 +456,21 @@ class BoardController extends Controller
 
 public function toggleSave(Request $request)
 {
+    // Log authentication status and user info
+    $user = $request->user();
     Log::info('Toggle save: request received', [
         'route'   => 'moodboards.toggle-save',
-        'user_id' => optional($request->user())->id,
+        'authenticated' => $user ? true : false,
+        'user_id' => $user?->id,
+        'username' => $user?->username,
         'payload' => $request->only('mood_board_id'),
         'ip'      => $request->ip(),
         'ua'      => $request->userAgent(),
     ]);
 
     try {
-        // Auth guard
-        $user = $request->user();
         if (! $user) {
+            Log::warning('Toggle save: unauthenticated user');
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
@@ -475,7 +478,6 @@ public function toggleSave(Request $request)
         $validated = $request->validate([
             'mood_board_id' => ['required', 'integer', 'exists:mood_boards,id'],
         ]);
-
         $boardId = $validated['mood_board_id'];
 
         DB::beginTransaction();
@@ -506,7 +508,7 @@ public function toggleSave(Request $request)
 
         // Only log notification if saving someone else's moodboard
         if ($board && $board->user_id != $user->id) {
-            \App\Models\Notification::create([
+            $notification = \App\Models\Notification::create([
                 'user_id'   => $board->user_id, // owner of the moodboard
                 'reactor_id'=> $user->id,       // user who saved
                 'type'      => 'save',
@@ -517,6 +519,14 @@ public function toggleSave(Request $request)
                 'is_read'   => false,
                 'created_at'=> now(),
                 'updated_at'=> now(),
+            ]);
+            // Log notification info
+            Log::info('Notification inserted', [
+                'notification_id' => $notification->id,
+                'user_id' => $notification->user_id,
+                'reactor_id' => $notification->reactor_id,
+                'type' => $notification->type,
+                'data' => $notification->data,
             ]);
         }
 
