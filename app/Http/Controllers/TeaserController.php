@@ -109,6 +109,9 @@ class TeaserController extends Controller
                 'id' => $teaser->id,
                 'description' => $teaser->description ?? '',
                 'created_at' => $teaser->created_at,
+                'is_favorited' => \App\Models\FavoriteTeaser::where('teaser_id', $teaser->id)
+                    ->where('user_id', $viewerId)
+                    ->exists(),
                 'video' => $teaser->video ?? null,
                 'hashtags' => $teaser->hashtags ?? '',
                 'username' => $teaser->user->username ?? '',
