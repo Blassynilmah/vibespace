@@ -55,29 +55,130 @@
 </div>
 
 <!-- Main Settings Content -->
-<div class="max-w-2xl mx-auto px-4 py-8">
+<div x-data="{ open: null }" class="max-w-2xl mx-auto px-4 py-8">
     <h1 class="text-3xl font-extrabold text-pink-600 mb-8">Settings</h1>
     <div class="bg-white rounded-lg shadow p-6 space-y-6">
+
+        <!-- Profile -->
         <div>
-            <h2 class="text-lg font-semibold mb-2">Profile</h2>
-            <a href="" class="text-pink-500 hover:underline">Edit Profile</a>
+            <button @click="open === 1 ? open = null : open = 1"
+                class="w-full flex justify-between items-center text-lg font-semibold mb-2 text-left focus:outline-none">
+                <span>Profile</span>
+                <span x-show="open !== 1">▼</span>
+                <span x-show="open === 1">▲</span>
+            </button>
+            <div x-show="open === 1" x-transition class="pl-2 mt-2 space-y-3">
+                <div>
+                    <label class="block text-sm font-medium">Username</label>
+                    <input type="text" class="w-full border rounded px-3 py-2" placeholder="Change your username">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Profile Picture</label>
+                    <input type="file" class="w-full border rounded px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Bio</label>
+                    <textarea class="w-full border rounded px-3 py-2" rows="2" placeholder="Update your bio"></textarea>
+                </div>
+                <button class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600">Save Profile</button>
+            </div>
         </div>
+
+        <!-- Account -->
         <div>
-            <h2 class="text-lg font-semibold mb-2">Account</h2>
-            <a href="" class="text-pink-500 hover:underline">Change Password</a>
+            <button @click="open === 2 ? open = null : open = 2"
+                class="w-full flex justify-between items-center text-lg font-semibold mb-2 text-left focus:outline-none">
+                <span>Account</span>
+                <span x-show="open !== 2">▼</span>
+                <span x-show="open === 2">▲</span>
+            </button>
+            <div x-show="open === 2" x-transition class="pl-2 mt-2 space-y-3">
+                <div>
+                    <label class="block text-sm font-medium">Email Address</label>
+                    <input type="email" class="w-full border rounded px-3 py-2" placeholder="Change your email">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium">Change Password</label>
+                    <input type="password" class="w-full border rounded px-3 py-2" placeholder="New password">
+                </div>
+                <button class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Update Account</button>
+            </div>
         </div>
+
+        <!-- Notifications -->
         <div>
-            <h2 class="text-lg font-semibold mb-2">Notifications</h2>
-            <a href="" class="text-pink-500 hover:underline">Notification Preferences</a>
+            <button @click="open === 3 ? open = null : open = 3"
+                class="w-full flex justify-between items-center text-lg font-semibold mb-2 text-left focus:outline-none">
+                <span>Notifications</span>
+                <span x-show="open !== 3">▼</span>
+                <span x-show="open === 3">▲</span>
+            </button>
+            <div x-show="open === 3" x-transition class="pl-2 mt-2 space-y-3">
+                <div>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-pink-500"> Email notifications
+                    </label>
+                </div>
+                <div>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-pink-500"> Push notifications
+                    </label>
+                </div>
+                <div>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-pink-500"> VibeSpace alerts
+                    </label>
+                </div>
+                <button class="bg-pink-500 text-white px-4 py-2 rounded hover:bg-pink-600">Save Notification Settings</button>
+            </div>
         </div>
+
+        <!-- Privacy -->
         <div>
-            <h2 class="text-lg font-semibold mb-2">Privacy</h2>
-            <a href="" class="text-pink-500 hover:underline">Privacy Settings</a>
+            <button @click="open === 4 ? open = null : open = 4"
+                class="w-full flex justify-between items-center text-lg font-semibold mb-2 text-left focus:outline-none">
+                <span>Privacy</span>
+                <span x-show="open !== 4">▼</span>
+                <span x-show="open === 4">▲</span>
+            </button>
+            <div x-show="open === 4" x-transition class="pl-2 mt-2 space-y-3">
+                <div>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-pink-500"> Make my profile private
+                    </label>
+                </div>
+                <div>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-pink-500"> Hide my moodboards from search
+                    </label>
+                </div>
+                <div>
+                    <label class="flex items-center gap-2">
+                        <input type="checkbox" class="accent-pink-500"> Block direct messages
+                    </label>
+                </div>
+                <button class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Save Privacy Settings</button>
+            </div>
         </div>
+
+        <!-- Danger Zone -->
         <div>
-            <h2 class="text-lg font-semibold mb-2">Danger Zone</h2>
-            <a href="" class="text-red-500 hover:underline">Delete Account</a>
+            <button @click="open === 5 ? open = null : open = 5"
+                class="w-full flex justify-between items-center text-lg font-semibold mb-2 text-left focus:outline-none">
+                <span>Danger Zone</span>
+                <span x-show="open !== 5">▼</span>
+                <span x-show="open === 5">▲</span>
+            </button>
+            <div x-show="open === 5" x-transition class="pl-2 mt-2 space-y-3">
+                <div>
+                    <button class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full">Delete Account</button>
+                </div>
+                <div class="text-xs text-red-700 mt-2">
+                    Warning: This action is irreversible. All your data will be permanently deleted.
+                </div>
+            </div>
         </div>
+
     </div>
 </div>
 @endsection
