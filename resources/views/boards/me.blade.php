@@ -532,9 +532,9 @@
         <template x-if="activeTab === 'teasers'">
             <div class="flex flex-col gap-6 md:gap-8 z-0 mt-3">
                 <template x-for="item in teasers" :key="item.id">
-                    <div class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl" ...>
+                    <div class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl">
                         <!-- Video Section -->
-                        <div x-show="item && item.id" class="relative w-full h-[70vh] lg:w-1/2"
+                        <div x-show="item && item.id" class="relative w-full h-[80vh] lg:w-1/2"
                             :class="{
                                 'h-[35vh]': window.innerWidth < 768,
                                 'md:h-[40vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
@@ -685,28 +685,28 @@
                                                         <input type="text" x-model="comment.replyText" class="flex-1 px-2 py-1 rounded border text-xs" placeholder="Type your reply...">
                                                         <button @click="sendReply(comment)" class="bg-pink-500 text-white px-3 py-1 rounded text-xs font-semibold">Send</button>
                                                     </div>
-<!-- Replies List -->
-<div x-show="comment.showReplies" class="mt-2">
-    <template x-for="reply in comment.repliesToShow" :key="reply.id">
-        <div class="bg-white border border-gray-200 rounded-lg px-3 py-2 mb-2 flex items-start gap-2 shadow-sm">
-            <span class="font-semibold text-blue-600" x-text="reply.user.username"></span>
-            <span x-text="reply.body" class="flex-1"></span>
-            <span class="text-gray-400 ml-2 text-xs" x-text="timeSince(reply.created_at)"></span>
-        </div>
-    </template>
-    <div class="flex gap-2 mt-2">
-        <button 
-            x-show="(comment.repliesToShow || []).length < comment.reply_count" 
-            @click="loadMoreReplies(comment)"
-            class="text-blue-500 hover:underline text-xs font-medium"
-        >More</button>
-        <button 
-            x-show="comment.showReplies" 
-            @click="hideReplies(comment)" 
-            class="text-gray-500 hover:underline text-xs font-medium"
-        >Less</button>
-    </div>
-</div>
+                                                    <!-- Replies List -->
+                                                    <div x-show="comment.showReplies" class="mt-2">
+                                                        <template x-for="reply in comment.repliesToShow" :key="reply.id">
+                                                            <div class="bg-white border border-gray-200 rounded-lg px-3 py-2 mb-2 flex items-start gap-2 shadow-sm">
+                                                                <span class="font-semibold text-blue-600" x-text="reply.user.username"></span>
+                                                                <span x-text="reply.body" class="flex-1"></span>
+                                                                <span class="text-gray-400 ml-2 text-xs" x-text="timeSince(reply.created_at)"></span>
+                                                            </div>
+                                                        </template>
+                                                        <div class="flex gap-2 mt-2">
+                                                            <button 
+                                                                x-show="(comment.repliesToShow || []).length < comment.reply_count" 
+                                                                @click="loadMoreReplies(comment)"
+                                                                class="text-blue-500 hover:underline text-xs font-medium"
+                                                            >More</button>
+                                                            <button 
+                                                                x-show="comment.showReplies" 
+                                                                @click="hideReplies(comment)" 
+                                                                class="text-gray-500 hover:underline text-xs font-medium"
+                                                            >Less</button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </template>

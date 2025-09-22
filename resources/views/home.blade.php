@@ -511,10 +511,10 @@
                         </div>
                     </template>
                     <template x-if="item.type === 'teaser'">
-                        <div class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl" ...>
+                        <div class="snap-center flex flex-col lg:flex-row bg-white border-2 border-blue-400 shadow-md hover:shadow-lg transition-all duration-300 overflow-hidden rounded-2xl">
 
                             <!-- Video Section -->
-                            <div x-show="item && item.id" class="relative w-full h-[70vh] lg:w-1/2"
+                            <div x-show="item && item.id" class="relative w-full h-[80vh] lg:w-1/2"
                                 :class="{
                                     'h-[35vh]': window.innerWidth < 768,
                                     'md:h-[40vh]': window.innerWidth >= 768 && window.innerWidth < 1024,
@@ -606,7 +606,7 @@
 
                                 <!-- Teaser Comments Modal -->
                                 <template x-if="showTeaserComments && activeTeaserComments && activeTeaserComments.id === item.id">
-                                    <div class="absolute left-0 bottom-0 w-full h-1/2 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
+                                    <div class="absolute left-0 bottom-0 w-full h-3/4 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
                                         style="backdrop-filter: blur(8px);">
                                         <!-- Input Field -->
                                         <div class="p-3 border-b flex items-center gap-2">
@@ -1023,10 +1023,12 @@ document.addEventListener('alpine:init', () => {
             this.$nextTick(() => {
                 // Moodboard videos
                 document.querySelectorAll('video[data-moodboard]').forEach(video => {
-                    if (video._observer) return; // Prevent double-observing
+                    if (video._observer) return;
                     const observer = new IntersectionObserver(entries => {
                         entries.forEach(entry => {
-                            if (!entry.isIntersecting && !video.paused) {
+                            if (entry.isIntersecting) {
+                                video.play().catch(() => {});
+                            } else {
                                 video.pause();
                             }
                         });
@@ -1039,7 +1041,9 @@ document.addEventListener('alpine:init', () => {
                     if (video._observer) return;
                     const observer = new IntersectionObserver(entries => {
                         entries.forEach(entry => {
-                            if (!entry.isIntersecting && !video.paused) {
+                            if (entry.isIntersecting) {
+                                video.play().catch(() => {});
+                            } else {
                                 video.pause();
                             }
                         });
