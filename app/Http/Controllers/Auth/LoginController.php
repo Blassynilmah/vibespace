@@ -13,22 +13,24 @@ class LoginController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)
-    {
-        $credentials = $request->validate([
-            'email'    => ['required', 'email'],
-            'password' => ['required'],
-        ]);
+public function login(Request $request)
+{
+    $credentials = $request->validate([
+        'email'    => ['required', 'email'],
+        'password' => ['required'],
+    ]);
 
-        if (Auth::attempt($credentials, $request->remember)) {
-            $request->session()->regenerate();
-            return redirect()->intended(route('home'))->with('status', 'Logged in successfully!');
-        }
-
-        return back()->withErrors([
-            'email' => 'Invalid credentials.',
-        ])->onlyInput('email');
+    if (Auth::attempt($credentials, $request->remember)) {
+        $request->session()->regenerate();
+        // Set the tracker here:
+        $request->session()->flash('from_login', true);
+        return redirect()->intended(route('home'))->with('status', 'Logged in successfully!');
     }
+
+    return back()->withErrors([
+        'email' => 'Invalid credentials.',
+    ])->onlyInput('email');
+}
 
     public function logout(Request $request)
     {
