@@ -27,6 +27,8 @@
     </div>
 </div>
 
+<span x-text="fromLogin ? 'From login' : 'Not from login'"></span>
+
 <!-- Main Content -->
 <div x-show="!initialLoading" x-transition>
     {{-- Left Sidebar --}}
@@ -963,7 +965,6 @@ document.addEventListener('alpine:init', () => {
         showOlderPrompt: false,
         showOlderContent: false,
         trackSeenContent: true,
-        fromLogin: false,
 
         init() {
             console.log("Alpine vibeFeed initialized");
