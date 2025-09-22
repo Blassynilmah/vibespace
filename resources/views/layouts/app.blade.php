@@ -15,6 +15,11 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 
         <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/dayjs@1/plugin/relativeTime.js"></script>
+        <script>
+            dayjs.extend(window.dayjs_plugin_relativeTime);
+        </script>
     </head>
     <body class="font-sans antialiased text-sm sm:text-base">
         <div class="min-h-screen bg-gray-100">
