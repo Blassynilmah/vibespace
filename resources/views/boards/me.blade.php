@@ -626,7 +626,7 @@
 
                             <!-- Teaser Comments Modal -->
                             <template x-if="showTeaserComments && activeTeaserComments && activeTeaserComments.id === item.id">
-                                <div class="absolute left-0 bottom-0 w-full h-1/2 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
+                                <div class="absolute left-0 bottom-0 w-full h-3/4 bg-white/95 rounded-b-2xl z-40 flex flex-col shadow-2xl"
                                     style="backdrop-filter: blur(8px);">
                                     <!-- Input Field -->
                                     <div class="p-3 border-b flex items-center gap-2">
@@ -666,8 +666,8 @@
                                                     </button>
                                                 </div>
                                                 <!-- Replies & Reply Input -->
-                                                <div class="mt-6 flex flex-col gap-2">
-                                                    <div class="mt-6 flex flex-row gap-4 items-center">
+                                                <div class="flex flex-col gap-2">
+                                                    <div class="mt-2 flex flex-row gap-4 items-center">
                                                         <button 
                                                             @click="toggleReplies(comment)" 
                                                             class="text-blue-600 hover:underline text-xs font-medium"
