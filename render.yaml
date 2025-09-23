@@ -1,0 +1,51 @@
+services:
+  - type: web
+    name: vibespace
+    env: php
+    plan: free
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
+      npm install && npm run build
+    startCommand: |
+      php artisan migrate --force
+      php artisan serve --host 0.0.0.0 --port 10000
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        sync: false   # You'll set this manually in Render dashboard
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        value: https://vibespace.onrender.com
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: vibespace-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: vibespace-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: vibespace-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: vibespace-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: vibespace-db
+          property: password
+
+databases:
+  - name: vibespace-db
+    plan: free
+    databaseName: vibespace
+    user: vibespace_user
