@@ -75,7 +75,7 @@
             </div>
 
             {{-- Mobile Top Nav (Visible on small screens only) --}}
-            <div class="lg:hidden sticky top-0 z-[999] bg-gradient-to-r from-pink-500 to-purple-600 shadow-md border-t border-white/20 border-b">
+            <div x-show="!(initialLoading && fromLogin)" class="lg:hidden sticky top-0 z-[999] bg-gradient-to-r from-pink-500 to-purple-600 shadow-md border-t border-white/20 border-b">
                 <div class="flex justify-around px-3 py-2 text-white text-sm">
                     <!-- Home -->
                     <a href="{{ route('home') }}"
