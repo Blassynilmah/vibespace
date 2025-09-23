@@ -30,6 +30,16 @@ use App\Http\Controllers\SettingsController;
 |--------------------------------------------------------------------------
 */
 
+Route::get('/db-test', function () {
+    try {
+        \DB::connection()->getPdo();
+        return 'Connected to DB: ' . env('DB_DATABASE');
+    } catch (\Exception $e) {
+        return 'DB Connection failed: ' . $e->getMessage();
+    }
+});
+
+
 // Make sure this route comes BEFORE any resource routes like /boards/{id}
 Route::middleware('auth:sanctum')->get('/boards/me', [BoardController::class, 'myBoards']);
 
