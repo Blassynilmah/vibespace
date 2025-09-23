@@ -1,27 +1,51 @@
 services:
   - type: web
-    name: blassy
-    env: docker
-    plan: starter
-    region: oregon
-    dockerfilePath: ./Dockerfile
-    autoDeploy: true
+    name: vibespace
+    env: php
+    plan: free
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:cache
+      php artisan route:cache
+      php artisan view:cache
+      npm install && npm run build
+    startCommand: |
+      php artisan migrate --force
+      php artisan serve --host 0.0.0.0 --port 10000
     envVars:
       - key: APP_ENV
         value: production
+      - key: APP_KEY
+        sync: false   # You'll set this manually in Render dashboard
       - key: APP_DEBUG
-        value: true
+        value: false
       - key: APP_URL
-        value: https://blassy.onrender.com
+        value: https://vibespace.onrender.com
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        value: dpg-d2u30n3uibrs73f9jr6g-a.render.com
+        fromDatabase:
+          name: vibespace-db
+          property: host
       - key: DB_PORT
-        value: 5432
+        fromDatabase:
+          name: vibespace-db
+          property: port
       - key: DB_DATABASE
-        value: blassy_db
+        fromDatabase:
+          name: vibespace-db
+          property: database
       - key: DB_USERNAME
-        value: blassy_db_user
+        fromDatabase:
+          name: vibespace-db
+          property: user
       - key: DB_PASSWORD
-        value: vXviAKaDlgE1XVeO45ZR5msr3w1kUzfA
+        fromDatabase:
+          name: vibespace-db
+          property: password
+
+databases:
+  - name: vibespace-db
+    plan: free
+    databaseName: vibespace
+    user: vibespace_user
