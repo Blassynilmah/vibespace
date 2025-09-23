@@ -39,6 +39,16 @@ Route::get('/db-test', function () {
     }
 });
 
+// Debug session
+Route::get('/debug-session', function () {
+    return response()->json([
+        'session_id' => session()->getId(),
+        'user_id' => auth()->id(),   // null if not logged in
+        'csrf_token' => csrf_token(), // check the CSRF token being generated
+    ]);
+});
+
+
 
 
 // Make sure this route comes BEFORE any resource routes like /boards/{id}
