@@ -1,61 +1,61 @@
 <x-guest-layout>
-    <div id="register-bg">
-        <div id="register-container">
-            <div id="register-header">
-                <h2 id="register-title">Create Your Vibe 🎉</h2>
-                <p id="register-subtitle">Join the space and express your mood</p>
+    <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-purple-600 px-4">
+        <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
+            <div class="mb-6 text-center">
+                <h2 class="text-3xl font-extrabold text-pink-500">Create Your Vibe 🎉</h2>
+                <p class="text-sm text-purple-500 mt-1">Join the space and express your mood</p>
             </div>
 
             {{-- Global form validation error --}}
-            <div id="form-message" class="hidden">
+            <div id="form-message" class="hidden text-sm text-red-500 mb-4 text-center bg-red-100 rounded p-2">
                 Please fill in all fields.
             </div>
 
             {{-- Registration Form --}}
-            <form method="POST" action="{{ route('register') }}" id="register-form">
+            <form method="POST" action="{{ route('register') }}" id="register-form" class="space-y-5">
                 @csrf
 
                 {{-- Username --}}
-                <div id="username-group">
+                <div>
                     <x-input-label for="username" :value="__('Username')" />
-                    <x-text-input id="username" type="text" name="username" :value="old('username')" required autofocus autocomplete="username" />
-                    <x-input-error :messages="$errors->get('username')" />
+                    <x-text-input id="username" class="block mt-1 w-full" type="text" name="username" :value="old('username')" required autofocus autocomplete="username" />
+                    <x-input-error :messages="$errors->get('username')" class="mt-2" />
                 </div>
 
                 {{-- Email --}}
-                <div id="email-group">
+                <div>
                     <x-input-label for="email" :value="__('Email')" />
-                    <x-text-input id="email" type="email" name="email" :value="old('email')" required />
-                    <x-input-error :messages="$errors->get('email')" />
+                    <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required />
+                    <x-input-error :messages="$errors->get('email')" class="mt-2" />
                 </div>
 
                 {{-- Password --}}
-                <div id="password-group">
+                <div>
                     <x-input-label for="password" :value="__('Password')" />
-                    <x-text-input id="password" type="password" name="password" required autocomplete="new-password" />
-                    <x-input-error :messages="$errors->get('password')" />
+                    <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
+                    <x-input-error :messages="$errors->get('password')" class="mt-2" />
                 </div>
 
                 {{-- Confirm Password --}}
-                <div id="password-confirm-group">
+                <div>
                     <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
-                    <x-text-input id="password_confirmation" type="password" name="password_confirmation" required />
-                    <x-input-error :messages="$errors->get('password_confirmation')" />
+                    <x-text-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required />
+                    <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
                 </div>
 
                 {{-- Register Button --}}
-                <div id="register-btn-group">
-                    <x-primary-button id="register-btn">
+                <div>
+                    <x-primary-button id="register-btn" class="w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed">
                         {{ __('Register') }}
                     </x-primary-button>
                 </div>
             </form>
 
             {{-- Already have an account? --}}
-            <div id="login-link-group">
-                <p id="login-text">
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">
                     Already have an account?
-                    <a id="login-link" href="{{ route('login') }}">
+                    <a href="{{ route('login') }}" class="text-purple-600 hover:underline font-semibold ml-1">
                         Log in here
                     </a>
                 </p>
@@ -83,117 +83,31 @@
 
                 formMessage.classList.toggle('hidden', allFilled);
                 formMessage.classList.toggle('block', !allFilled);
+                console.log('Validation checked:', {
+                    username: requiredFields[0].value,
+                    email: requiredFields[1].value,
+                    password: requiredFields[2].value,
+                    password_confirmation: requiredFields[3].value,
+                    allFilled
+                });
             };
 
-            requiredFields.forEach(field => field.addEventListener('input', validate));
+            requiredFields.forEach(field => field.addEventListener('input', (e) => {
+                console.log(`${field.id} input:`, field.value);
+                validate();
+            }));
+
+            form.addEventListener('submit', (e) => {
+                console.log('Register button pressed');
+                console.log('Form values:', {
+                    username: requiredFields[0].value,
+                    email: requiredFields[1].value,
+                    password: requiredFields[2].value,
+                    password_confirmation: requiredFields[3].value
+                });
+            });
+
             validate(); // initial check
         });
     </script>
-<style>
-    /* Background matches homepage */
-    #register-bg {
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
-        padding-left: 1rem;
-        padding-right: 1rem;
-    }
-    #register-container {
-        width: 100%;
-        max-width: 400px;
-        background: #fff;
-        border-radius: 1.5rem;
-        box-shadow: 0 8px 32px rgba(236,72,153,0.12), 0 2px 8px rgba(139,92,246,0.08);
-        padding: 2.5rem 2rem;
-    }
-    #register-header {
-        margin-bottom: 1.5rem;
-        text-align: center;
-    }
-    #register-title {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #ec4899;
-        letter-spacing: -1px;
-    }
-    #register-subtitle {
-        font-size: 1rem;
-        color: #8b5cf6;
-        margin-top: 0.25rem;
-        font-weight: 500;
-    }
-    #form-message {
-        font-size: 0.95rem;
-        color: #ef4444;
-        margin-bottom: 1rem;
-        text-align: center;
-        background: #fee2e2;
-        border-radius: 0.5rem;
-        padding: 0.5rem 0;
-    }
-    #register-form {
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-    }
-    #username-group, #email-group, #password-group, #password-confirm-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    #register-btn-group {
-        margin-top: 0.5rem;
-    }
-    #register-btn {
-        width: 100%;
-        display: flex;
-        justify-content: center;
-        background: linear-gradient(90deg, #ec4899 0%, #8b5cf6 100%);
-        color: #fff;
-        font-weight: 700;
-        border-radius: 0.75rem;
-        padding: 0.75rem 0;
-        font-size: 1rem;
-        box-shadow: 0 2px 8px rgba(236,72,153,0.08);
-        transition: background 0.2s;
-    }
-    #register-btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    #login-link-group {
-        margin-top: 1.5rem;
-        text-align: center;
-    }
-    #login-text {
-        font-size: 0.95rem;
-        color: #6b7280;
-    }
-    #login-link {
-        color: #8b5cf6;
-        text-decoration: underline;
-        font-weight: 600;
-        margin-left: 0.25rem;
-        transition: color 0.2s;
-    }
-    #login-link:hover {
-        color: #ec4899;
-    }
-    /* Disabled button styles */
-    .opacity-50 {
-        opacity: 0.5 !important;
-    }
-    .cursor-not-allowed {
-        cursor: not-allowed !important;
-    }
-    .block {
-        display: block !important;
-    }
-    .hidden {
-        display: none !important;
-    }
-</style>
 </x-guest-layout>
