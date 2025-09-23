@@ -49,8 +49,6 @@ Route::get('/debug-session', function () {
 });
 
 
-
-
 // Make sure this route comes BEFORE any resource routes like /boards/{id}
 Route::middleware('auth:sanctum')->get('/boards/me', [BoardController::class, 'myBoards']);
 
