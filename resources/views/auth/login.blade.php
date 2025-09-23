@@ -84,99 +84,123 @@ document.addEventListener('DOMContentLoaded', () => {
   validate()
 })
     </script>
-    <style>
-        #login-bg {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #f3f4f6;
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-        #login-container {
-            width: 100%;
-            max-width: 400px;
-            background: #fff;
-            border-radius: 1rem;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-            padding: 2rem;
-        }
-        #login-header {
-            margin-bottom: 1.5rem;
-            text-align: center;
-        }
-        #login-title {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #1f2937;
-        }
-        #login-subtitle {
-            font-size: 0.95rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
-        }
-        #session-status {
-            margin-bottom: 1rem;
-        }
-        #login-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-        }
-        #email-group, #password-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-        #remember-group {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        #remember-label {
-            display: inline-flex;
-            align-items: center;
-        }
-        #remember-text {
-            margin-left: 0.5rem;
-            font-size: 0.95rem;
-            color: #4b5563;
-        }
-        #forgot-link {
-            font-size: 0.95rem;
-            color: #6366f1;
-            text-decoration: underline;
-        }
-        #login-btn-group {
-            margin-top: 0.5rem;
-        }
-        #login-btn {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-        }
-        #register-link-group {
-            margin-top: 1.5rem;
-            text-align: center;
-        }
-        #register-text {
-            font-size: 0.95rem;
-            color: #4b5563;
-        }
-        #register-link {
-            color: #6366f1;
-            text-decoration: underline;
-            font-weight: 500;
-            margin-left: 0.25rem;
-        }
-        /* Disabled button styles */
-        .opacity-50 {
-            opacity: 0.5 !important;
-        }
-        .cursor-not-allowed {
-            cursor: not-allowed !important;
-        }
-    </style>
+<style>
+    /* Background matches homepage */
+    #login-bg {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    #login-container {
+        width: 100%;
+        max-width: 400px;
+        background: #fff;
+        border-radius: 1.5rem;
+        box-shadow: 0 8px 32px rgba(236,72,153,0.12), 0 2px 8px rgba(139,92,246,0.08);
+        padding: 2.5rem 2rem;
+    }
+    #login-header {
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    #login-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #ec4899;
+        letter-spacing: -1px;
+    }
+    #login-subtitle {
+        font-size: 1rem;
+        color: #8b5cf6;
+        margin-top: 0.25rem;
+        font-weight: 500;
+    }
+    #session-status {
+        margin-bottom: 1rem;
+    }
+    #login-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+    #email-group, #password-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    #remember-group {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    #remember-label {
+        display: inline-flex;
+        align-items: center;
+    }
+    #remember-text {
+        margin-left: 0.5rem;
+        font-size: 0.95rem;
+        color: #4b5563;
+    }
+    #forgot-link {
+        font-size: 0.95rem;
+        color: #8b5cf6;
+        text-decoration: underline;
+        font-weight: 600;
+        transition: color 0.2s;
+    }
+    #forgot-link:hover {
+        color: #ec4899;
+    }
+    #login-btn-group {
+        margin-top: 0.5rem;
+    }
+    #login-btn {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        background: linear-gradient(90deg, #ec4899 0%, #8b5cf6 100%);
+        color: #fff;
+        font-weight: 700;
+        border-radius: 0.75rem;
+        padding: 0.75rem 0;
+        font-size: 1rem;
+        box-shadow: 0 2px 8px rgba(236,72,153,0.08);
+        transition: background 0.2s;
+    }
+    #login-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    #register-link-group {
+        margin-top: 1.5rem;
+        text-align: center;
+    }
+    #register-text {
+        font-size: 0.95rem;
+        color: #6b7280;
+    }
+    #register-link {
+        color: #8b5cf6;
+        text-decoration: underline;
+        font-weight: 600;
+        margin-left: 0.25rem;
+        transition: color 0.2s;
+    }
+    #register-link:hover {
+        color: #ec4899;
+    }
+    /* Disabled button styles */
+    .opacity-50 {
+        opacity: 0.5 !important;
+    }
+    .cursor-not-allowed {
+        cursor: not-allowed !important;
+    }
+</style>
 </x-guest-layout>
