@@ -3,7 +3,7 @@ FROM php:8.3-fpm
 
 # Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
-    git curl libpng-dev libjpeg-dev libfreetype6-dev zip unzip \
+    git curl libpng-dev libjpeg-dev libfreetype6-dev zip unzip libpq-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install pdo pdo_mysql gd bcmath pdo_pgsql
 
