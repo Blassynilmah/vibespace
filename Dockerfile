@@ -1,11 +1,11 @@
 # Use official PHP image with extensions
 FROM php:8.3-fpm
 
-# Install system dependencies
+# Install system dependencies and PHP extensions
 RUN apt-get update && apt-get install -y \
     git curl libpng-dev libjpeg-dev libfreetype6-dev zip unzip \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql gd bcmath
+    && docker-php-ext-install pdo pdo_mysql gd bcmath pdo_pgsql
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -13,13 +13,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Set working directory
 WORKDIR /var/www
 
-# Copy only composer files first
+# Copy composer files first for better caching
 COPY composer.json composer.lock ./
 
 # Copy the rest of the app
 COPY . .
 
-# Install PHP dependencies
+# Install PHP dependencies (after artisan is present)
 RUN composer install --no-dev --optimize-autoloader
 
 # Set proper permissions
