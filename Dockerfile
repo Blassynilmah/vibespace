@@ -37,27 +37,25 @@ WORKDIR /var/www
 # Copy composer files first for dependency cache
 COPY composer.json composer.lock ./
 
-# Ensure Laravel cache dirs exist before composer install
-RUN mkdir -p bootstrap/cache \
-    && mkdir -p storage/framework/{cache,sessions,views}
-
 # Copy rest of the app (including artisan and all source files)
 COPY . .
 
-# Ensure Laravel cache and storage directories exist
+# Ensure Laravel cache and storage directories exist and are writable
 RUN mkdir -p bootstrap/cache \
     && mkdir -p storage/framework/cache \
     && mkdir -p storage/framework/sessions \
-    && mkdir -p storage/framework/views
+    && mkdir -p storage/framework/views \
+    && touch bootstrap/cache/.gitignore \
+    && touch storage/framework/cache/.gitignore \
+    && touch storage/framework/sessions/.gitignore \
+    && touch storage/framework/views/.gitignore \
+    && chown -R www-data:www-data storage bootstrap/cache
 
 # Install PHP dependencies (no dev, optimized for prod)
 RUN composer install --no-dev --optimize-autoloader
 
 # Copy built frontend assets from stage 1
 COPY --from=frontend /app/public/build ./public/build
-
-# Fix permissions
-RUN chown -R www-data:www-data storage bootstrap/cache
 
 # Expose port
 EXPOSE 8000
