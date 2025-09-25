@@ -1,7 +1,30 @@
-# Use official PHP image with extensions
-FROM php:8.3-fpm
+# ---------------------------
+# Stage 1: Build assets
+# ---------------------------
+FROM node:20 AS frontend
 
-# Install system dependencies and PHP extensions
+WORKDIR /app
+
+# Copy package files first for caching
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm install
+
+# Copy all frontend resources
+COPY resources ./resources
+COPY vite.config.js ./
+
+# Build assets
+RUN npm run build
+
+
+# ---------------------------
+# Stage 2: PHP + Composer
+# ---------------------------
+FROM php:8.3-fpm AS backend
+
+# Install system dependencies + PHP extensions
 RUN apt-get update && apt-get install -y \
     git curl libpng-dev libjpeg-dev libfreetype6-dev zip unzip libpq-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
@@ -10,28 +33,30 @@ RUN apt-get update && apt-get install -y \
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Set working directory
 WORKDIR /var/www
 
-# Copy composer files first for better caching
+# Copy composer files first for dependency cache
 COPY composer.json composer.lock ./
 
-# Copy the rest of the app
+# Ensure Laravel cache dirs exist before composer install
+RUN mkdir -p bootstrap/cache \
+    && mkdir -p storage/framework/{cache,sessions,views}
+
+# Install PHP dependencies (no dev, optimized for prod)
+RUN composer install --no-dev --optimize-autoloader
+
+# Copy rest of the app
 COPY . .
 
-# ... your earlier lines ...
+# Copy built frontend assets from stage 1
+COPY --from=frontend /app/resources ./resources
+COPY --from=frontend /app/dist ./public/build
 
-# Install PHP dependencies (after artisan is present)
-RUN mkdir -p /var/www/html/bootstrap/cache \
-    && mkdir -p /var/www/html/storage/framework/{cache,sessions,views} \
-    && composer install --no-dev --optimize-autoloader
+# Fix permissions
+RUN chown -R www-data:www-data storage bootstrap/cache
 
-
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
-
-# Expose port 8000
+# Expose port
 EXPOSE 8000
 
-# Run Laravel with PHP's built-in server
+# Start Laravel with PHP built-in server
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
