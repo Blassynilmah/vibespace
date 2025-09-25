@@ -19,8 +19,13 @@ COPY composer.json composer.lock ./
 # Copy the rest of the app
 COPY . .
 
+# ... your earlier lines ...
+
 # Install PHP dependencies (after artisan is present)
-RUN composer install --no-dev --optimize-autoloader
+RUN mkdir -p /var/www/html/bootstrap/cache \
+    && mkdir -p /var/www/html/storage/framework/{cache,sessions,views} \
+    && composer install --no-dev --optimize-autoloader
+
 
 # Set proper permissions
 RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
