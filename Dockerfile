@@ -42,11 +42,11 @@ COPY composer.json composer.lock ./
 RUN mkdir -p bootstrap/cache \
     && mkdir -p storage/framework/{cache,sessions,views}
 
-# Install PHP dependencies (no dev, optimized for prod)
-RUN composer install --no-dev --optimize-autoloader
-
 # Copy rest of the app
 COPY . .
+
+# Install PHP dependencies (no dev, optimized for prod)
+RUN composer install --no-dev --optimize-autoloader
 
 # Copy built frontend assets from stage 1
 COPY --from=frontend /app/resources ./resources
