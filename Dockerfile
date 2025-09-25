@@ -18,7 +18,6 @@ COPY vite.config.js ./
 # Build assets
 RUN npm run build
 
-
 # ---------------------------
 # Stage 2: PHP + Composer
 # ---------------------------
@@ -42,14 +41,13 @@ COPY composer.json composer.lock ./
 RUN mkdir -p bootstrap/cache \
     && mkdir -p storage/framework/{cache,sessions,views}
 
-# Copy rest of the app
+# Copy rest of the app (including artisan and all source files)
 COPY . .
 
 # Install PHP dependencies (no dev, optimized for prod)
 RUN composer install --no-dev --optimize-autoloader
 
 # Copy built frontend assets from stage 1
-COPY --from=frontend /app/resources ./resources
 COPY --from=frontend /app/public/build ./public/build
 
 # Fix permissions
