@@ -50,7 +50,7 @@ COPY . .
 
 # Copy built frontend assets from stage 1
 COPY --from=frontend /app/resources ./resources
-COPY --from=frontend /app/dist ./public/build
+COPY --from=frontend /app/public/build ./public/build
 
 # Fix permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
