@@ -44,6 +44,12 @@ RUN mkdir -p bootstrap/cache \
 # Copy rest of the app (including artisan and all source files)
 COPY . .
 
+# Ensure Laravel cache and storage directories exist
+RUN mkdir -p bootstrap/cache \
+    && mkdir -p storage/framework/cache \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views
+
 # Install PHP dependencies (no dev, optimized for prod)
 RUN composer install --no-dev --optimize-autoloader
 
