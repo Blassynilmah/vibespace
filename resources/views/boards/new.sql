@@ -68,94 +68,7 @@ CREATE INDEX IF NOT EXISTS idx_blocks_blocker_blocked
     WITH (fillfactor=100, deduplicate_items=True)
     TABLESPACE pg_default;
 
--- Table: public.cache
 
--- DROP TABLE IF EXISTS public.cache;
-
-CREATE TABLE IF NOT EXISTS public.cache
-(
-    key character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    value text COLLATE pg_catalog."default" NOT NULL,
-    expiration integer NOT NULL,
-    CONSTRAINT cache_pkey PRIMARY KEY (key)
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.cache
-    OWNER to postgres;
-
--- Table: public.cache_locks
-
--- DROP TABLE IF EXISTS public.cache_locks;
-
-CREATE TABLE IF NOT EXISTS public.cache_locks
-(
-    key character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    owner character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    expiration integer NOT NULL,
-    CONSTRAINT cache_locks_pkey PRIMARY KEY (key)
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.cache_locks
-    OWNER to postgres;
-
--- Table: public.comment_reactions
-
--- DROP TABLE IF EXISTS public.comment_reactions;
-
-CREATE TABLE IF NOT EXISTS public.comment_reactions
-(
-    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 50 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    user_id bigint NOT NULL,
-    comment_id bigint NOT NULL,
-    type character varying(30) COLLATE pg_catalog."default" NOT NULL,
-    created_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
-    updated_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
-    CONSTRAINT comment_reactions_pkey PRIMARY KEY (id),
-    CONSTRAINT comment_reactions_comment_id_foreign FOREIGN KEY (comment_id)
-        REFERENCES public.comments (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE,
-    CONSTRAINT comment_reactions_id_check CHECK (id > 0),
-    CONSTRAINT comment_reactions_user_id_check CHECK (user_id > 0),
-    CONSTRAINT comment_reactions_comment_id_check CHECK (comment_id > 0),
-    CONSTRAINT comment_reactions_type_check CHECK (type::text = ANY (ARRAY['like'::character varying, 'dislike'::character varying]::text[]))
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.comment_reactions
-    OWNER to postgres;
-
--- Table: public.comments
-
--- DROP TABLE IF EXISTS public.comments;
-
-CREATE TABLE IF NOT EXISTS public.comments
-(
-    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1000 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    mood_board_id bigint NOT NULL,
-    user_id bigint NOT NULL,
-    body text COLLATE pg_catalog."default" NOT NULL,
-    created_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
-    updated_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
-    CONSTRAINT comments_pkey PRIMARY KEY (id),
-    CONSTRAINT comments_mood_board_id_foreign FOREIGN KEY (mood_board_id)
-        REFERENCES public.mood_boards (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE,
-    CONSTRAINT comments_id_check CHECK (id > 0),
-    CONSTRAINT comments_mood_board_id_check CHECK (mood_board_id > 0),
-    CONSTRAINT comments_user_id_check CHECK (user_id > 0)
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.comments
-    OWNER to postgres;
 
 -- Table: public.favorite_teasers
 
@@ -320,35 +233,6 @@ TABLESPACE pg_default;
 ALTER TABLE IF EXISTS public.migrations
     OWNER to postgres;
 
--- Table: public.mood_boards
-
--- DROP TABLE IF EXISTS public.mood_boards;
-
-CREATE TABLE IF NOT EXISTS public.mood_boards
-(
-    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1000 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    user_id bigint NOT NULL,
-    title character varying(255) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
-    description text COLLATE pg_catalog."default",
-    latest_mood character varying(30) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
-    image text COLLATE pg_catalog."default",
-    video character varying(255) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
-    created_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
-    updated_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
-    CONSTRAINT mood_boards_pkey PRIMARY KEY (id),
-    CONSTRAINT mood_boards_user_id_foreign FOREIGN KEY (user_id)
-        REFERENCES public.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE,
-    CONSTRAINT mood_boards_id_check CHECK (id > 0),
-    CONSTRAINT mood_boards_user_id_check CHECK (user_id > 0),
-    CONSTRAINT mood_boards_latest_mood_check CHECK (latest_mood::text = ANY (ARRAY[''::character varying, 'excited'::character varying, 'happy'::character varying, 'chill'::character varying, 'thoughtful'::character varying, 'sad'::character varying, 'flirty'::character varying, 'mindblown'::character varying, 'love'::character varying]::text[]))
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.mood_boards
-    OWNER to postgres;
 
 -- Table: public.mutes
 
@@ -421,6 +305,148 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.password_reset_tokens
     OWNER to postgres;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-- Table: public.cache
+
+-- DROP TABLE IF EXISTS public.cache;
+
+CREATE TABLE IF NOT EXISTS public.cache
+(
+    key character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    value text COLLATE pg_catalog."default" NOT NULL,
+    expiration integer NOT NULL,
+    CONSTRAINT cache_pkey PRIMARY KEY (key)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.cache
+    OWNER to postgres;
+
+-- Table: public.cache_locks
+
+-- DROP TABLE IF EXISTS public.cache_locks;
+
+CREATE TABLE IF NOT EXISTS public.cache_locks
+(
+    key character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    owner character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    expiration integer NOT NULL,
+    CONSTRAINT cache_locks_pkey PRIMARY KEY (key)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.cache_locks
+    OWNER to postgres;
+
+-- Table: public.comment_reactions
+
+-- DROP TABLE IF EXISTS public.comment_reactions;
+
+CREATE TABLE IF NOT EXISTS public.comment_reactions
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 50 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    user_id bigint NOT NULL,
+    comment_id bigint NOT NULL,
+    type character varying(30) COLLATE pg_catalog."default" NOT NULL,
+    created_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
+    updated_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
+    CONSTRAINT comment_reactions_pkey PRIMARY KEY (id),
+    CONSTRAINT comment_reactions_comment_id_foreign FOREIGN KEY (comment_id)
+        REFERENCES public.comments (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT comment_reactions_id_check CHECK (id > 0),
+    CONSTRAINT comment_reactions_user_id_check CHECK (user_id > 0),
+    CONSTRAINT comment_reactions_comment_id_check CHECK (comment_id > 0),
+    CONSTRAINT comment_reactions_type_check CHECK (type::text = ANY (ARRAY['like'::character varying, 'dislike'::character varying]::text[]))
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.comment_reactions
+    OWNER to postgres;
+
+-- Table: public.comments
+
+-- DROP TABLE IF EXISTS public.comments;
+
+CREATE TABLE IF NOT EXISTS public.comments
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1000 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    mood_board_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    body text COLLATE pg_catalog."default" NOT NULL,
+    created_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
+    updated_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
+    CONSTRAINT comments_pkey PRIMARY KEY (id),
+    CONSTRAINT comments_mood_board_id_foreign FOREIGN KEY (mood_board_id)
+        REFERENCES public.mood_boards (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT comments_id_check CHECK (id > 0),
+    CONSTRAINT comments_mood_board_id_check CHECK (mood_board_id > 0),
+    CONSTRAINT comments_user_id_check CHECK (user_id > 0)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.comments
+    OWNER to postgres;
+
+
 
 -- Table: public.personal_access_tokens
 
@@ -619,26 +645,6 @@ TABLESPACE pg_default;
 ALTER TABLE IF EXISTS public.seen_content
     OWNER to postgres;
 
--- Table: public.sessions
-
--- DROP TABLE IF EXISTS public.sessions;
-
-CREATE TABLE IF NOT EXISTS public.sessions
-(
-    id character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    user_id bigint,
-    ip_address character varying(45) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
-    user_agent text COLLATE pg_catalog."default",
-    payload text COLLATE pg_catalog."default" NOT NULL,
-    last_activity integer NOT NULL,
-    CONSTRAINT sessions_pkey PRIMARY KEY (id),
-    CONSTRAINT sessions_user_id_check CHECK (user_id > 0)
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.sessions
-    OWNER to postgres;
 
 -- Table: public.teaser_comment_reactions
 
@@ -746,65 +752,6 @@ TABLESPACE pg_default;
 ALTER TABLE IF EXISTS public.teaser_reactions
     OWNER to postgres;
 
--- Table: public.teaser_saves
-
--- DROP TABLE IF EXISTS public.teaser_saves;
-
-CREATE TABLE IF NOT EXISTS public.teaser_saves
-(
-    id bigint NOT NULL DEFAULT nextval('teaser_saves_id_seq'::regclass),
-    teaser_id bigint NOT NULL,
-    user_id bigint NOT NULL,
-    CONSTRAINT teaser_saves_pkey PRIMARY KEY (id),
-    CONSTRAINT teaser_saves_teaser_id_user_id_key UNIQUE (teaser_id, user_id),
-    CONSTRAINT teaser_saves_teaser_id_fkey FOREIGN KEY (teaser_id)
-        REFERENCES public.teasers (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE,
-    CONSTRAINT teaser_saves_user_id_fkey FOREIGN KEY (user_id)
-        REFERENCES public.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.teaser_saves
-    OWNER to postgres;
-
--- Table: public.teasers
-
--- DROP TABLE IF EXISTS public.teasers;
-
-CREATE TABLE IF NOT EXISTS public.teasers
-(
-    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1000 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
-    user_id bigint NOT NULL,
-    teaser_id character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    video character varying(1024) COLLATE pg_catalog."default",
-    hashtags text COLLATE pg_catalog."default",
-    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_after integer,
-    expires_on timestamp without time zone,
-    description text COLLATE pg_catalog."default",
-    teaser_mood character varying(16) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT teasers_pkey PRIMARY KEY (id),
-    CONSTRAINT teasers_ibfk_1 FOREIGN KEY (user_id)
-        REFERENCES public.users (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE,
-    CONSTRAINT teasers_id_check CHECK (id > 0),
-    CONSTRAINT teasers_user_id_check CHECK (user_id > 0),
-    CONSTRAINT teasers_expires_after_check CHECK (expires_after > 0),
-    CONSTRAINT teaser_mood_check CHECK (teaser_mood::text = ANY (ARRAY['hype'::character varying, 'funny'::character varying, 'shock'::character varying, 'love'::character varying]::text[]))
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.teasers
-    OWNER to postgres;
-
 -- Table: public.user_favorite_moodboards
 
 -- DROP TABLE IF EXISTS public.user_favorite_moodboards;
@@ -834,6 +781,51 @@ TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.user_favorite_moodboards
     OWNER to postgres;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- Table: public.user_files
 
@@ -889,4 +881,114 @@ CREATE TABLE IF NOT EXISTS public.users
 TABLESPACE pg_default;
 
 ALTER TABLE IF EXISTS public.users
+    OWNER to postgres;
+
+-- Table: public.teasers
+
+-- DROP TABLE IF EXISTS public.teasers;
+
+CREATE TABLE IF NOT EXISTS public.teasers
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1000 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    user_id bigint NOT NULL,
+    teaser_id character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    video character varying(1024) COLLATE pg_catalog."default",
+    hashtags text COLLATE pg_catalog."default",
+    created_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp without time zone NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_after integer,
+    expires_on timestamp without time zone,
+    description text COLLATE pg_catalog."default",
+    teaser_mood character varying(16) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT teasers_pkey PRIMARY KEY (id),
+    CONSTRAINT teasers_ibfk_1 FOREIGN KEY (user_id)
+        REFERENCES public.users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT teasers_id_check CHECK (id > 0),
+    CONSTRAINT teasers_user_id_check CHECK (user_id > 0),
+    CONSTRAINT teasers_expires_after_check CHECK (expires_after > 0),
+    CONSTRAINT teaser_mood_check CHECK (teaser_mood::text = ANY (ARRAY['hype'::character varying, 'funny'::character varying, 'shock'::character varying, 'love'::character varying]::text[]))
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.teasers
+    OWNER to postgres;
+
+-- Table: public.teaser_saves
+
+-- DROP TABLE IF EXISTS public.teaser_saves;
+
+CREATE TABLE IF NOT EXISTS public.teaser_saves
+(
+    id bigint NOT NULL DEFAULT nextval('teaser_saves_id_seq'::regclass),
+    teaser_id bigint NOT NULL,
+    user_id bigint NOT NULL,
+    CONSTRAINT teaser_saves_pkey PRIMARY KEY (id),
+    CONSTRAINT teaser_saves_teaser_id_user_id_key UNIQUE (teaser_id, user_id),
+    CONSTRAINT teaser_saves_teaser_id_fkey FOREIGN KEY (teaser_id)
+        REFERENCES public.teasers (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT teaser_saves_user_id_fkey FOREIGN KEY (user_id)
+        REFERENCES public.users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.teaser_saves
+    OWNER to postgres;
+
+-- Table: public.sessions
+
+-- DROP TABLE IF EXISTS public.sessions;
+
+CREATE TABLE IF NOT EXISTS public.sessions
+(
+    id character varying(255) COLLATE pg_catalog."default" NOT NULL,
+    user_id bigint,
+    ip_address character varying(45) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    user_agent text COLLATE pg_catalog."default",
+    payload text COLLATE pg_catalog."default" NOT NULL,
+    last_activity integer NOT NULL,
+    CONSTRAINT sessions_pkey PRIMARY KEY (id),
+    CONSTRAINT sessions_user_id_check CHECK (user_id > 0)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.sessions
+    OWNER to postgres;
+
+-- Table: public.mood_boards
+
+-- DROP TABLE IF EXISTS public.mood_boards;
+
+CREATE TABLE IF NOT EXISTS public.mood_boards
+(
+    id bigint NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1000 MINVALUE 1 MAXVALUE 9223372036854775807 CACHE 1 ),
+    user_id bigint NOT NULL,
+    title character varying(255) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    description text COLLATE pg_catalog."default",
+    latest_mood character varying(30) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    image text COLLATE pg_catalog."default",
+    video character varying(255) COLLATE pg_catalog."default" DEFAULT NULL::character varying,
+    created_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
+    updated_at timestamp(0) without time zone DEFAULT NULL::timestamp without time zone,
+    CONSTRAINT mood_boards_pkey PRIMARY KEY (id),
+    CONSTRAINT mood_boards_user_id_foreign FOREIGN KEY (user_id)
+        REFERENCES public.users (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE,
+    CONSTRAINT mood_boards_id_check CHECK (id > 0),
+    CONSTRAINT mood_boards_user_id_check CHECK (user_id > 0),
+    CONSTRAINT mood_boards_latest_mood_check CHECK (latest_mood::text = ANY (ARRAY[''::character varying, 'excited'::character varying, 'happy'::character varying, 'chill'::character varying, 'thoughtful'::character varying, 'sad'::character varying, 'flirty'::character varying, 'mindblown'::character varying, 'love'::character varying]::text[]))
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.mood_boards
     OWNER to postgres;
