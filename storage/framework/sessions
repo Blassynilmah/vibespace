@@ -1,8 +1,0 @@
-# Create the main project directory
-mkdir my_project
-cd my_project
-
-# Create the storage framework directories
-mkdir -p storage/framework/cache
-mkdir -p storage/framework/sessions
-mkdir -p storage/framework/view
