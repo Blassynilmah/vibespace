@@ -20,9 +20,16 @@ class AppServiceProvider extends ServiceProvider
      */
 public function boot()
 {
-    // Temporarily disable HTTPS forcing for local development
-     if ($this->app->environment('production')) {
-         URL::forceScheme('https');
-     }
+    // Force HTTPS in production
+    if ($this->app->environment('production')) {
+        URL::forceScheme('https');
+        
+        // Ensure session cookies work with HTTPS
+        config([
+            'session.secure' => true,
+            'session.http_only' => true,
+            'session.same_site' => 'lax'
+        ]);
+    }
 }
 }
