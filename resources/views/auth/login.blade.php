@@ -1,3 +1,4 @@
+
 <x-guest-layout>
     <div class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-purple-600 px-4">
         <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
@@ -47,12 +48,19 @@
                         {{ __('Log in') }}
                     </x-primary-button>
                 </div>
+
+                {{-- Add link to dummy page --}}
+                <div class="mt-4 text-center">
+                    <a href="{{ route('dummy-csrf') }}" class="text-sm text-blue-600 hover:underline">
+                        → Go to Dummy CSRF Page
+                    </a>
+                </div>
             </form>
 
             {{-- No account? Register link --}}
             <div class="mt-6 text-center">
                 <p class="text-sm text-gray-600">
-                    Don’t have an account?
+                    Don't have an account?
                     <a href="{{ route('register') }}" class="text-purple-600 hover:underline font-semibold ml-1">
                         Create one
                     </a>
@@ -61,9 +69,21 @@
         </div>
     </div>
 
-    {{-- JS to handle live validation and log events --}}
+    {{-- JS to handle live validation and log CSRF token --}}
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // Log CSRF token when page loads
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                         document.querySelector('input[name="_token"]')?.value;
+        
+        console.log('🔐 LOGIN PAGE - CSRF Token:', csrfToken);
+        console.log('🔐 LOGIN PAGE - Session ID:', '{{ session()->getId() }}');
+        console.log('🔐 LOGIN PAGE - Current URL:', window.location.href);
+        
+        // Store in localStorage for comparison
+        localStorage.setItem('login_csrf_token', csrfToken);
+        localStorage.setItem('login_session_id', '{{ session()->getId() }}');
+        
         const form = document.getElementById('login-form');
         if (!form) {
             console.log('Login form not found');
@@ -96,11 +116,12 @@
         });
 
         form.addEventListener('submit', (e) => {
-            console.log('Login button pressed');
+            console.log('🚀 LOGIN FORM SUBMITTED');
             console.log('Form values:', {
                 email: email.value,
                 password: password.value,
-                remember: document.getElementById('remember_me').checked
+                remember: document.getElementById('remember_me').checked,
+                csrf_token: csrfToken
             });
         });
 

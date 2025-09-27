@@ -39,6 +39,10 @@ Route::get('/db-test', function () {
     }
 });
 
+Route::get('/dummy-csrf', function () {
+    return view('dummy-csrf');
+})->name('dummy-csrf');
+
 // Debug session
 Route::get('/debug-session', function () {
     return response()->json([
