@@ -39,8 +39,9 @@ Route::get('/db-test', function () {
     }
 });
 
+// Change this line:
 Route::get('/dummy-csrf', function () {
-    return view('dummy-csrf');
+    return view('dummy-csfr'); // Note: 'csfr' not 'csrf' to match your filename
 })->name('dummy-csrf');
 
 // Debug session
